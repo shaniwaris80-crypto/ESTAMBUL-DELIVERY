@@ -107,3 +107,12 @@ Si el rider tiene **cero pedidos pendientes**, pero existen pedidos antiguos ent
 5. Pulsa **Terminar día provisional y ponerme offline** y acepta la confirmación.
 
 El servidor registra un cierre `is_provisional=true` y conserva un resumen con las líneas de pedido y el importe sin clasificar. Los pagos desconocidos **no se pasan automáticamente** a efectivo o tarjeta y las diferencias de caja se calculan solo sobre efectivo identificado. En el administrador aparece la etiqueta **PROVISIONAL**. Si hay entregas abiertas, el cierre sigue bloqueado; hay que completarlas o reasignarlas. Una vez cerrado, el repartidor queda offline hasta el día siguiente (Europe/Madrid). La acción es explícita: no se ejecuta de forma automática.
+
+
+## Rider interfaz 2.1: entregas activas e historial independiente
+
+**La vista principal únicamente muestra** pedidos activos del rider: EN REPARTO arriba, POR RECOGER/PREPARAR debajo. Al confirmar una entrega, se retira de esta lista automáticamente en la siguiente actualización y queda en **Historial de entregas**, cerrado por defecto. El historial reciente se abre al pulsar Mostrar y utiliza filas compactas de referencia, cliente, importe y forma de pago, sin repetir toda la tarjeta de trabajo. El backend **NO borra pedidos**: todos siguen disponibles para el administrador y para los arqueos.
+
+**Avisos reforzados:** pulsar **Activar alertas** con interacción del usuario; Probar alarma reproduce la secuencia. Tras una asignación nueva detectada en el sondeo de 5 segundos, se muestra un banner rojo de alta visibilidad que requiere tocar **He visto el pedido** para cerrarse. Con sonido activado y la app visible reproduce una secuencia de seis tonos Web Audio, de nivel moderado, hasta tres veces separadas por aproximadamente seis segundos, y vibración cuando el móvil la admite. Al confirmar, se interrumpen los recordatorios. Nunca prometer alarmas fiables con el móvil bloqueado o el navegador suspendido: siguen pendientes las notificaciones push reales.
+
+Si ya había asignaciones al iniciar sesión, aparecen en la lista activa pero no se crea una alarma falsa por ellas. Durante la sesión, las nuevas asignaciones sí activan alerta. Historial mostrado en la web: los pedidos dentro del límite de 100 registros recientes de la consulta del Rider. La conciliación diaria utiliza las consultas del servidor, no depende del historial visible.
