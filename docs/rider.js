@@ -23,6 +23,74 @@ let orders = [], busy = false, inFlight = false, showDone = true, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
 
+let shiftReport=null;
+function cashLabel(v){return euros(Number(v||0));}
+function shiftItems(list,kind){
+ const items=list.filter(o=>kind==="unknown"?!o.payment_method:o.payment_method===kind);
+ return items.length?items.map(o=>'<div class="shift-line"><div><strong>#'+escapeText(o.reference)+'</strong><small>'+escapeText(o.customer_name)+(o.legacy_timestamp?" · fecha estimada":"")+'</small></div><strong>'+cashLabel(o.amount)+'</strong></div>').join("")
+  :'<p class="shift-none">Ningún pedido.</p>';
+}
+function cashDifference(){
+ if(!shiftReport)return;
+ const raw=$("declaredCash").value;
+ if(raw===""){$("shiftDifference").textContent="Introduce el efectivo contado para calcular la diferencia.";return;}
+ const val=Number(raw);
+ if(!Number.isFinite(val)||val<0)return;
+ const delta=Math.round((val-Number(shiftReport.cash_expected||0))*100)/100;
+ $("shiftDifference").textContent="Diferencia: "+cashLabel(delta)+(delta===0?" · Cuadra":delta<0?" · Falta dinero":" · Sobra dinero");
+}
+function drawCashClose(data){
+ shiftReport=data;
+ const orders=Array.isArray(data.orders)?data.orders:[];
+ $("shiftDateLabel").textContent="Día "+data.shift_day+" · "+data.completed_count+" entregas realizadas";
+ const groups=[{type:"efectivo",name:"💶 EFECTIVO",count:data.cash_count,total:data.cash_expected},
+   {type:"tarjeta",name:"💳 TARJETA",count:data.card_count,total:data.card_total},
+   {type:"unknown",name:"⚠️ POR CLASIFICAR",count:data.unknown_count,total:data.unknown_total}];
+ $("dayCloseTotals").innerHTML='<div><small>Efectivo esperado</small><strong>'+cashLabel(data.cash_expected)+'</strong></div>'+
+   '<div><small>Tarjeta</small><strong>'+cashLabel(data.card_total)+'</strong></div>'+
+   '<div><small>Sin clasificar</small><strong>'+cashLabel(data.unknown_total)+'</strong></div>'+
+   '<div class="shift-grand"><small>TOTAL REPARTIDO</small><strong>'+cashLabel(data.grand_total)+'</strong></div>';
+ $("dayCloseOrders").innerHTML=groups.map(g=>
+  '<section class="shift-group"><h3>'+g.name+' <span>'+g.count+' pedidos · '+cashLabel(g.total)+'</span></h3>'+
+   shiftItems(orders,g.type)+'</section>').join("");
+ const warnings=[];
+ if(Number(data.pending_count)>0)warnings.push(data.pending_count+" entregas sin terminar");
+ if(Number(data.unknown_count)>0)warnings.push(data.unknown_count+" pedidos sin método de pago: el administrador debe completarlo");
+ if(Number(data.legacy_count)>0)warnings.push(data.legacy_count+" entregas antiguas con fecha estimada (última modificación)");
+ $("shiftWarning").textContent=warnings.join(". ");
+ $("shiftWarning").hidden=!warnings.length;
+ $("finalizeDay").disabled=!!data.closed||Number(data.pending_count)>0||Number(data.unknown_count)>0;
+ $("dayCloseInputs").hidden=Boolean(data.closed);
+ $("dayCloseDone").hidden=!data.closed;
+ if(data.closed){
+  $("dayCloseDone").textContent="✓ Jornada cerrada y rider offline. Efectivo contado: "+cashLabel(data.cash_declared)+
+    " · Diferencia: "+cashLabel(data.cash_difference)+".";
+  rider.online=false;
+  $("onlineLabel").textContent="Jornada cerrada";
+  $("onlineLight").classList.toggle("active",false);
+  $("availabilityButton").disabled=true;
+ }
+ cashDifference();
+}
+async function previewCashClose(){
+ const data=await withAuth("/rest/v1/rpc/ed_shift_preview",{method:"POST",body:"{}"});
+ $("dayClosePanel").hidden=false;$("dayCloseError").hidden=true;
+ drawCashClose(data);return data;
+}
+function archeoText(data){
+ const line=["*ESTAMBUL DELIVERY · ARQUEO*","Fecha: "+data.shift_day,"Rider: "+(rider?.display_name||""),
+  "Entregas: "+data.completed_count,""];
+ for(const [title,type,total] of [["EFECTIVO","efectivo",data.cash_expected],["TARJETA","tarjeta",data.card_total],["SIN CLASIFICAR",null,data.unknown_total]]){
+  line.push("*"+title+"*");
+  for(const o of data.orders||[])if(o.payment_method===type)line.push("#"+o.reference+" - "+o.customer_name+" - "+cashLabel(o.amount));
+  line.push("Subtotal: "+cashLabel(total),"");
+ }
+ line.push("*TOTAL REPARTIDO: "+cashLabel(data.grand_total)+"*");
+ if(data.closed)line.push("Efectivo declarado: "+cashLabel(data.cash_declared),"Diferencia: "+cashLabel(data.cash_difference),"Cierre guardado");
+ return line.join("\n");
+}
+
+
 const routeState={ids:[],coordsOptimized:false};
 function routeStopsOrdered(){
  const active=orders.filter(o=>["asignado","recogido","en_ruta"].includes(o.status));
@@ -386,6 +454,44 @@ $("optimizeRoute").addEventListener("click",()=>{
   routeState.coordsOptimized=true;renderRoute();
  },()=>{$("optimizeRoute").disabled=false;$("routeHint").textContent="Ubicación no disponible; ordena las paradas manualmente.";},
  {enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+});
+
+
+$("reviewDay").addEventListener("click",async()=>{
+ if(!$("dayClosePanel").hidden){$("dayClosePanel").hidden=true;return;}
+ $("reviewDay").disabled=true;
+ try{await previewCashClose();}
+ catch(e){$("dayClosePanel").hidden=false;$("dayCloseError").hidden=false;$("dayCloseError").textContent=e.message||String(e);}
+ finally{$("reviewDay").disabled=false;}
+});
+$("declaredCash").addEventListener("input",cashDifference);
+$("copyReconciliation").addEventListener("click",()=>{
+ if(!shiftReport)return;
+ const contents=archeoText(shiftReport);
+ if(navigator.clipboard?.writeText){
+  void navigator.clipboard.writeText(contents).then(()=>{$("copyReconciliation").textContent="✓ Arqueo copiado";})
+    .catch(()=>{window.prompt("Copia el arqueo:",contents);});
+ } else window.prompt("Copia el arqueo:",contents);
+});
+$("finalizeDay").addEventListener("click",async()=>{
+ if(busy||!shiftReport||shiftReport.closed)return;
+ const raw=$("declaredCash").value;
+ const declared=Number(raw);
+ if(raw===""||!Number.isFinite(declared)||declared<0||Math.round(declared*100)!==declared*100){
+  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Introduce el efectivo contado (dos decimales como máximo).";return;
+ }
+ if(Number(shiftReport.pending_count)>0||Number(shiftReport.unknown_count)>0){
+  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Hay pedidos pendientes o sin forma de pago. Corrígelos antes de cerrar.";return;
+ }
+ if(!window.confirm("¿Cerrar la jornada y dejar el Rider fuera de servicio? No podrás recibir más pedidos hoy."))return;
+ busy=true;$("finalizeDay").disabled=true;$("dayCloseError").hidden=true;
+ try{
+  await withAuth("/rest/v1/rpc/ed_shift_close",{method:"POST",
+   body:JSON.stringify({p_declared_cash:declared,p_notes:$("shiftNotes").value.trim()})});
+  await previewCashClose();
+  await fetchOrders();
+ }catch(e){$("dayCloseError").hidden=false;$("dayCloseError").textContent=e.message||"Cierre no guardado";$("finalizeDay").disabled=false;}
+ finally{busy=false;}
 });
 
 $("availabilityButton").addEventListener("click", () => {
