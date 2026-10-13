@@ -1,0 +1,19 @@
+{
+  "name": "Estambul Delivery · Rider",
+  "short_name": "Estambul Rider",
+  "description": "Entregas asignadas al repartidor - fase de pruebas",
+  "start_url": "./rider.html",
+  "scope": "./",
+  "display": "standalone",
+  "id": "./rider.html",
+  "theme_color": "#14263b",
+  "background_color": "#f3f6fa",
+  "icons": [
+    {
+      "src": "docs/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
