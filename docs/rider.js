@@ -165,7 +165,7 @@ async function authenticate() {
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
 }
 async function fetchOrders() {
-  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,status,rider_id,lat,lng,created_at&account_id=eq." +
+  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
   const response = await withAuth(endpoint);
   const updated = Array.isArray(response) ? response : [];
@@ -228,7 +228,9 @@ function renderOrder(order) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
-    '<p class="payment">Importe: <strong>'+euros(order.amount)+'</strong></p>'+
+    '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
+    '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
+    '<strong>'+euros(order.amount)+'</strong></div>'+
     '<div class="actions">'+actions+'</div></article>';
 }
 
@@ -320,15 +322,33 @@ $("orders").addEventListener("click", event => {
   const order = orders.find(row => row.id === button.dataset.order);
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
+  // Reserve a tab during the user gesture: mobile browsers may block it after await.
+  // Navigate to Maps only after the status PATCH succeeds.
+  const mapsDestination = status === "en_ruta" ? mapUrl(order) : "";
+  let mapsTab = null;
+  if (mapsDestination) {
+    try { mapsTab = window.open("about:blank", "_blank"); }
+    catch {}
+    if (mapsTab) mapsTab.opener = null;
+  }
   void operation(async () => {
-    const filter = "?id=eq." + encodeURIComponent(order.id) +
-      "&rider_id=eq." + encodeURIComponent(rider.id) +
-      "&status=eq." + encodeURIComponent(order.status);
-    const rows = await withAuth("/rest/v1/ed_orders" + filter, {
-      method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ status })
-    });
-    if (!Array.isArray(rows) || rows.length !== 1) {
-      throw new Error("El pedido ha sido reasignado o cambiado. Actualiza y vuelve a intentarlo.");
+    try {
+      const filter = "?id=eq." + encodeURIComponent(order.id) +
+        "&rider_id=eq." + encodeURIComponent(rider.id) +
+        "&status=eq." + encodeURIComponent(order.status);
+      const rows = await withAuth("/rest/v1/ed_orders" + filter, {
+        method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ status })
+      });
+      if (!Array.isArray(rows) || rows.length !== 1) {
+        throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
+      }
+      if (mapsDestination) {
+        if (mapsTab && !mapsTab.closed) mapsTab.location.replace(mapsDestination);
+        else window.location.assign(mapsDestination);
+      }
+    } catch (error) {
+      if (mapsTab && !mapsTab.closed) mapsTab.close();
+      throw error;
     }
   });
 });

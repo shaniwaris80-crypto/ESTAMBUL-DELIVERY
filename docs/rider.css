@@ -10,3 +10,7 @@
 .actions{flex-wrap:wrap}.actions a.maps-action{background:#e8f4ff;color:#1467a8;border-color:#b1d4ed;min-width:45%}
 .actions a.phone-action{background:#e7f7f0;color:#137d52;border-color:#a7d6bd;min-width:30%}
 .actions button{min-width:45%}.rider-help{font-size:11px;color:#768b9d;margin:-6px 0 15px}
+
+.payment-panel{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:15px 0 0;padding:14px;border-radius:11px;border:1px solid #e0e7ee}
+.payment-panel.cash{background:#fff3db;border-color:#f3d69b}.payment-panel.card{background:#e9f3ff;border-color:#bdd9f5}.payment-panel.unknown{background:#f3f5f7;border-color:#e1e6eb}
+.payment-title{font-size:11px;font-weight:900;letter-spacing:.025em}.payment-panel strong{font-size:17px;color:#14263b;white-space:nowrap}
