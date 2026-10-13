@@ -10,7 +10,7 @@
 <link rel="manifest" href="rider.webmanifest">
 <link rel="icon" href="docs/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="docs/rider-icon.png">
-<link rel="stylesheet" href="docs/rider.css?v=10">
+<link rel="stylesheet" href="docs/rider.css?v=11">
 <title>Estambul Delivery · Rider</title>
 </head>
 <body>
@@ -45,11 +45,14 @@
 <div class="notice" id="connectionNotice" hidden></div>
 <div class="availability panel"><div class="availability-left"><div class="online-indicator" id="onlineLight"></div><div><strong id="onlineLabel">Desconectado</strong><p>Mi disponibilidad para reparto</p></div></div><button id="availabilityButton" class="toggle" aria-label="Cambiar disponibilidad" aria-pressed="false"><span></span></button></div>
 <div class="sound-panel panel">
-  <div class="sound-heading"><span class="sound-emoji">🔔</span><div><strong>Avisos de nuevos pedidos</strong><p id="soundStatus">Pulsa activar para escuchar el aviso al recibir una asignación.</p></div></div>
-  <div class="sound-actions"><button id="enableSound" class="sound-primary" type="button">Activar sonido</button><button id="testSound" type="button" class="sound-secondary">Probar sonido</button></div>
-  <p class="sound-detail">Suena con la app abierta; el navegador puede silenciarla en segundo plano. No son notificaciones push.</p>
+  <div class="sound-heading"><span class="sound-emoji">🔔</span><div><strong>Alerta de asignación</strong><p id="soundStatus">Activa un aviso fuerte para pedidos nuevos.</p></div></div>
+  <div class="sound-actions"><button id="enableSound" class="sound-primary" type="button">🔊 Activar alertas</button><button id="testSound" type="button" class="sound-secondary">Probar alarma</button></div>
+  <p class="sound-detail">El aviso sonoro necesita tu permiso y la aplicación abierta. No funciona de forma garantizada con el teléfono bloqueado.</p>
 </div>
-<div id="newOrderAlert" class="new-order-alert" role="status" aria-live="polite" hidden></div>
+<div id="newOrderAlert" class="new-order-alert" role="alert" aria-live="assertive" hidden>
+  <div class="alert-content"><span class="alert-icon">🚨</span><div><strong id="alertHeadline">NUEVO PEDIDO</strong><p id="alertDetail">Tienes un nuevo reparto asignado.</p></div></div>
+  <button id="acknowledgeAlert" type="button">✓ He visto el pedido</button>
+</div>
 <div class="summary"><div class="metric"><span class="metric-icon">📦</span><strong id="pendingCount">0</strong><small>Por entregar</small></div><div class="metric"><span class="metric-icon">🛵</span><strong id="routeCount">0</strong><small>En ruta</small></div><div class="metric"><span class="metric-icon">✅</span><strong id="doneCount">0</strong><small>Entregados</small></div></div>
 <section id="multiRoutePanel" class="panel multi-route-panel" hidden>
 <div class="route-title"><div><span class="eyebrow">VARIOS PEDIDOS</span><h2>Mi ruta · <span id="routeCountBadge">0</span> paradas</h2></div><span>🗺️</span></div>
@@ -59,10 +62,22 @@
 <button type="button" id="optimizeRoute" class="route-optimize">📍 Optimizar proximidad con GPS</button>
 <p class="route-disclaimer">Puedes cambiar el orden de las paradas. La optimización por proximidad solo funciona con coordenadas y no calcula tráfico ni tiempos de carretera.</p>
 </section>
-<div class="list-heading"><div><span class="eyebrow">PEDIDOS DEL REPARTIDOR</span><h2>Mis entregas <span id="listCount" class="list-count">0</span></h2></div><label class="show-done"><input id="showDone" type="checkbox" checked> Entregados</label></div>
-<p class="rider-help">Toca <strong>Google Maps</strong> para navegar al destino. La dirección se muestra incluso si el pedido no tiene coordenadas.</p>
-<div id="orders" class="orders"></div>
-<div class="sync-note"><span id="syncStamp">Actualizando...</span><span>↻ Sincroniza cada 5 s</span></div>
+<section class="work-section" aria-labelledby="currentOrdersTitle">
+  <div class="work-header">
+    <div><span class="eyebrow">MI JORNADA · TRABAJO ACTIVO</span><h2 id="currentOrdersTitle">Entregas activas <span id="listCount" class="list-count">0</span></h2></div>
+    <span class="live-indicator"><span></span>En directo</span>
+  </div>
+  <p class="rider-help">Aquí solo aparecen los pedidos por recoger y en reparto. Los entregados se guardan en el historial.</p>
+  <div id="orders" class="orders"></div>
+  <div class="sync-note"><span id="syncStamp">Actualizando...</span><span>↻ Cada 5 s</span></div>
+</section>
+<section class="history-section panel" aria-labelledby="historyTitle">
+  <button id="toggleHistory" type="button" class="history-toggle" aria-expanded="false" aria-controls="historyPanel">
+    <span class="history-icon">✓</span><span class="history-label"><strong id="historyTitle">Historial de entregas</strong><small><span id="historyCount">0</span> completadas · separado de las activas</small></span>
+    <span id="historyChevron" class="history-chevron">Mostrar ↓</span>
+  </button>
+  <div id="historyPanel" hidden><div id="historyOrders" class="history-orders"></div></div>
+</section>
 <section id="dayCloseSection" class="panel day-close-card">
 <div class="day-close-heading"><div><span class="eyebrow">CAJA Y CIERRE DE TURNO</span><h2>Arqueo · Terminar día</h2><p>Todos los pedidos cobrados, por efectivo y tarjeta.</p></div><span>📋</span></div>
 <button type="button" id="reviewDay" class="day-close-review">Ver arqueo de hoy →</button>
@@ -95,6 +110,6 @@
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
 <p class="disclaimer">VERSIÓN WEB DE PRUEBAS · Sin ubicación GPS real, avisos push ni pedidos reales de Last.app. Las entregas se consultan en el servidor, no se guardan en el móvil sin conexión.</p>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=10"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=11"></script>
 </body>
 </html>

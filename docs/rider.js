@@ -19,7 +19,7 @@ const allowedNext = { asignado: "recogido", recogido: "en_ruta", en_ruta: "entre
 const nextNames = { recogido: "Confirmar recogida", en_ruta: "Iniciar reparto", entregado: "Confirmar entrega" };
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
-let orders = [], busy = false, inFlight = false, showDone = true, lastSync = 0;
+let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
 
@@ -156,64 +156,83 @@ function nearestOrder(stops,origin){
  return selected;
 }
 
-let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false, toastTimer=null;
+let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false;
+let alertRepeatTimer=null, alertIsOpen=false, alertRingCount=0;
 function playBell(){
  if(!soundEnabled||!soundContext)return;
  try{
   if(soundContext.state==="suspended")void soundContext.resume();
-  const baseTime=soundContext.currentTime+0.035;
-  // Two short notes, Web Audio API. No remote media or notification keys required.
-  [0,0.19,0.38].forEach((offset,i)=>{
-   const oscillator=soundContext.createOscillator();
-   const gain=soundContext.createGain();
-   oscillator.type="sine";
-   oscillator.frequency.setValueAtTime([740,880,988][i],baseTime+offset);
-   gain.gain.setValueAtTime(0.0001,baseTime+offset);
-   gain.gain.exponentialRampToValueAtTime(0.18,baseTime+offset+0.025);
-   gain.gain.exponentialRampToValueAtTime(0.0001,baseTime+offset+0.16);
-   oscillator.connect(gain).connect(soundContext.destination);
-   oscillator.start(baseTime+offset);
-   oscillator.stop(baseTime+offset+0.18);
-  });
+  const t=soundContext.currentTime+0.03;
+  // Distinct four-tone alert followed by a double-chime, louder than the previous three-note signal.
+  // Moderate gain, to avoid audio clipping/headphone discomfort.
+  const notes=[{at:0,hz:780,dur:.16},{at:.20,hz:1046,dur:.16},{at:.40,hz:780,dur:.16},
+    {at:.60,hz:1175,dur:.27},{at:1.04,hz:940,dur:.18},{at:1.24,hz:1175,dur:.31}];
+  for(const note of notes){
+   const osc=soundContext.createOscillator(),gain=soundContext.createGain();
+   osc.type="square";osc.frequency.setValueAtTime(note.hz,t+note.at);
+   gain.gain.setValueAtTime(.0001,t+note.at);
+   gain.gain.exponentialRampToValueAtTime(.11,t+note.at+.018);
+   gain.gain.exponentialRampToValueAtTime(.0001,t+note.at+note.dur);
+   osc.connect(gain).connect(soundContext.destination);
+   osc.start(t+note.at);osc.stop(t+note.at+note.dur+.02);
+  }
  }catch{}
+}
+function stopRepeatAlerts(){
+ if(alertRepeatTimer!==null){clearTimeout(alertRepeatTimer);alertRepeatTimer=null;}
+ alertRingCount=0;
+ try{if(navigator.vibrate)navigator.vibrate(0);}catch{}
+}
+function acknowledgeNewOrders(){
+ alertIsOpen=false;
+ $("newOrderAlert").hidden=true;
+ stopRepeatAlerts();
+}
+function ringForAssignment(){
+ if(!alertIsOpen||!soundEnabled||document.visibilityState!=="visible")return;
+ playBell();
+ if(navigator.vibrate)try{navigator.vibrate([350,110,300,110,600]);}catch{}
+ alertRingCount++;
+ // At most 3 strong alert sequences, 6 seconds apart, until the rider confirms.
+ if(alertRingCount<3){
+  alertRepeatTimer=setTimeout(()=>{alertRepeatTimer=null;ringForAssignment();},6000);
+ }
 }
 function alertNewOrders(count){
  if(!count)return;
- playBell();
- if("vibrate" in navigator)try{navigator.vibrate([180,80,180]);}catch{}
- const box=$("newOrderAlert");
- box.textContent="🔔 "+count+(count===1?" nuevo pedido asignado":" nuevos pedidos asignados")+". ¡Revisa tus entregas!";
- box.hidden=false;
- if(toastTimer)clearTimeout(toastTimer);
- toastTimer=setTimeout(()=>{box.hidden=true;},14000);
- if(typeof Notification!=="undefined" && Notification.permission==="granted" && document.visibilityState!=="hidden"){
-  try{new Notification("ESTAMBUL RIDER",{body:"Tienes "+count+" entrega(s) asignada(s).",icon:"./docs/rider-icon.png",tag:"estambul-new-assignment"});}catch{}
+ stopRepeatAlerts();
+ alertIsOpen=true;
+ $("alertHeadline").textContent=count===1?"NUEVO PEDIDO ASIGNADO":count+" NUEVOS PEDIDOS";
+ $("alertDetail").textContent=count===1?"Tienes 1 entrega nueva. Consulta su tarjeta para empezar.":"Tienes "+count+" entregas nuevas. Revísalas antes de salir.";
+ $("newOrderAlert").hidden=false;
+ ringForAssignment();
+ if(typeof Notification!=="undefined"&&Notification.permission==="granted"){
+  try{new Notification("🚨 ESTAMBUL DELIVERY",{body:count+" nueva(s) entrega(s) asignada(s)",icon:"./docs/rider-icon.png",tag:"rider-new-orders",requireInteraction:true});}catch{}
  }
 }
 function detectAssigned(current){
  const active=current.filter(o=>!["entregado","cancelado"].includes(o.status)&&o.rider_id===rider?.id);
  const incoming=active.filter(o=>!knownActiveOrders.has(o.id));
- if(orderBaselineReady && incoming.length)alertNewOrders(incoming.length);
+ if(orderBaselineReady&&incoming.length)alertNewOrders(incoming.length);
  knownActiveOrders=new Set(active.map(o=>o.id));
  orderBaselineReady=true;
 }
 async function enableSound(){
  try{
   const Audio=window.AudioContext||window.webkitAudioContext;
-  if(!Audio)throw new Error("Este navegador no admite audio.");
+  if(!Audio)throw Error("El dispositivo no admite audio web.");
   if(!soundContext)soundContext=new Audio();
   await soundContext.resume();
   soundEnabled=true;
-  $("enableSound").textContent="✓ Sonido activo";
+  $("enableSound").textContent="✓ Alertas activas";
   $("enableSound").classList.add("enabled");
-  $("soundStatus").textContent="Aviso activado: sonará al recibir un pedido nuevo con esta app abierta.";
+  $("soundStatus").textContent="Sonido fuerte activado. La alarma se repite hasta 3 veces si no confirmas.";
   playBell();
   if(typeof Notification!=="undefined"&&Notification.permission==="default"){
    try{await Notification.requestPermission();}catch{}
   }
- }catch(err){$("soundStatus").textContent="No se pudo activar: "+(err.message||"abre la app desde el navegador.");}
+ }catch(e){$("soundStatus").textContent="No se pudo activar el sonido: "+(e.message||String(e));}
 }
-
 
 function getSaved() {
   try {
@@ -272,6 +291,7 @@ function resetLocal() {
   identity = null; rider = null; orders = []; accountName = "";
   routeState.ids=[];routeState.coordsOptimized=false;
   orderBaselineReady=false;knownActiveOrders.clear();
+  showHistory=false;acknowledgeNewOrders();
   $("password").value = "";
   clearError();
   setVisible("login");
@@ -319,23 +339,35 @@ async function updateOrders() {
     setError("Sin conexión: " + (error.message || "Inténtalo de nuevo."), false);
   } finally { inFlight = false; }
 }
-function draw() {
-  if (!rider) return;
-  $("riderName").textContent = rider.display_name;
-  $("accountName").textContent = accountName + " · Cuenta individual";
-  $("onlineLight").classList.toggle("active", Boolean(rider.online));
-  $("onlineLabel").textContent = rider.online ? "Estoy disponible" : "No disponible";
-  $("availabilityButton").setAttribute("aria-pressed", rider.online ? "true" : "false");
-  const open = orders.filter(o => !["entregado", "cancelado"].includes(o.status));
-  $("pendingCount").textContent = open.length;
-  $("routeCount").textContent = open.filter(o => o.status === "en_ruta").length;
-  $("doneCount").textContent = orders.filter(o => o.status === "entregado").length;
-  const shown = showDone ? open.concat(orders.filter(o => o.status === "entregado")) : open;
-  $("listCount").textContent = shown.length;
-  $("orders").innerHTML = shown.length ? shown.map(renderOrder).join("") :
-    '<div class="empty"><span class="empty-icon">📦</span><strong>Sin entregas asignadas</strong><p>No tienes entregas pendientes. Si ya has completado pedidos, activa «Entregados» para consultar el historial.</p></div>';
-  $("syncStamp").textContent = "Actualizado a las " + new Date(lastSync).toLocaleTimeString("es-ES");
-  renderRoute();
+function draw(){
+ if(!rider)return;
+ $("riderName").textContent=rider.display_name;
+ $("accountName").textContent=accountName+" · Cuenta individual";
+ $("onlineLight").classList.toggle("active",Boolean(rider.online));
+ $("onlineLabel").textContent=rider.online?"Estoy disponible":"No disponible";
+ $("availabilityButton").setAttribute("aria-pressed",rider.online?"true":"false");
+ const active=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
+ const inRoute=active.filter(o=>o.status==="en_ruta");
+ const toCollect=active.filter(o=>o.status!=="en_ruta");
+ const done=orders.filter(o=>o.status==="entregado");
+ const rank={en_ruta:0,recogido:1,asignado:2,pendiente:3};
+ toCollect.sort((a,b)=>(rank[a.status]??4)-(rank[b.status]??4) || String(a.created_at||"").localeCompare(String(b.created_at||"")));
+ $("pendingCount").textContent=active.length;
+ $("routeCount").textContent=inRoute.length;
+ $("doneCount").textContent=done.length;
+ $("listCount").textContent=active.length;
+ $("historyCount").textContent=done.length;
+ $("orders").innerHTML=active.length
+  ? (inRoute.length?'<div class="group-title"><span class="group-dot route"></span>EN REPARTO <small>'+inRoute.length+'</small></div>'+inRoute.map(o=>renderOrder(o,true)).join(""):"")+
+    (toCollect.length?'<div class="group-title"><span class="group-dot"></span>POR RECOGER / PREPARAR <small>'+toCollect.length+'</small></div>'+toCollect.map(o=>renderOrder(o,false)).join(""):"")
+  :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos pendientes ni en reparto. Las entregas realizadas están en el historial de abajo.</p></div>';
+ $("toggleHistory").setAttribute("aria-expanded",showHistory?"true":"false");
+ $("historyPanel").hidden=!showHistory;
+ $("historyChevron").textContent=showHistory?"Ocultar ↑":"Mostrar ↓";
+ $("historyOrders").innerHTML=showHistory?(done.length?done.map(o=>renderOrder(o,false,true)).join("")
+   :'<div class="history-empty">Aún no tienes entregas completadas.</div>'):"";
+ $("syncStamp").textContent="Actualizado a las "+new Date(lastSync).toLocaleTimeString("es-ES");
+ renderRoute();
 }
 function mapUrl(order) {
   let target="";
@@ -346,7 +378,7 @@ function mapUrl(order) {
   }
   return target?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(target)+"&travelmode=driving":"";
 }
-function renderOrder(order) {
+function renderOrder(order,isPriority=false,isHistory=false) {
   const nextStatus=allowedNext[order.status];
   const url=mapUrl(order);
   const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");
@@ -355,10 +387,11 @@ function renderOrder(order) {
   const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
       (nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'');
-  return '<article class="order-card">'+
+  return '<article class="order-card '+(isHistory?"history-order":isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
     '</span></div><span class="status '+escapeText(order.status)+'">'+status+'</span></div>'+
+    (isPriority?'<span class="priority-tag">● REPARTO EN CURSO</span>':'')+
     '<div class="client-label">CLIENTE</div><h3 class="destination-head">'+escapeText(order.customer_name)+'</h3>'+
     (order.customer_phone?'<p class="client-phone">☎ '+escapeText(order.customer_phone)+'</p>':'<p class="missing-detail">Sin teléfono de cliente registrado</p>')+
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
@@ -521,7 +554,8 @@ $("availabilityButton").addEventListener("click", () => {
   });
 });
 $("refreshButton").addEventListener("click", () => void operation(async () => {}));
-$("showDone").addEventListener("change", e => { showDone = Boolean(e.target.checked); draw(); });
+$("toggleHistory").addEventListener("click",()=>{showHistory=!showHistory;draw();});
+$("acknowledgeAlert").addEventListener("click",acknowledgeNewOrders);
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;
