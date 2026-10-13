@@ -85,3 +85,7 @@ Además de la demo pública, hemos incorporado una **segunda aplicación web con
 - Se puede añadir a la pantalla de inicio del iPhone o Android desde el navegador.
 - **No es un APK ni una app de App Store/TestFlight**. El código nativo Expo está en apps/rider/ y requiere compilación de desarrollo, firmado y pruebas en dispositivos.
 - Falta dar de alta/activar al administrador y crear las cuentas individuales de cada rider para iniciar las pruebas.
+
+
+### Provisión inmediata de Riders de prueba
+Desde el panel autenticado `live.html`, el administrador puede pulsar **Crear y activar cuentas Rider**. Una función Supabase Edge (JWT obligatorio) genera credenciales temporales distintas para cada repartidor ya autorizado; deben cambiarlas en la app Rider al primer acceso. La activación requiere pulsar el botón con sesión de administrador y aún no equivale a integración de Last.app. Consulta [docs/RIDER_APP.md](docs/RIDER_APP.md).
