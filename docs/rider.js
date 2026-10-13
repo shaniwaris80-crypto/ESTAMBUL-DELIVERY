@@ -83,9 +83,15 @@ function resetLocal() {
 }
 async function authenticate() {
   const user = await withAuth("/auth/v1/user");
-  const membership = await withAuth("/rest/v1/ed_members?select=account_id,role,active&user_id=eq." + encodeURIComponent(user.id) + "&active=eq.true");
-  const assignment = Array.isArray(membership) ? membership.find(row => row.role === "rider") : null;
-  if (!assignment) throw new Error("Esta cuenta no está autorizada como repartidor. Pide al administrador que te vincule.");
+  let membership = await withAuth("/rest/v1/ed_members?select=account_id,role,active&user_id=eq." + encodeURIComponent(user.id) + "&active=eq.true");
+  let assignment = Array.isArray(membership) ? membership.find(row => row.role === "rider") : null;
+  if (!assignment) {
+    // Supabase checks the verified email against a private, preauthorized invitation.
+    await withAuth("/rest/v1/rpc/ed_activate_rider", { method: "POST", body: "{}" });
+    membership = await withAuth("/rest/v1/ed_members?select=account_id,role,active&user_id=eq." + encodeURIComponent(user.id) + "&active=eq.true");
+    assignment = Array.isArray(membership) ? membership.find(row => row.role === "rider") : null;
+    if (!assignment) throw new Error("Esta cuenta no tiene una invitación de repartidor válida.");
+  }
   const accountId = encodeURIComponent(assignment.account_id);
   const [myRiders, accounts] = await Promise.all([
     withAuth("/rest/v1/ed_riders?select=id,display_name,online,active,user_id&account_id=eq." + accountId),
@@ -174,6 +180,29 @@ async function signIn(email, password) {
   await fetchOrders();
   clearError(); setVisible("dashboard"); $("password").value = "";
 }
+$("registerButton").addEventListener("click", async () => {
+  if (busy) return;
+  const email = $("email").value.trim(), password = $("password").value;
+  clearError();
+  if (!email || password.length < 8) {
+    setError("Escribe tu correo autorizado y una contraseña nueva de al menos 8 caracteres.", true);
+    return;
+  }
+  busy = true; $("registerButton").disabled = true; $("loginButton").disabled = true;
+  try {
+    const redirect = encodeURIComponent("https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html");
+    await jsonResponse(await fetch(base + "/auth/v1/signup?redirect_to=" + redirect, {
+      method: "POST", headers: heads(), body: JSON.stringify({ email, password })
+    }));
+    $("registerInfo").textContent = "Registro solicitado. Confirma tu correo electrónico. Después vuelve aquí e inicia sesión para activar tu cuenta Rider. Revisa spam si no recibes el mensaje.";
+    $("registerInfo").hidden = false;
+    $("password").value = "";
+  } catch (error) {
+    setError(error.message || "No se ha podido solicitar el registro.", true);
+  } finally {
+    busy = false; $("registerButton").disabled = false; $("loginButton").disabled = false;
+  }
+});
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy) return;
   busy = true; clearError(); $("loginButton").disabled = true;
