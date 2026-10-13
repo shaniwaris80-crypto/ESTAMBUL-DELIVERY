@@ -178,7 +178,7 @@ grant execute on function private.ed_is_staff(uuid),private.ed_is_rider(uuid,uui
 revoke all on function private.ed_guard_order_update(),private.ed_guard_rider_update(),private.ed_prevent_busy_deactivation() from public,anon,authenticated;
 
 create policy ed_account_select on public.ed_accounts for select to authenticated
- using (exists (select 1 from public.ed_members m where m.account_id=id and m.user_id=(select auth.uid()) and m.active));
+ using (exists (select 1 from public.ed_members m where m.account_id=ed_accounts.id and m.user_id=(select auth.uid()) and m.active));
 create policy ed_member_select on public.ed_members for select to authenticated
  using (user_id=(select auth.uid()) or (select private.ed_is_staff(account_id)));
 create policy ed_riders_select on public.ed_riders for select to authenticated
