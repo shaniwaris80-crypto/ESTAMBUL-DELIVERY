@@ -19,7 +19,7 @@ const allowedNext = { asignado: "recogido", recogido: "en_ruta", en_ruta: "entre
 const nextNames = { recogido: "Confirmar recogida", en_ruta: "Iniciar reparto", entregado: "Confirmar entrega" };
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
-let orders = [], busy = false, inFlight = false, showDone = false, lastSync = 0;
+let orders = [], busy = false, inFlight = false, showDone = true, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
 let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false, toastTimer=null;
@@ -195,10 +195,10 @@ function draw() {
   $("pendingCount").textContent = open.length;
   $("routeCount").textContent = open.filter(o => o.status === "en_ruta").length;
   $("doneCount").textContent = orders.filter(o => o.status === "entregado").length;
-  $("listCount").textContent = showDone ? orders.length : open.length;
-  const shown = showDone ? orders.filter(o => o.status !== "cancelado") : open;
+  const shown = showDone ? open.concat(orders.filter(o => o.status === "entregado")) : open;
+  $("listCount").textContent = shown.length;
   $("orders").innerHTML = shown.length ? shown.map(renderOrder).join("") :
-    '<div class="empty"><span class="empty-icon">📦</span><strong>Sin entregas asignadas</strong><p>Cuando el supervisor te asigne un pedido, aparecerá aquí automáticamente al actualizar.</p></div>';
+    '<div class="empty"><span class="empty-icon">📦</span><strong>Sin entregas asignadas</strong><p>No tienes entregas pendientes. Si ya has completado pedidos, activa «Entregados» para consultar el historial.</p></div>';
   $("syncStamp").textContent = "Actualizado a las " + new Date(lastSync).toLocaleTimeString("es-ES");
 }
 function mapUrl(order) {
