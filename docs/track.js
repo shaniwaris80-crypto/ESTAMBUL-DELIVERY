@@ -52,7 +52,7 @@ function draw(data){
  el("feedbackPanel").hidden=!delivered||!!data.feedback_sent;
  el("feedbackDone").hidden=!delivered||!data.feedback_sent;
  const review=data.review_url;
- const safeReview=typeof review==="string"&&/^https:\/\/(www\.)?(google\.[a-z.]+|g\.page|maps\.app\.goo\.gl)\//i.test(review);
+ const safeReview=typeof review==="string"&&/^https:\/\/(www\.)?(google\.(com|es|co\.uk)|g\.page|maps\.app\.goo\.gl)\//i.test(review);
  el("reviewPanel").hidden=!delivered||!safeReview;
  if(safeReview)el("reviewLink").href=review;
 }

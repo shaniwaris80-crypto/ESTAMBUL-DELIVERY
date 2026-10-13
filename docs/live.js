@@ -240,7 +240,7 @@ el("brandForm").addEventListener("submit",e=>{
   const google=el("brandReviewUrl").value.trim()||null;
   if(!name||name.length>80||!/^[#][a-fA-F0-9]{6}$/.test(color))throw Error("Marca no válida");
   if(logo&&!/^https:\/\//.test(logo))throw Error("Usa una URL HTTPS para el logotipo");
-  if(google&&!/^https:\/\/(www\.)?(google\.[a-z.]+|g\.page|maps\.app\.goo\.gl)\//i.test(google))
+  if(google&&!/^https:\/\/(www\.)?(google\.(com|es|co\.uk)|g\.page|maps\.app\.goo\.gl)\//i.test(google))
    throw Error("El enlace de reseñas debe pertenecer a Google");
   const body={account_id:member.account_id,display_name:name,primary_color:color,logo_url:logo,google_review_url:google};
   await query("/rest/v1/ed_brand_settings?on_conflict=account_id",{
