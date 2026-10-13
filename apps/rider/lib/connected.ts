@@ -8,7 +8,7 @@ const storageKey="estambul-connected-session";
 type Session={access_token:string;refresh_token:string;expires:number};
 let session:Session|null=null;
 type User={id:string};
-export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;};
+export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;payment_method:"efectivo"|"tarjeta"|null;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;};
 export type ConnectedRider={id:string;display_name:string;online:boolean;active:boolean;user_id:string;};
 export type ConnectedState={rider:ConnectedRider;orders:RiderOrder[];account:string};
 
@@ -61,7 +61,7 @@ export async function loadConnected():Promise<ConnectedState>{
  const riders=await request("/rest/v1/ed_riders?select=id,display_name,online,active,user_id&account_id=eq."+membership.account_id) as ConnectedRider[];
  const rider=riders.find(r=>r.user_id===user.id&&r.active);
  if(!rider)throw new Error("No hay un rider activo vinculado a esta cuenta.");
- const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,channel,status,rider_id,lat,lng,amount&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+"&order=created_at.desc&limit=100") as RiderOrder[];
+ const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+"&order=created_at.desc&limit=100") as RiderOrder[];
  return {rider,orders,account:membership.account_id};
 }
 export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus){

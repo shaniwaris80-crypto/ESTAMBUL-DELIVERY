@@ -31,7 +31,17 @@ export default function Connected(){
  <Pressable disabled={busy} style={s.button} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Entrando...":"Entrar"}</Text></Pressable></View>
  :<><View style={s.card}><Text style={s.eyebrow}>MI CUENTA</Text><Text style={s.title}>{data?.rider.display_name||"Cargando..."}</Text><Text style={s.help}>{orders.length} entregas pendientes · sincronización cada 5 s</Text>
  <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Disponible · Desconectar":"○ Conectarme"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Salir</Text></Pressable></View></View>
- {orders.length===0?<View style={s.card}><Text style={s.help}>No hay pedidos asignados. Espera a que el supervisor te asigne uno desde el back office.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={status=>void operate(()=>advanceDelivery(o,status))}/>)}
+ {orders.length===0?<View style={s.card}><Text style={s.help}>No hay pedidos asignados. Espera a que el supervisor te asigne uno desde el back office.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={status=>void operate(async()=>{
+  await advanceDelivery(o,status);
+  if(status==="en_ruta"){
+    const target=String(o.destination||"").trim();
+    const destination=o.lat!=null&&o.lng!=null?o.lat+","+o.lng:(/burgos|españa|spain/i.test(target)?target:target+", Burgos, España");
+    if(destination){
+      try{await Linking.openURL("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination)+"&travelmode=driving");}
+      catch{Alert.alert("Google Maps","No se pudo abrir automáticamente. Pulsa Google Maps para reintentar.");}
+    }
+  }
+})}/>)}
  </>}
  {!!error&&<Text style={s.error}>{error}</Text>}
  <Text style={s.footer}>MODO PRUEBAS · Sin pedidos reales de Last.app · Sin seguimiento GPS activo.</Text>
@@ -53,7 +63,10 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  <Text style={s.help}>{order.destination}</Text>
  <Text style={s.help}>{order.customer_phone?"☎ "+order.customer_phone:"Sin teléfono de cliente registrado"}</Text>
  {order.notes?<View style={{backgroundColor:"#fff6e8",padding:12,borderRadius:9,marginBottom:12}}><Text style={s.help}>📝 {order.notes}</Text></View>:null}
- <Text style={s.help}>Importe: {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
+ <View style={{backgroundColor:order.payment_method==="efectivo"?"#fff3d8":order.payment_method==="tarjeta"?"#e9f3ff":"#f2f3f6",padding:13,borderRadius:10,marginBottom:12}}>
+ <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR"}</Text>
+ <Text style={{color:palette.dark,fontSize:20,fontWeight:"900",marginTop:4}}>{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
+ </View>
  <Text style={s.status}>{order.status.toUpperCase()}</Text>
  <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
