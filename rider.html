@@ -10,7 +10,7 @@
 <link rel="manifest" href="rider.webmanifest">
 <link rel="icon" href="docs/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="docs/rider-icon.png">
-<link rel="stylesheet" href="docs/rider.css?v=7">
+<link rel="stylesheet" href="docs/rider.css?v=9">
 <title>Estambul Delivery · Rider</title>
 </head>
 <body>
@@ -51,10 +51,39 @@
 </div>
 <div id="newOrderAlert" class="new-order-alert" role="status" aria-live="polite" hidden></div>
 <div class="summary"><div class="metric"><span class="metric-icon">📦</span><strong id="pendingCount">0</strong><small>Por entregar</small></div><div class="metric"><span class="metric-icon">🛵</span><strong id="routeCount">0</strong><small>En ruta</small></div><div class="metric"><span class="metric-icon">✅</span><strong id="doneCount">0</strong><small>Entregados</small></div></div>
+<section id="multiRoutePanel" class="panel multi-route-panel" hidden>
+<div class="route-title"><div><span class="eyebrow">VARIOS PEDIDOS</span><h2>Mi ruta · <span id="routeCountBadge">0</span> paradas</h2></div><span>🗺️</span></div>
+<p id="routeHint" class="route-hint">Prepara los pedidos de la ruta.</p>
+<div id="routeStops" class="route-stops"></div>
+<div id="routeMapLinks" class="route-map-links"></div>
+<button type="button" id="optimizeRoute" class="route-optimize">📍 Optimizar proximidad con GPS</button>
+<p class="route-disclaimer">Puedes cambiar el orden de las paradas. La optimización por proximidad solo funciona con coordenadas y no calcula tráfico ni tiempos de carretera.</p>
+</section>
 <div class="list-heading"><div><span class="eyebrow">PEDIDOS DEL REPARTIDOR</span><h2>Mis entregas <span id="listCount" class="list-count">0</span></h2></div><label class="show-done"><input id="showDone" type="checkbox" checked> Entregados</label></div>
 <p class="rider-help">Toca <strong>Google Maps</strong> para navegar al destino. La dirección se muestra incluso si el pedido no tiene coordenadas.</p>
 <div id="orders" class="orders"></div>
 <div class="sync-note"><span id="syncStamp">Actualizando...</span><span>↻ Sincroniza cada 5 s</span></div>
+<section id="dayCloseSection" class="panel day-close-card">
+<div class="day-close-heading"><div><span class="eyebrow">CAJA Y CIERRE DE TURNO</span><h2>Arqueo · Terminar día</h2><p>Todos los pedidos cobrados, por efectivo y tarjeta.</p></div><span>📋</span></div>
+<button type="button" id="reviewDay" class="day-close-review">Ver arqueo de hoy →</button>
+<div id="dayClosePanel" hidden>
+<p id="shiftDateLabel" class="shift-date"></p>
+<div id="dayCloseTotals" class="day-close-totals"></div>
+<div id="dayCloseOrders" class="shift-orders"></div>
+<p id="shiftWarning" class="day-close-warning" hidden></p>
+<div id="dayCloseInputs">
+<label for="declaredCash" class="cash-label">EFECTIVO REAL CONTADO (€)</label>
+<input id="declaredCash" type="number" min="0" max="999999" step="0.01" inputmode="decimal" placeholder="Introduce el importe contado" required>
+<p id="shiftDifference" class="shift-difference">Introduce el efectivo para calcular la diferencia de caja.</p>
+<label for="shiftNotes" class="cash-label">OBSERVACIONES</label>
+<textarea id="shiftNotes" rows="2" maxlength="600" placeholder="Incidencias, diferencias..."></textarea>
+<button type="button" id="copyReconciliation" class="shift-secondary">Copiar arqueo para WhatsApp</button>
+<button type="button" id="finalizeDay" class="day-close-final">Terminar día y ponerme offline ✓</button>
+</div>
+<p id="dayCloseDone" class="day-close-success" hidden></p>
+<p id="dayCloseError" class="error" role="alert" hidden></p>
+</div>
+</section>
 <button type="button" id="changePassword" class="logout" style="margin-top:16px">🔐 Cambiar mi contraseña</button>
 <button id="logoutButton" class="logout">↪ Cerrar sesión</button>
 </section>
@@ -62,6 +91,6 @@
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
 <p class="disclaimer">VERSIÓN WEB DE PRUEBAS · Sin ubicación GPS real, avisos push ni pedidos reales de Last.app. Las entregas se consultan en el servidor, no se guardan en el móvil sin conexión.</p>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=7"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=9"></script>
 </body>
 </html>
