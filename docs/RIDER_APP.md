@@ -53,3 +53,10 @@ https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html
 La invitación no envía un correo automáticamente: el email de verificación se solicita al pulsar «Crear cuenta Rider».
 
 El backend sigue usando datos de prueba y no sincroniza aún pedidos reales de Last.app.
+
+
+## Activar las dos cuentas Rider sin SMTP (método actual)
+
+El administrador inicia sesión en https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/live.html y pulsa «Crear y activar cuentas Rider». La función de servidor crea solamente usuarios previamente autorizados por la empresa y muestra contraseñas temporales distintas una sola vez. Deben copiarse a un gestor seguro y comunicarse privadamente a cada repartidor. Los riders entran por https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html y cambian su contraseña en el primer acceso.
+
+No se envían emails. Este procedimiento es exclusivamente para pruebas internas y considera que el administrador ha verificado previamente a los empleados. En producción hace falta un proceso de identidad y recuperación de contraseñas adecuado.
