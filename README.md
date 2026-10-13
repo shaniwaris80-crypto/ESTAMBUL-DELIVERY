@@ -75,3 +75,13 @@ Proyecto específico para operaciones con repartidores propios. El repositorio h
 Además de la demo pública, hemos incorporado una **segunda aplicación web con autenticación y base de datos Supabase**, accesible desde \`live.html\` una vez que se configure un proyecto Supabase propio. También está añadido el modo conectado en la aplicación Expo de Android/iOS. Se sincroniza por sondeo cada ~5 segundos y los riders ven solo sus pedidos (RLS).
 
 **Importante:** el proyecto Supabase aún no está aprovisionado y Last.app no está enlazado. En la web conectada aparece «Conexión pendiente» hasta configurar \`docs/live-config.js\` con la URL y clave PUBLICABLE (nunca secretas). Las instrucciones paso a paso se encuentran en [docs/LIVE_MODE.md](docs/LIVE_MODE.md) y [supabase/README.md](supabase/README.md).
+
+
+## App Rider para abrir desde el móvil
+
+- **App Rider web (PWA de pruebas):** https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html
+- Inicio de sesión individual de un usuario con rol rider, protegido por Supabase RLS.
+- Muestra solo sus pedidos; puede marcar recogida, iniciar reparto, confirmar entrega y cambiar disponibilidad.
+- Se puede añadir a la pantalla de inicio del iPhone o Android desde el navegador.
+- **No es un APK ni una app de App Store/TestFlight**. El código nativo Expo está en apps/rider/ y requiere compilación de desarrollo, firmado y pruebas en dispositivos.
+- Falta dar de alta/activar al administrador y crear las cuentas individuales de cada rider para iniciar las pruebas.
