@@ -22,6 +22,69 @@ let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showDone = true, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
+
+const routeState={ids:[],coordsOptimized:false};
+function routeStopsOrdered(){
+ const active=orders.filter(o=>["asignado","recogido","en_ruta"].includes(o.status));
+ const validIds=new Set(active.map(o=>o.id));
+ routeState.ids=routeState.ids.filter(id=>validIds.has(id));
+ const recent=active.slice().sort((a,b)=>(a.status==="en_ruta"?0:1)-(b.status==="en_ruta"?0:1)
+  || String(a.created_at||"").localeCompare(String(b.created_at||"")));
+ for(const o of recent)if(!routeState.ids.includes(o.id))routeState.ids.push(o.id);
+ return routeState.ids.map(id=>active.find(o=>o.id===id)).filter(Boolean);
+}
+function routeTarget(o){
+ if(o.lat!=null&&o.lng!=null)return o.lat+","+o.lng;
+ const s=String(o.destination||"").trim();
+ return /burgos|españa|spain/i.test(s)?s:s+", Burgos, España";
+}
+function multiMapsLegs(stops){
+ const legs=[];let offset=0,previous=null;
+ while(offset<stops.length){
+  // Mobile Google Maps URLs: up to three waypoints plus a final destination.
+  const selection=stops.slice(offset,offset+(previous?3:4));
+  const last=selection[selection.length-1];
+  const params=["api=1","destination="+encodeURIComponent(routeTarget(last)),"travelmode=driving"];
+  if(previous)params.push("origin="+encodeURIComponent(routeTarget(previous)));
+  const waypoints=selection.slice(0,-1).map(routeTarget);
+  if(waypoints.length)params.push("waypoints="+encodeURIComponent(waypoints.join("|")));
+  legs.push({start:offset+1,end:offset+selection.length,url:"https://www.google.com/maps/dir/?"+params.join("&")});
+  previous=last;offset+=selection.length;
+ }
+ return legs;
+}
+function renderRoute(){
+ const stops=routeStopsOrdered();
+ $("multiRoutePanel").hidden=stops.length<2;
+ if(stops.length<2)return;
+ $("routeCountBadge").textContent=String(stops.length);
+ const allGps=stops.every(o=>o.lat!=null&&o.lng!=null);
+ $("optimizeRoute").disabled=!allGps;
+ $("routeHint").textContent=allGps
+  ?(routeState.coordsOptimized?"Orden recomendado según distancias aproximadas en línea recta, no tráfico.":"Puedes optimizar por proximidad o reordenar manualmente.")
+  :"Google Maps mostrará las direcciones. Sin coordenadas no podemos calcular el orden óptimo: utiliza las flechas para ordenar manualmente.";
+ $("routeStops").innerHTML=stops.map((o,i)=>
+  '<div class="route-stop"><span class="route-number">'+(i+1)+'</span><div class="route-info"><strong>'+escapeText(o.customer_name)+'</strong><small>#'+escapeText(o.reference)+' · '+escapeText(o.destination)+'</small></div>'+
+  '<div class="route-move"><button type="button" data-route="up" data-index="'+i+'" '+(i===0?"disabled":"")+' aria-label="Subir parada">↑</button><button type="button" data-route="down" data-index="'+i+'" '+(i===stops.length-1?"disabled":"")+' aria-label="Bajar parada">↓</button></div></div>').join("");
+ $("routeMapLinks").innerHTML=multiMapsLegs(stops).map((leg,i)=>
+  '<a class="route-map-link" href="'+escapeText(leg.url)+'" target="_blank" rel="noopener noreferrer">'+
+  (stops.length<=4?"🗺️ Ver todas las paradas en Google Maps ↗":"🗺️ Tramo "+(i+1)+": paradas "+leg.start+"–"+leg.end+" ↗")+'</a>').join("");
+}
+function routeDistance(a,b){
+ const r=Math.PI/180,dlat=(a.lat-b.lat)*r,dlng=(a.lng-b.lng)*r;
+ const h=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlng/2)**2;
+ return 6371*2*Math.asin(Math.min(1,Math.sqrt(h)));
+}
+function nearestOrder(stops,origin){
+ const pool=stops.slice(),selected=[];let pos=origin;
+ while(pool.length){
+  let index=0,minimum=Infinity;
+  pool.forEach((s,i)=>{const d=routeDistance(pos,s);if(d<minimum){index=i;minimum=d;}});
+  const next=pool.splice(index,1)[0];selected.push(next);pos=next;
+ }
+ return selected;
+}
+
 let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false, toastTimer=null;
 function playBell(){
  if(!soundEnabled||!soundContext)return;
@@ -136,6 +199,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
+  routeState.ids=[];routeState.coordsOptimized=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   $("password").value = "";
   clearError();
@@ -200,6 +264,7 @@ function draw() {
   $("orders").innerHTML = shown.length ? shown.map(renderOrder).join("") :
     '<div class="empty"><span class="empty-icon">📦</span><strong>Sin entregas asignadas</strong><p>No tienes entregas pendientes. Si ya has completado pedidos, activa «Entregados» para consultar el historial.</p></div>';
   $("syncStamp").textContent = "Actualizado a las " + new Date(lastSync).toLocaleTimeString("es-ES");
+  renderRoute();
 }
 function mapUrl(order) {
   let target="";
@@ -303,6 +368,26 @@ $("enableSound").addEventListener("click",()=>void enableSound());
 $("testSound").addEventListener("click",async()=>{
  if(!soundEnabled)await enableSound();else playBell();
 });
+
+$("routeStops").addEventListener("click",e=>{
+ const b=e.target.closest("button[data-route]");if(!b)return;
+ const index=Number(b.dataset.index),other=index+(b.dataset.route==="up"?-1:1);
+ if(!Number.isInteger(index)||index<0||other<0||other>=routeState.ids.length)return;
+ [routeState.ids[index],routeState.ids[other]]=[routeState.ids[other],routeState.ids[index]];
+ routeState.coordsOptimized=false;renderRoute();
+});
+$("optimizeRoute").addEventListener("click",()=>{
+ const stops=routeStopsOrdered();
+ if(stops.length<2||!stops.every(o=>o.lat!=null&&o.lng!=null))return;
+ if(!navigator.geolocation){$("routeHint").textContent="Este dispositivo no permite obtener la ubicación.";return;}
+ $("optimizeRoute").disabled=true;
+ navigator.geolocation.getCurrentPosition(position=>{
+  routeState.ids=nearestOrder(stops,{lat:position.coords.latitude,lng:position.coords.longitude}).map(o=>o.id);
+  routeState.coordsOptimized=true;renderRoute();
+ },()=>{$("optimizeRoute").disabled=false;$("routeHint").textContent="Ubicación no disponible; ordena las paradas manualmente.";},
+ {enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+});
+
 $("availabilityButton").addEventListener("click", () => {
   if (!rider) return;
   const newOnline = !rider.online;
