@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#14263b">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Seguimiento de pedido · ESTAMBUL DELIVERY</title>
+<link rel="stylesheet" href="docs/track.css?v=1">
+</head><body>
+<header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon">E<span>↗</span></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>SEGUIMIENTO DE TU PEDIDO</small></div></div></header>
+<main class="container">
+<section id="loading" class="panel center"><div class="spinner"></div><h1>Consultando tu pedido…</h1><p>Estamos conectando con el sistema de reparto.</p></section>
+<section id="notFound" class="panel center" hidden><div class="hero-symbol">🔒</div><h1>Enlace no disponible</h1><p>Este enlace puede haber caducado, estar revocado o ser incorrecto. Consulta directamente con el restaurante si necesitas información.</p></section>
+<div id="orderContent" hidden>
+<section class="panel order-panel">
+<div class="section-top"><span class="eyebrow">TU PEDIDO</span><span id="liveStatus" class="live-pill">Actualizando…</span></div>
+<h1 id="orderRef">Pedido</h1>
+<p id="orderDescription" class="subtitle">Puedes consultar el progreso de tu entrega aquí.</p>
+<div class="progress"><div id="progressBar"></div></div>
+<div id="steps" class="steps"></div>
+<div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
+</section>
+<section id="feedbackPanel" class="panel feedback-panel" hidden>
+<div class="stars-symbol">★</div>
+<h2>¿Qué tal fue tu pedido?</h2>
+<p>Tu opinión ayuda al restaurante a mejorar.</p>
+<form id="feedbackForm">
+<fieldset id="ratingField"><legend>Valora tu experiencia</legend><div class="rating" id="ratingButtons">
+<label><input type="radio" name="rating" value="1" required><span>★</span><small>1</small></label>
+<label><input type="radio" name="rating" value="2"><span>★</span><small>2</small></label>
+<label><input type="radio" name="rating" value="3"><span>★</span><small>3</small></label>
+<label><input type="radio" name="rating" value="4"><span>★</span><small>4</small></label>
+<label><input type="radio" name="rating" value="5"><span>★</span><small>5</small></label>
+</div></fieldset>
+<label class="comment-label" for="feedbackComment">Tu comentario (opcional)</label>
+<textarea id="feedbackComment" maxlength="600" rows="3" placeholder="Cuéntanos cómo ha ido la entrega…"></textarea>
+<button class="primary-button" id="submitFeedback" type="submit">Enviar valoración</button>
+<p id="feedbackError" class="error" role="alert" hidden></p>
+</form>
+</section>
+<section id="feedbackDone" class="panel center" hidden><div class="hero-symbol">💚</div><h2>¡Gracias por tu opinión!</h2><p>Tu valoración se ha enviado directamente al restaurante.</p></section>
+<section id="reviewPanel" class="panel center" hidden><h2>¿Quieres dejar una reseña pública?</h2><p>Puedes compartir tu experiencia en Google, sea cual sea tu valoración.</p><a id="reviewLink" class="secondary-button" target="_blank" rel="noopener noreferrer">Abrir Google Reviews ↗</a></section>
+<p class="privacy-note">Este enlace es privado: compártelo únicamente con personas de confianza. No muestra teléfono, dirección ni ubicación exacta del repartidor. Los mensajes promocionales no están activados.</p>
+</div>
+</main>
+<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=1"></script>
+</body></html>
