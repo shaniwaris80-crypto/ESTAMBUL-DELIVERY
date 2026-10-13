@@ -364,7 +364,7 @@ function draw(){
  $("toggleHistory").setAttribute("aria-expanded",showHistory?"true":"false");
  $("historyPanel").hidden=!showHistory;
  $("historyChevron").textContent=showHistory?"Ocultar ↑":"Mostrar ↓";
- $("historyOrders").innerHTML=showHistory?(done.length?done.map(o=>renderOrder(o,false,true)).join("")
+ $("historyOrders").innerHTML=showHistory?(done.length?done.map(renderHistoryOrder).join("")
    :'<div class="history-empty">Aún no tienes entregas completadas.</div>'):"";
  $("syncStamp").textContent="Actualizado a las "+new Date(lastSync).toLocaleTimeString("es-ES");
  renderRoute();
@@ -378,7 +378,15 @@ function mapUrl(order) {
   }
   return target?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(target)+"&travelmode=driving":"";
 }
-function renderOrder(order,isPriority=false,isHistory=false) {
+function renderHistoryOrder(order){
+ const pay=order.payment_method==="efectivo"?"💶 Efectivo":order.payment_method==="tarjeta"?"💳 Tarjeta":"Pago sin indicar";
+ return '<article class="history-row">'+
+  '<span class="history-row-status" aria-label="Entregado">✓</span>'+
+  '<div class="history-row-main"><strong>#'+escapeText(order.reference)+'</strong><span>'+escapeText(order.customer_name)+'</span>'+
+  '<small>'+escapeText(pay)+'</small></div>'+
+  '<div class="history-row-end"><strong>'+euros(order.amount)+'</strong><small>Entregado</small></div></article>';
+}
+function renderOrder(order,isPriority=false) {
   const nextStatus=allowedNext[order.status];
   const url=mapUrl(order);
   const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");
@@ -387,7 +395,7 @@ function renderOrder(order,isPriority=false,isHistory=false) {
   const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
       (nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'');
-  return '<article class="order-card '+(isHistory?"history-order":isPriority?"priority-order":"active-order")+'">'+
+  return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
     '</span></div><span class="status '+escapeText(order.status)+'">'+status+'</span></div>'+
@@ -600,7 +608,12 @@ $("logoutButton").addEventListener("click", async () => {
   } catch {} finally { busy = false; resetLocal(); }
 });
 document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && identity) void updateOrders();
+  if (!document.hidden) {
+    if (alertIsOpen && soundEnabled && alertRingCount<3 && alertRepeatTimer===null) ringForAssignment();
+    if (identity) void updateOrders();
+  } else if(alertRepeatTimer!==null){
+    clearTimeout(alertRepeatTimer);alertRepeatTimer=null;
+  }
 });
 setInterval(() => { if (identity) void updateOrders(); }, 5000);
 window.addEventListener("beforeinstallprompt", event => {
