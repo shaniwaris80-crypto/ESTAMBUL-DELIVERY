@@ -210,7 +210,14 @@ $("loginForm").addEventListener("submit", async e => {
   catch (error) {
     // Fail-closed: never keep a session that is not an authorized rider.
     setSaved(null); identity = null; rider = null; orders = [];
-    setError(error.message || "No se ha podido iniciar sesión.", true);
+    const details = String(error.message || "");
+    if (/invalid login credentials|invalid_credentials/i.test(details)) {
+      setError("Este correo todavía no ha creado una cuenta, o la contraseña no coincide. Si es tu primer acceso, pulsa «Crear cuenta Rider», elige una contraseña y confirma tu correo antes de entrar.", true);
+    } else if (/email not confirmed/i.test(details)) {
+      setError("Tu correo todavía no está confirmado. Revisa el mensaje de Supabase en la bandeja de entrada y spam; después vuelve a iniciar sesión.", true);
+    } else {
+      setError(details || "No se ha podido iniciar sesión.", true);
+    }
   } finally { busy = false; $("loginButton").disabled = false; }
 });
 $("availabilityButton").addEventListener("click", () => {
