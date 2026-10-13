@@ -95,3 +95,15 @@ El repartidor declara el efectivo REAL contado. El sistema muestra la diferencia
 Si Rider tiene dos o más pedidos activos aparece el planificador **Mi ruta**. Puede mover paradas arriba/abajo y abrir **Google Maps** con los destinos en ese orden. Debido a los límites de Maps en móvil, rutas largas se ofrecen por tramos de hasta cuatro paradas; el siguiente tramo empieza donde termina el anterior.
 
 El botón de optimización solo se activa si **todas** las paradas tienen coordenadas; pide la ubicación del rider y aplica una heurística de vecino más cercano basada en distancia en línea recta. No calcula tiempo de conducción, tráfico, ventanas de entrega ni óptimo global. Direcciones sin coordenadas se pueden ordenar manualmente y abrir en Google Maps. Para optimización real por carretera hay que integrar geocodificación y Google Routes API u otro servicio adecuado, con credenciales protegidas en el servidor.
+
+
+## Cierre provisional del día (solución a botón deshabilitado)
+Si el rider tiene **cero pedidos pendientes**, pero existen pedidos antiguos entregados sin método de pago, el arqueo muestra el botón **Terminar día provisional y ponerme offline**. Para habilitar el cierre:
+
+1. Pulsa **Ver arqueo de hoy** y revisa efectivo, tarjeta y pagos por clasificar.
+2. Escribe el **efectivo realmente contado**, incluso `0` cuando no hay efectivo.
+3. En **Observaciones**, explica el motivo de los pagos no clasificados (mínimo 8 caracteres).
+4. Marca la confirmación de que esos pedidos quedan pendientes de conciliar.
+5. Pulsa **Terminar día provisional y ponerme offline** y acepta la confirmación.
+
+El servidor registra un cierre `is_provisional=true` y conserva un resumen con las líneas de pedido y el importe sin clasificar. Los pagos desconocidos **no se pasan automáticamente** a efectivo o tarjeta y las diferencias de caja se calculan solo sobre efectivo identificado. En el administrador aparece la etiqueta **PROVISIONAL**. Si hay entregas abiertas, el cierre sigue bloqueado; hay que completarlas o reasignarlas. Una vez cerrado, el repartidor queda offline hasta el día siguiente (Europe/Madrid). La acción es explícita: no se ejecuta de forma automática.
