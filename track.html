@@ -4,7 +4,7 @@
 <meta name="referrer" content="no-referrer"><meta name="theme-color" content="#14263b">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <title>Seguimiento de pedido · ESTAMBUL DELIVERY</title>
-<link rel="stylesheet" href="docs/track.css?v=1">
+<link rel="stylesheet" href="docs/track.css?v=2">
 </head><body>
 <header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon">E<span>↗</span></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>SEGUIMIENTO DE TU PEDIDO</small></div></div></header>
 <main class="container">
@@ -18,6 +18,13 @@
 <div class="progress"><div id="progressBar"></div></div>
 <div id="steps" class="steps"></div>
 <div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
+</section>
+<section id="customerChatPanel" class="panel guest-chat" hidden>
+<h2>💬 Hablar con tu repartidor</h2>
+<p>Escribe una indicación sobre esta entrega. El chat se cierra cuando figure como entregada.</p>
+<div id="customerChatMessages" class="chat-messages" aria-live="polite"></div>
+<form id="customerChatForm" class="chat-form"><input id="customerChatText" maxlength="450" required placeholder="Escribe al repartidor…" autocomplete="off"><button type="submit">Enviar</button></form>
+<p id="customerChatError" class="error" hidden role="alert"></p>
 </section>
 <section id="feedbackPanel" class="panel feedback-panel" hidden>
 <div class="stars-symbol">★</div>
@@ -42,5 +49,5 @@
 <p class="privacy-note">Este enlace es privado: compártelo únicamente con personas de confianza. No muestra teléfono, dirección ni ubicación exacta del repartidor. Los mensajes promocionales no están activados.</p>
 </div>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=1"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=2"></script>
 </body></html>

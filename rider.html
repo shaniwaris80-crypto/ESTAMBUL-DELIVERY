@@ -10,7 +10,7 @@
 <link rel="manifest" href="rider.webmanifest">
 <link rel="icon" href="docs/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="docs/rider-icon.png">
-<link rel="stylesheet" href="docs/rider.css?v=12">
+<link rel="stylesheet" href="docs/rider.css?v=13">
 <title>Estambul Delivery · Rider</title>
 </head>
 <body>
@@ -44,6 +44,10 @@
 <div class="welcome"><div><span class="eyebrow">TU TURNO DE REPARTO</span><h1>Hola, <span id="riderName">Rider</span><span class="wave"> 👋</span></h1><p id="accountName">ESTAMBUL DELIVERY</p></div><button class="icon-button" id="refreshButton" aria-label="Actualizar mis pedidos" title="Actualizar">↻</button></div>
 <div class="notice" id="connectionNotice" hidden></div>
 <div class="availability panel"><div class="availability-left"><div class="online-indicator" id="onlineLight"></div><div><strong id="onlineLabel">Desconectado</strong><p>Mi disponibilidad para reparto</p></div></div><button id="availabilityButton" class="toggle" aria-label="Cambiar disponibilidad" aria-pressed="false"><span></span></button></div>
+<section class="panel gps-panel" id="gpsSection">
+<div class="gps-heading"><div><strong>📍 Compartir GPS durante el reparto</strong><p id="gpsStatus">Desactivado. Comparte tu ubicación solo cuando tengas un pedido recogido o en ruta.</p></div><button id="toggleGps" type="button" class="gps-toggle">Activar GPS</button></div>
+<p class="gps-privacy">GPS voluntario, solo mientras la web esté visible y tengas entregas en curso. La posición exacta solo la ve el equipo autorizado; nunca se muestra al cliente.</p>
+</section>
 <div class="sound-panel panel">
   <div class="sound-heading"><span class="sound-emoji">🔔</span><div><strong>Alerta de asignación</strong><p id="soundStatus">Activa un aviso fuerte para pedidos nuevos.</p></div></div>
   <div class="sound-actions"><button id="enableSound" class="sound-primary" type="button">🔊 Activar alertas</button><button id="testSound" type="button" class="sound-secondary">Probar alarma</button></div>
@@ -71,6 +75,12 @@
   <div id="orders" class="orders"></div>
   <div class="sync-note"><span id="syncStamp">Actualizando...</span><span>↻ Cada 5 s</span></div>
 </section>
+<section id="riderChatPanel" class="panel delivery-chat" hidden>
+<div class="chat-header"><div><span class="eyebrow">COMUNICACIÓN DIRECTA</span><h2 id="riderChatTitle">Chat de entrega</h2></div><button type="button" id="closeRiderChat">Cerrar ×</button></div>
+<p class="chat-info">Solo el cliente con su enlace privado y el rider asignado pueden enviar mensajes. No compartas información sensible.</p>
+<div id="riderChatMessages" class="chat-messages" aria-live="polite"></div>
+<form id="riderChatForm" class="chat-form"><input id="riderChatText" maxlength="450" placeholder="Escribe al cliente…" required autocomplete="off"><button type="submit">Enviar</button></form>
+<p id="riderChatError" role="alert" class="chat-error" hidden></p></section>
 <section class="history-section panel" aria-labelledby="historyTitle">
   <button id="toggleHistory" type="button" class="history-toggle" aria-expanded="false" aria-controls="historyPanel">
     <span class="history-icon">✓</span><span class="history-label"><strong id="historyTitle">Historial de entregas</strong><small><span id="historyCount">0</span> completadas recientes · separado de las activas</small></span>
@@ -110,6 +120,6 @@
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
 <p class="disclaimer">VERSIÓN WEB DE PRUEBAS · Sin ubicación GPS real, avisos push ni pedidos reales de Last.app. Las entregas se consultan en el servidor, no se guardan en el móvil sin conexión.</p>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=12"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=13"></script>
 </body>
 </html>

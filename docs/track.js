@@ -12,6 +12,28 @@ const steps=[
  {status:"entregado",title:"Entregado",info:"El repartidor ha finalizado la entrega."}
 ];
 let current=null,polling=false;
+
+let chatLoading=false;
+function displayCustomerChat(lines){
+ const parent=el("customerChatMessages");
+ parent.replaceChildren();
+ if(!Array.isArray(lines)||lines.length===0){const p=document.createElement("p");p.textContent="Todavía no hay mensajes.";parent.append(p);return;}
+ for(const m of lines){
+  const bubble=document.createElement("div");bubble.className="chat-bubble "+(m.role==="customer"?"mine":"theirs");
+  const meta=document.createElement("small");meta.textContent=m.role==="customer"?"Tú":"Repartidor";
+  const body=document.createElement("p");body.textContent=m.body||"";
+  bubble.append(meta,body);parent.append(bubble);
+ }
+ parent.scrollTop=parent.scrollHeight;
+}
+async function refreshCustomerChat(){
+ if(chatLoading||!current||!["asignado","recogido","en_ruta"].includes(current.status)||document.hidden)return;
+ chatLoading=true;
+ try{displayCustomerChat(await rpc("ed_customer_chat_history",{p_token:token}));el("customerChatError").hidden=true;}
+ catch(e){el("customerChatError").textContent=e.message||"Chat no disponible";el("customerChatError").hidden=false;}
+ finally{chatLoading=false;}
+}
+
 function prettyTime(value){
  if(!value)return"";
  const date=new Date(value);return Number.isNaN(date.getTime())?"":date.toLocaleString("es-ES",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"});
@@ -48,6 +70,7 @@ function draw(data){
   heading.textContent=item.title;hint.textContent=item.info;copy.append(heading,hint);li.append(num,copy);el("steps").append(li);
  });
  el("updatedAt").textContent="Último cambio: "+prettyTime(data.updated_at);
+ el("customerChatPanel").hidden=!(["asignado","recogido","en_ruta"].includes(data.status));
  const delivered=data.status==="entregado";
  el("feedbackPanel").hidden=!delivered||!!data.feedback_sent;
  el("feedbackDone").hidden=!delivered||!data.feedback_sent;
@@ -62,12 +85,24 @@ async function refresh(){
   const data=await rpc("ed_public_track",{p_token:token});
   if(!data){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;return;}
   draw(data);
+  void refreshCustomerChat();
  }catch{
   if(!current){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;}
   else el("updatedAt").textContent="Sin conexión · prueba a actualizar";
  }finally{polling=false;}
 }
 el("refreshButton").addEventListener("click",()=>void refresh());
+el("customerChatForm").addEventListener("submit",async event=>{
+ event.preventDefault();const message=el("customerChatText").value.trim();if(!message||!current)return;
+ el("customerChatText").disabled=true;
+ try{
+  await rpc("ed_customer_chat_send",{p_token:token,p_body:message});
+  el("customerChatText").value="";await refreshCustomerChat();
+ }catch(err){el("customerChatError").textContent=err.message||"Error de chat";el("customerChatError").hidden=false;}
+ finally{el("customerChatText").disabled=false;}
+});
+setInterval(()=>{if(current)void refreshCustomerChat();},7000);
+
 el("feedbackForm").addEventListener("submit",async e=>{
  e.preventDefault();const chosen=document.querySelector('input[name="rating"]:checked');
  if(!chosen){el("feedbackError").hidden=false;el("feedbackError").textContent="Selecciona de 1 a 5 estrellas.";return;}

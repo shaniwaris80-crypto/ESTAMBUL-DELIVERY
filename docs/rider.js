@@ -23,6 +23,79 @@ let orders = [], busy = false, inFlight = false, showHistory = false, lastSync =
 let deferredInstall = null;
 let mustChangePassword=false;
 
+let gpsWatchId=null,gpsLastSend=0,gpsBusy=false;
+async function stopGps(){
+ if(gpsWatchId!==null){navigator.geolocation?.clearWatch(gpsWatchId);gpsWatchId=null;}
+ $("toggleGps").textContent="Activar GPS";
+ $("gpsStatus").textContent="Ubicación detenida. No estás compartiendo GPS.";
+ try{if(session&&rider)await withAuth("/rest/v1/rpc/ed_stop_rider_position",{method:"POST",body:"{}"});}catch{}
+}
+function hasInProgressOrder(){return orders.some(o=>["recogido","en_ruta"].includes(o.status));}
+async function shareGps(position){
+ if(!session||!rider||!rider.online||!hasInProgressOrder()||document.hidden){
+  if(gpsWatchId!==null)void stopGps();
+  return;
+ }
+ const now=Date.now();if(gpsBusy||now-gpsLastSend<14000)return;
+ gpsBusy=true;
+ try{
+  await withAuth("/rest/v1/rpc/ed_update_rider_position",{method:"POST",body:JSON.stringify({
+   p_lat:position.coords.latitude,p_lng:position.coords.longitude,
+   p_accuracy:Math.round(position.coords.accuracy||0)
+  })});
+  gpsLastSend=Date.now();
+  $("gpsStatus").textContent="Posición compartida con el administrador · "+new Date().toLocaleTimeString("es-ES");
+ }catch(error){$("gpsStatus").textContent="GPS no enviado: "+(error.message||String(error));}
+ finally{gpsBusy=false;}
+}
+async function toggleGps(){
+ if(gpsWatchId!==null){await stopGps();return;}
+ if(!navigator.geolocation){$("gpsStatus").textContent="Este navegador no ofrece geolocalización.";return;}
+ if(!rider?.online||!hasInProgressOrder()){
+  $("gpsStatus").textContent="Primero conéctate y recoge un pedido; el GPS solo se comparte durante repartos.";return;
+ }
+ $("gpsStatus").textContent="Solicitando permiso de ubicación…";
+ gpsWatchId=navigator.geolocation.watchPosition(pos=>void shareGps(pos),
+  err=>{void stopGps();$("gpsStatus").textContent="No se pudo obtener ubicación: "+(err.message||"Revisa el permiso de GPS.");},
+  {enableHighAccuracy:true,maximumAge:8000,timeout:15000});
+ $("toggleGps").textContent="Detener GPS";
+}
+let openChatOrderId=null,chatPolling=false;
+function chatText(value){return escapeText(value);}
+function showRiderChatMessages(lines){
+ const container=$("riderChatMessages");
+ container.innerHTML=(lines||[]).length?(lines||[]).map(m=>
+ '<div class="chat-bubble '+(m.sender_role==="rider"?"mine":"theirs")+'"><small>'+ (m.sender_role==="rider"?"Tú":"Cliente")+'</small>'+
+ '<p>'+chatText(m.body)+'</p><time>'+new Date(m.created_at).toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"})+'</time></div>').join("")
+  :'<p class="chat-blank">Todavía no hay mensajes.</p>';
+ container.scrollTop=container.scrollHeight;
+}
+async function refreshRiderChat(){
+ if(!openChatOrderId||chatPolling||document.hidden||!session)return;
+ chatPolling=true;
+ try{
+  const q="/rest/v1/ed_order_chat?select=id,sender_role,body,created_at&order_id=eq."+
+   encodeURIComponent(openChatOrderId)+"&order=created_at.asc&limit=50";
+  showRiderChatMessages(await withAuth(q));
+  $("riderChatError").hidden=true;
+ }catch(e){$("riderChatError").textContent=e.message||"Chat no disponible";$("riderChatError").hidden=false;}
+ finally{chatPolling=false;}
+}
+function closeRiderChat(){
+ openChatOrderId=null;$("riderChatPanel").hidden=true;$("riderChatText").value="";
+}
+async function openRiderChat(id){
+ const o=orders.find(x=>x.id===id&&["asignado","recogido","en_ruta"].includes(x.status));
+ if(!o)return;
+ openChatOrderId=o.id;
+ $("riderChatTitle").textContent="Pedido #"+o.reference;
+ $("riderChatPanel").hidden=false;
+ $("riderChatError").hidden=true;
+ await refreshRiderChat();
+ $("riderChatPanel").scrollIntoView({behavior:"smooth",block:"start"});
+}
+
+
 let shiftReport=null;
 function cashLabel(v){return euros(Number(v||0));}
 function shiftItems(list,kind){
@@ -292,6 +365,7 @@ function resetLocal() {
   routeState.ids=[];routeState.coordsOptimized=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
+  if(gpsWatchId!==null)void stopGps();closeRiderChat();
   $("password").value = "";
   clearError();
   setVisible("login");
@@ -326,6 +400,8 @@ async function fetchOrders() {
   const updated = Array.isArray(response) ? response : [];
   detectAssigned(updated);
   orders=updated;
+  if(gpsWatchId!==null&&(!rider?.online||!hasInProgressOrder()))void stopGps();
+  if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
   draw();
 }
@@ -394,6 +470,7 @@ function renderOrder(order,isPriority=false) {
   const status=escapeText(statusNames[order.status]||order.status);
   const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
+      (["asignado","recogido","en_ruta"].includes(order.status)?'<button type="button" class="chat-action" data-chat="'+escapeText(order.id)+'">💬 Chat cliente</button>':'')+
       (nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
@@ -562,6 +639,25 @@ $("availabilityButton").addEventListener("click", () => {
   });
 });
 $("refreshButton").addEventListener("click", () => void operation(async () => {}));
+$("toggleGps").addEventListener("click",()=>void toggleGps());
+$("closeRiderChat").addEventListener("click",closeRiderChat);
+$("orders").addEventListener("click",e=>{
+ const button=e.target.closest("[data-chat]");if(button)void openRiderChat(button.dataset.chat);
+});
+$("riderChatForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(!openChatOrderId)return;
+ const value=$("riderChatText").value.trim();if(!value)return;
+ $("riderChatText").disabled=true;
+ try{
+  await withAuth("/rest/v1/rpc/ed_rider_chat_send",{method:"POST",
+   body:JSON.stringify({p_order_id:openChatOrderId,p_body:value})});
+  $("riderChatText").value="";await refreshRiderChat();
+ }catch(err){$("riderChatError").textContent=err.message||"No se pudo enviar";$("riderChatError").hidden=false;}
+ finally{$("riderChatText").disabled=false;}
+});
+setInterval(()=>{if(openChatOrderId)void refreshRiderChat();},7000);
+document.addEventListener("visibilitychange",()=>{if(document.hidden&&gpsWatchId!==null)void stopGps();});
+window.addEventListener("pagehide",()=>{if(gpsWatchId!==null)void stopGps();});
 $("toggleHistory").addEventListener("click",()=>{showHistory=!showHistory;draw();});
 $("acknowledgeAlert").addEventListener("click",acknowledgeNewOrders);
 $("orders").addEventListener("click", event => {
