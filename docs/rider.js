@@ -22,6 +22,64 @@ let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showDone = false, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
+let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false, toastTimer=null;
+function playBell(){
+ if(!soundEnabled||!soundContext)return;
+ try{
+  if(soundContext.state==="suspended")void soundContext.resume();
+  const baseTime=soundContext.currentTime+0.035;
+  // Two short notes, Web Audio API. No remote media or notification keys required.
+  [0,0.19,0.38].forEach((offset,i)=>{
+   const oscillator=soundContext.createOscillator();
+   const gain=soundContext.createGain();
+   oscillator.type="sine";
+   oscillator.frequency.setValueAtTime([740,880,988][i],baseTime+offset);
+   gain.gain.setValueAtTime(0.0001,baseTime+offset);
+   gain.gain.exponentialRampToValueAtTime(0.18,baseTime+offset+0.025);
+   gain.gain.exponentialRampToValueAtTime(0.0001,baseTime+offset+0.16);
+   oscillator.connect(gain).connect(soundContext.destination);
+   oscillator.start(baseTime+offset);
+   oscillator.stop(baseTime+offset+0.18);
+  });
+ }catch{}
+}
+function alertNewOrders(count){
+ if(!count)return;
+ playBell();
+ if("vibrate" in navigator)try{navigator.vibrate([180,80,180]);}catch{}
+ const box=$("newOrderAlert");
+ box.textContent="🔔 "+count+(count===1?" nuevo pedido asignado":" nuevos pedidos asignados")+". ¡Revisa tus entregas!";
+ box.hidden=false;
+ if(toastTimer)clearTimeout(toastTimer);
+ toastTimer=setTimeout(()=>{box.hidden=true;},14000);
+ if(typeof Notification!=="undefined" && Notification.permission==="granted" && document.visibilityState!=="hidden"){
+  try{new Notification("ESTAMBUL RIDER",{body:"Tienes "+count+" entrega(s) asignada(s).",icon:"./docs/rider-icon.png",tag:"estambul-new-assignment"});}catch{}
+ }
+}
+function detectAssigned(current){
+ const active=current.filter(o=>!["entregado","cancelado"].includes(o.status)&&o.rider_id===rider?.id);
+ const incoming=active.filter(o=>!knownActiveOrders.has(o.id));
+ if(orderBaselineReady && incoming.length)alertNewOrders(incoming.length);
+ knownActiveOrders=new Set(active.map(o=>o.id));
+ orderBaselineReady=true;
+}
+async function enableSound(){
+ try{
+  const Audio=window.AudioContext||window.webkitAudioContext;
+  if(!Audio)throw new Error("Este navegador no admite audio.");
+  if(!soundContext)soundContext=new Audio();
+  await soundContext.resume();
+  soundEnabled=true;
+  $("enableSound").textContent="✓ Sonido activo";
+  $("enableSound").classList.add("enabled");
+  $("soundStatus").textContent="Aviso activado: sonará al recibir un pedido nuevo con esta app abierta.";
+  playBell();
+  if(typeof Notification!=="undefined"&&Notification.permission==="default"){
+   try{await Notification.requestPermission();}catch{}
+  }
+ }catch(err){$("soundStatus").textContent="No se pudo activar: "+(err.message||"abre la app desde el navegador.");}
+}
+
 
 function getSaved() {
   try {
@@ -78,6 +136,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
+  orderBaselineReady=false;knownActiveOrders.clear();
   $("password").value = "";
   clearError();
   setVisible("login");
@@ -106,10 +165,12 @@ async function authenticate() {
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
 }
 async function fetchOrders() {
-  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,destination,amount,status,rider_id,lat,lng,created_at&account_id=eq." +
+  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
   const response = await withAuth(endpoint);
-  orders = Array.isArray(response) ? response : [];
+  const updated = Array.isArray(response) ? response : [];
+  detectAssigned(updated);
+  orders=updated;
   lastSync = Date.now();
   draw();
 }
@@ -141,22 +202,36 @@ function draw() {
   $("syncStamp").textContent = "Actualizado a las " + new Date(lastSync).toLocaleTimeString("es-ES");
 }
 function mapUrl(order) {
-  if (order.lat == null || order.lng == null) return "";
-  return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(order.lat + "," + order.lng) + "&travelmode=driving";
+  let target="";
+  if(order.lat!=null && order.lng!=null)target=String(order.lat)+","+String(order.lng);
+  else{
+    const destination=String(order.destination||"").trim();
+    if(destination)target=/burgos|españa|spain/i.test(destination)?destination:destination+", Burgos, España";
+  }
+  return target?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(target)+"&travelmode=driving":"";
 }
 function renderOrder(order) {
-  const nextStatus = allowedNext[order.status];
-  const destination = mapUrl(order);
-  const button = nextStatus ? '<button type="button" data-order="' + escapeText(order.id) + '" data-next="' + nextStatus + '">' +
-    escapeText(nextNames[nextStatus]) + ' →</button>' : "";
-  return '<article class="order-card"><div class="order-top"><div><span class="order-number">#' + escapeText(order.reference) +
-    '</span><span class="channel">' + escapeText(channelNames[order.channel] || order.channel) +
-    '</span></div><span class="status ' + escapeText(order.status) + '">' + escapeText(statusNames[order.status] || order.status) +
-    '</span></div><h3 class="destination-head">' + escapeText(order.customer_name) + '</h3><p class="destination">📍 ' +
-    escapeText(order.destination) + '</p><p class="payment">Importe de prueba: <strong>' + euros(order.amount) +
-    '</strong></p><div class="actions">' + (destination ? '<a href="' + destination +
-    '" target="_blank" rel="noopener noreferrer">↗ Google Maps</a>' : "") + button + '</div></article>';
+  const nextStatus=allowedNext[order.status];
+  const url=mapUrl(order);
+  const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");
+  const tel=(phone.length>=6&&phone.length<=16)?"tel:"+phone:"";
+  const status=escapeText(statusNames[order.status]||order.status);
+  const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
+      (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
+      (nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'');
+  return '<article class="order-card">'+
+    '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
+    '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
+    '</span></div><span class="status '+escapeText(order.status)+'">'+status+'</span></div>'+
+    '<div class="client-label">CLIENTE</div><h3 class="destination-head">'+escapeText(order.customer_name)+'</h3>'+
+    (order.customer_phone?'<p class="client-phone">☎ '+escapeText(order.customer_phone)+'</p>':'<p class="missing-detail">Sin teléfono de cliente registrado</p>')+
+    '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
+    '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
+    (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    '<p class="payment">Importe: <strong>'+euros(order.amount)+'</strong></p>'+
+    '<div class="actions">'+actions+'</div></article>';
 }
+
 async function operation(fn) {
   if (busy) return;
   busy = true; clearError();
@@ -221,6 +296,10 @@ $("loginForm").addEventListener("submit", async e => {
       setError(details || "No se ha podido iniciar sesión.", true);
     }
   } finally { busy = false; $("loginButton").disabled = false; }
+});
+$("enableSound").addEventListener("click",()=>void enableSound());
+$("testSound").addEventListener("click",async()=>{
+ if(!soundEnabled)await enableSound();else playBell();
 });
 $("availabilityButton").addEventListener("click", () => {
   if (!rider) return;
