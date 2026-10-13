@@ -56,9 +56,15 @@ async function reload(){
  const q=encodeURIComponent(member.account_id);
  const [rs,os]=await Promise.all([
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
-  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,destination,lat,lng,amount,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
  ]);
  riders=rs||[];orders=os||[];render();
+}
+function mapsLink(o){
+ const target=(o.lat!=null&&o.lng!=null)?String(o.lat)+","+String(o.lng):String(o.destination||"").trim();
+ if(!target)return null;
+ const location=(o.lat!=null&&o.lng!=null)?target:(/burgos|españa|spain/i.test(target)?target:target+", Burgos, España");
+ return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(location)+"&travelmode=driving";
 }
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
@@ -71,7 +77,14 @@ function render(){
   el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
   el("ordersTable").innerHTML=orders.map(o=>{
     const options='<option value="">Sin asignar</option>'+riders.filter(r=>r.active).map(r=>'<option value="'+esc(r.id)+'" '+(o.rider_id===r.id?"selected":"")+'>'+esc(r.display_name)+'</option>').join("");
-    return '<tr><td><strong>'+esc(o.reference)+'</strong></td><td><strong>'+esc(o.customer_name)+'</strong><small>'+esc(o.destination)+'</small></td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><span class="pill">'+esc(labels[o.status])+'</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td></tr>';
+    const gmaps=mapsLink(o);
+    return '<tr><td><strong>'+esc(o.reference)+'</strong><small>'+esc(Number(o.amount||0).toFixed(2))+' €</small></td>'+
+      '<td><strong>'+esc(o.customer_name)+'</strong><small>'+esc(o.destination)+'</small>'+
+      (o.customer_phone?'<small>☎ '+esc(o.customer_phone)+'</small>':'')+
+      (o.notes?'<small>📝 '+esc(o.notes)+'</small>':'')+
+      (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
+      '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><span class="pill">'+esc(labels[o.status])+
+      '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td></tr>';
   }).join("")||'<tr><td colspan="5">Sin pedidos.</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{
@@ -140,7 +153,13 @@ el("sendInvitations").addEventListener("click",async()=>{
 el("refresh").addEventListener("click",()=>void operation(async()=>{}));
 el("createForm").addEventListener("submit",e=>{
  e.preventDefault();void operation(async()=>{
-  const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",customer_name:el("newCustomer").value.trim(),destination:el("newAddress").value.trim(),status:"pendiente"};
+  const phone=el("newPhone").value.trim();
+  const amount=Number(el("newAmount").value||"0");
+  if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe no válido");
+  const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",
+    customer_name:el("newCustomer").value.trim(),customer_phone:phone||null,
+    destination:el("newAddress").value.trim(),notes:el("newNotes").value.trim(),
+    amount,status:"pendiente"};
   await query("/rest/v1/ed_orders",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)});
   el("createForm").reset();
  });
