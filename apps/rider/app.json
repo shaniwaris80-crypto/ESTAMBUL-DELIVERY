@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Estambul Delivery Rider",
+    "slug": "estambul-delivery-rider",
+    "scheme": "estambuldelivery",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "es.estambul.delivery.rider"
+    },
+    "android": {
+      "package": "es.estambul.delivery.rider"
+    },
+    "extra": {
+      "developmentStage": "Demo sin autenticación ni GPS real"
+    }
+  }
+}
