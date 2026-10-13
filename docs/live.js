@@ -122,16 +122,19 @@ el("sendInvitations").addEventListener("click",async()=>{
  if(busy||member?.role!=="admin")return;
  busy=true;clearError();el("sendInvitations").disabled=true;
  try{
+  if(!window.confirm("¿Crear dos usuarios Rider de prueba con contraseñas temporales únicas? Se mostrarán solo una vez."))return;
   const result=await query("/functions/v1/ed-invite-riders",{method:"POST",body:"{}"});
   const lines=(result.results||[]).map(r=>
-   r.email+" — "+(r.status==="enviado"?"Invitación enviada":r.status)+(r.error?" ("+r.error+")":"")
+   r.email+" — "+(r.status==="created"?"CUENTA CREADA":r.status)+(r.error?" ("+r.error+")":"")+
+   (r.temporary_password?"\nCONTRASEÑA TEMPORAL: "+r.temporary_password+"\nEnvíala de forma privada. El rider debe cambiarla al entrar.":"")
   );
-  if(result.already_sent?.length)lines.push("Invitaciones ya enviadas anteriormente: "+result.already_sent.join(", "));
-  if(!lines.length)lines.push("No hay invitaciones pendientes de envío.");
+  if(result.already_created?.length)lines.push("Cuentas ya aprovisionadas: "+result.already_created.join(", "));
+  if(!lines.length)lines.push("No hay cuentas pendientes de crear.");
+  if((result.results||[]).some(r=>r.temporary_password))lines.unshift("IMPORTANTE: guarda ahora las contraseñas en un gestor seguro. No podrás volver a verlas.");
   el("inviteResult").textContent=lines.join("\n");
   el("inviteResult").hidden=false;
- }catch(e){el("inviteResult").textContent="No se pudieron enviar las invitaciones: "+(e.message||String(e))+
-  ". Revisa los ajustes de correo y URL permitida en Supabase Authentication.";el("inviteResult").hidden=false;}
+ }catch(e){el("inviteResult").textContent="No se pudieron crear las cuentas: "+(e.message||String(e))+
+  ". Revisa el estado del proyecto y los permisos del administrador en Supabase.";el("inviteResult").hidden=false;}
  finally{busy=false;el("sendInvitations").disabled=false;}
 });
 el("refresh").addEventListener("click",()=>void operation(async()=>{}));

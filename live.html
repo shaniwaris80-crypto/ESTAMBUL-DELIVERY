@@ -16,8 +16,8 @@
 <div class="stats" id="stats"></div>
 <div id="staffView" hidden>
 <section class="card" id="inviteCard" hidden>
-  <div class="section-head"><div><h2>Activar repartidores</h2><p>Envía el acceso por correo a los riders previamente autorizados. Cada uno deberá confirmar el enlace y crear su contraseña.</p></div></div>
-  <button type="button" id="sendInvitations" class="btn">✉ Enviar invitaciones a Rider 1 y Rider 2</button>
+  <div class="section-head"><div><h2>Activar repartidores</h2><p>Crea las cuentas de Rider 1 y Rider 2 para pruebas sin depender de correo SMTP. Se generará una contraseña temporal diferente para cada uno y se mostrará solo una vez. Entrégalas de forma privada.</p></div></div>
+  <button type="button" id="sendInvitations" class="btn">🔑 Crear y activar cuentas Rider</button>
   <p id="inviteResult" role="status" style="white-space:pre-line;margin-top:12px;font-size:13px" hidden></p>
 </section>
 <section class="card" id="createCard"><h2>Nuevo pedido ficticio</h2><p>Prueba la asignación. No introduzcas información de clientes reales.</p><form id="createForm" class="create-form"><label>Referencia<input id="newReference" required maxlength="80" placeholder="PRUEBA-010"></label><label>Cliente ficticio<input id="newCustomer" required maxlength="120" placeholder="Cliente de prueba"></label><label>Destino ficticio<input id="newAddress" required maxlength="400" placeholder="Burgos, dirección inventada"></label><button type="submit" class="btn">+ Crear pedido</button></form></section>

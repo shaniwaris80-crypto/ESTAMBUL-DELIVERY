@@ -21,6 +21,7 @@ const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showDone = false, lastSync = 0;
 let deferredInstall = null;
+let mustChangePassword=false;
 
 function getSaved() {
   try {
@@ -83,6 +84,7 @@ function resetLocal() {
 }
 async function authenticate() {
   const user = await withAuth("/auth/v1/user");
+  mustChangePassword=Boolean(user.app_metadata?.estambul_delivery_demo && !user.user_metadata?.estambul_password_changed);
   let membership = await withAuth("/rest/v1/ed_members?select=account_id,role,active&user_id=eq." + encodeURIComponent(user.id) + "&active=eq.true");
   let assignment = Array.isArray(membership) ? membership.find(row => row.role === "rider") : null;
   if (!assignment) {
@@ -178,7 +180,7 @@ async function signIn(email, password) {
   setSaved({ access: response.access_token, refresh: response.refresh_token, expiry: Date.now() + response.expires_in * 1000 });
   await authenticate();
   await fetchOrders();
-  clearError(); setVisible("dashboard"); $("password").value = "";
+  clearError(); setVisible(mustChangePassword ? "setPassword" : "dashboard"); $("password").value = "";
 }
 $("registerButton").addEventListener("click", async () => {
   if (busy) return;
@@ -277,6 +279,7 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./rider-sw.js").catch(() => {});
   });
 }
+$("changePassword").addEventListener("click",()=>{ $("setupError").hidden=true;setVisible("setPassword"); });
 $("passwordSetupForm").addEventListener("submit", async event => {
   event.preventDefault();
   if (busy) return;
@@ -291,7 +294,8 @@ $("passwordSetupForm").addEventListener("submit", async event => {
   $("setupError").hidden = true;
   try {
     // Supabase Auth validates the invitation JWT; password is never stored by this app.
-    await withAuth("/auth/v1/user", { method: "PUT", body: JSON.stringify({ password }) });
+    await withAuth("/auth/v1/user", { method: "PUT", body: JSON.stringify({ password, data:{estambul_password_changed:true} }) });
+    mustChangePassword=false;
     $("setupPassword").value = ""; $("setupPasswordConfirm").value = "";
     await fetchOrders();
     setVisible("dashboard");
@@ -337,7 +341,7 @@ async function start() {
   try {
     await authenticate();
     await fetchOrders();
-    setVisible(invited ? "setPassword" : "dashboard");
+    setVisible(invited || mustChangePassword ? "setPassword" : "dashboard");
   } catch (error) {
     resetLocal();
     if (invited) setError("La invitación no pudo activarse: "+(error.message||"Error"),true);

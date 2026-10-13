@@ -29,8 +29,8 @@
 <div class="login-bottom">¿Todavía no tienes usuario? Pide al responsable que te dé de alta.<br>No introduzcas datos de clientes reales en esta fase.</div>
 </section>
 <section id="setPassword" class="panel login-card" hidden>
-  <div class="card-symbol">🔐</div><h2>Activa tu cuenta Rider</h2>
-  <p>Invitación verificada. Establece una contraseña personal para acceder desde este y otros dispositivos.</p>
+  <div class="card-symbol">🔐</div><h2>Protege tu cuenta Rider</h2>
+  <p>Si has recibido una contraseña provisional del administrador, cámbiala ahora por una privada y exclusiva de tu cuenta.</p>
   <form id="passwordSetupForm">
     <label for="setupPassword">CONTRASEÑA NUEVA (MÍNIMO 10 CARACTERES)</label>
     <input id="setupPassword" type="password" minlength="10" autocomplete="new-password" required>
@@ -48,6 +48,7 @@
 <div class="list-heading"><div><span class="eyebrow">PEDIDOS DEL REPARTIDOR</span><h2>Mis entregas <span id="listCount" class="list-count">0</span></h2></div><label class="show-done"><input id="showDone" type="checkbox"> Entregados</label></div>
 <div id="orders" class="orders"></div>
 <div class="sync-note"><span id="syncStamp">Actualizando...</span><span>↻ Sincroniza cada 5 s</span></div>
+<button type="button" id="changePassword" class="logout" style="margin-top:16px">🔐 Cambiar mi contraseña</button>
 <button id="logoutButton" class="logout">↪ Cerrar sesión</button>
 </section>
 <section id="setup" class="panel setup" hidden><div class="setup-icon">⚙️</div><h1>La app todavía no está configurada</h1><p>Falta conectar la clave pública de Supabase. El administrador debe revisar la configuración del proyecto.</p><a class="btn btn-main" href="./">Abrir demostración</a></section>
