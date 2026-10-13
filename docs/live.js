@@ -46,7 +46,7 @@ async function identity(){
 function logged(){
  el("loginSection").hidden=true;el("appSection").hidden=false;el("logout").hidden=false;el("noConfig").hidden=true;
  const staff=member.role!=="rider";
- el("staffView").hidden=!staff;el("riderView").hidden=staff;
+ el("staffView").hidden=!staff;el("riderView").hidden=staff;el("inviteCard").hidden=member.role!=="admin";
  el("accountLabel").textContent=account.name+" · "+member.role.toUpperCase();
  el("viewTitle").textContent=staff?"Centro de reparto":"Mis entregas";
  el("viewSub").textContent="Sincronizado entre dispositivos · actualización cada 5 segundos · solo datos de prueba";
@@ -118,6 +118,22 @@ el("loginForm").addEventListener("submit",async e=>{
  finally{busy=false;el("signInButton").disabled=false}
 });
 el("logout").addEventListener("click",()=>{session=null;persist();member=null;account=null;orders=[];riders=[];el("appSection").hidden=true;el("logout").hidden=true;el("loginSection").hidden=false;el("connection").textContent="Desconectado"});
+el("sendInvitations").addEventListener("click",async()=>{
+ if(busy||member?.role!=="admin")return;
+ busy=true;clearError();el("sendInvitations").disabled=true;
+ try{
+  const result=await query("/functions/v1/ed-invite-riders",{method:"POST",body:"{}"});
+  const lines=(result.results||[]).map(r=>
+   r.email+" — "+(r.status==="enviado"?"Invitación enviada":r.status)+(r.error?" ("+r.error+")":"")
+  );
+  if(result.already_sent?.length)lines.push("Invitaciones ya enviadas anteriormente: "+result.already_sent.join(", "));
+  if(!lines.length)lines.push("No hay invitaciones pendientes de envío.");
+  el("inviteResult").textContent=lines.join("\n");
+  el("inviteResult").hidden=false;
+ }catch(e){el("inviteResult").textContent="No se pudieron enviar las invitaciones: "+(e.message||String(e))+
+  ". Revisa los ajustes de correo y URL permitida en Supabase Authentication.";el("inviteResult").hidden=false;}
+ finally{busy=false;el("sendInvitations").disabled=false;}
+});
 el("refresh").addEventListener("click",()=>void operation(async()=>{}));
 el("createForm").addEventListener("submit",e=>{
  e.preventDefault();void operation(async()=>{
