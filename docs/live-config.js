@@ -1,4 +1,2 @@
-// ESTAMBUL DELIVERY / Supabase conexión de pruebas.
-// Esta clave es PUBLICABLE; nunca usar service_role ni clave secreta.
-// Puedes configurar los datos siguiendo docs/LIVE_MODE.md
-window.ESTAMBUL_SUPABASE = { url: "", anonKey: "" };
+// Supabase publishable key only (public by design); permissions enforced by RLS.
+window.ESTAMBUL_SUPABASE = { url: "https://wfrloqblbflltrjwdfmd.supabase.co", anonKey: "sb_publishable_8c9WlLg4-EY3JHRsEHA34w__fo9Ra4m" };
