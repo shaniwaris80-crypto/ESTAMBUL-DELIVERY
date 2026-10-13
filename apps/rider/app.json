@@ -5,16 +5,23 @@
     "scheme": "estambuldelivery",
     "version": "0.1.0",
     "orientation": "portrait",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
     "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "es.estambul.delivery.rider"
+      "supportsTablet": true,
+      "bundleIdentifier": "com.estambuldelivery.rider"
     },
     "android": {
-      "package": "es.estambul.delivery.rider"
+      "package": "com.estambuldelivery.rider",
+      "adaptiveIcon": {
+        "backgroundColor": "#14253b"
+      }
     },
-    "extra": {
-      "developmentStage": "Demo sin autenticación ni GPS real"
+    "plugins": [
+      "expo-router"
+    ],
+    "experiments": {
+      "typedRoutes": true
     }
   }
 }
