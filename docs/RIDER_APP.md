@@ -33,3 +33,23 @@ Aún NO se ha generado un IPA o APK ni se ha instalado una build de producción.
 7. Verificar que el administrador ve los mismos cambios.
 
 No usar datos de clientes ni GPS real hasta verificar permisos y protección de datos.
+
+
+## Activación de cuentas Rider preautorizadas
+
+Los correos de los repartidores autorizados se guardan **únicamente en la tabla privada de invitaciones** de Supabase. No se guardan correos de invitados ni contraseñas en GitHub.
+
+Cada repartidor debe:
+1. Abrir la App Rider web en su móvil.
+2. Introducir su propio correo autorizado y elegir una contraseña nueva de al menos 8 caracteres.
+3. Pulsar **Crear cuenta Rider**.
+4. Abrir el correo de confirmación enviado por Supabase, completar la verificación y volver a la app.
+5. Pulsar **Iniciar sesión**. Una función protegida comprueba en Supabase que el email verificado coincide con una invitación privada y vincula únicamente esa ficha Rider.
+6. Repetir para el otro rider, utilizando **un correo y contraseña distintos**.
+
+Si el mensaje de confirmación abre una dirección de localhost, el administrador debe registrar la dirección pública de Rider como URL permitida en **Supabase → Authentication → URL Configuration**. La URL de destino prevista es:
+https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html
+
+La invitación no envía un correo automáticamente: el email de verificación se solicita al pulsar «Crear cuenta Rider».
+
+El backend sigue usando datos de prueba y no sincroniza aún pedidos reales de Last.app.
