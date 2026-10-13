@@ -9,6 +9,7 @@ const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
 let shiftClosures=[],shiftClosureItems=[];
+let brandDetails=null,customerFeedback=[];
 const storage="estambul-secure-test-session";
 try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
 function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
@@ -62,6 +63,15 @@ async function reload(){
  riders=rs||[];orders=os||[];
  if(member.role!=="rider"){
   try{
+   const [brands,feedback]=await Promise.all([
+    query("/rest/v1/ed_brand_settings?select=display_name,primary_color,logo_url,google_review_url&account_id=eq."+q),
+    query("/rest/v1/ed_customer_feedback?select=id,order_id,rating,comment,followup_status,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+   ]);
+   brandDetails=(brands||[])[0]||null;customerFeedback=feedback||[];
+  }catch(error){brandDetails=null;customerFeedback=[];message(error);}
+ }
+ if(member.role!=="rider"){
+  try{
    shiftClosures=await query("/rest/v1/ed_shift_closures?select=id,account_id,rider_id,shift_day,completed_count,cash_expected,card_total,unknown_total,cash_declared,cash_difference,notes,closed_at,legacy_count&account_id=eq."+q+"&order=closed_at.desc&limit=30");
    const ids=(shiftClosures||[]).map(c=>c.id);
    shiftClosureItems=ids.length?await query("/rest/v1/ed_shift_closure_items?select=close_id,reference,customer_name,payment_method,amount,legacy_timestamp&close_id=in.("+ids.join(",")+")"):[];
@@ -105,6 +115,34 @@ function drawShiftHistory(){
  }).join("");
 }
 
+
+function renderBrand(){
+ if(!brandDetails)return;
+ if(document.activeElement?.closest?.("#brandForm"))return;
+ el("brandName").value=brandDetails.display_name||account?.name||"ESTAMBUL DELIVERY";
+ el("brandColor").value=brandDetails.primary_color||"#14263b";
+ el("brandLogo").value=brandDetails.logo_url||"";
+ el("brandReviewUrl").value=brandDetails.google_review_url||"";
+}
+function renderFeedback(){
+ el("feedbackCount").textContent=customerFeedback.length+" valoraciones";
+ if(!customerFeedback.length){
+  el("feedbackList").innerHTML='<p class="small-note">Aún no hay valoraciones. Genera un enlace de seguimiento de un pedido de prueba y, al entregarlo, comprueba el formulario.</p>';
+  return;
+ }
+ el("feedbackList").innerHTML=customerFeedback.map(f=>{
+  const ref=orders.find(o=>o.id===f.order_id)?.reference||"Pedido";
+  const isIssue=Number(f.rating)<=2;
+  return '<article class="feedback-card '+(isIssue?"feedback-issue":"")+'">'+
+   '<div class="feedback-meta"><strong>#'+esc(ref)+' · '+f.rating+' ★</strong><span>'+new Date(f.created_at).toLocaleDateString("es-ES")+'</span></div>'+
+   '<p>'+esc(f.comment||"Sin comentario")+'</p>'+
+   '<div class="feedback-controls"><span>'+(isIssue?"⚠ Prioridad: contactar en privado":"✓ Opinión recibida")+'</span>'+
+   '<select data-feedback="'+esc(f.id)+'" aria-label="Seguimiento de la valoración">'+
+   [['pending','Pendiente'],['contacted','Contactado'],['resolved','Resuelto']].map(([value,label])=>
+    '<option value="'+value+'" '+(f.followup_status===value?"selected":"")+'>'+label+'</option>').join("")+
+   '</select></div></article>';
+ }).join("");
+}
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
@@ -113,6 +151,7 @@ function render(){
  if(staff){
   el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
   el("orderCount").textContent=orders.length+" pedidos";
+  renderBrand();renderFeedback();
   drawShiftHistory();
   el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
   el("ordersTable").innerHTML=orders.map(o=>{
@@ -124,8 +163,9 @@ function render(){
       (o.notes?'<small>📝 '+esc(o.notes)+'</small>':'')+
       (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
       '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
-      '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td></tr>';
-  }).join("")||'<tr><td colspan="7">Sin pedidos.</td></tr>';
+      '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
+      '<td><button class="outline" type="button" data-track="'+esc(o.id)+'">🔗 Enlace</button></td></tr>';
+  }).join("")||'<tr><td colspan="8">Sin pedidos.</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{
     const n=next[o.status],map=mapsLink(o);
@@ -190,6 +230,53 @@ el("sendInvitations").addEventListener("click",async()=>{
   ". Revisa el estado del proyecto y los permisos del administrador en Supabase.";el("inviteResult").hidden=false;}
  finally{busy=false;el("sendInvitations").disabled=false;}
 });
+
+el("brandForm").addEventListener("submit",e=>{
+ e.preventDefault();
+ if(member?.role==="rider")return;
+ void operation(async()=>{
+  const name=el("brandName").value.trim(),color=el("brandColor").value;
+  const logo=el("brandLogo").value.trim()||null;
+  const google=el("brandReviewUrl").value.trim()||null;
+  if(!name||name.length>80||!/^[#][a-fA-F0-9]{6}$/.test(color))throw Error("Marca no válida");
+  if(logo&&!/^https:\/\//.test(logo))throw Error("Usa una URL HTTPS para el logotipo");
+  if(google&&!/^https:\/\/(www\.)?(google\.[a-z.]+|g\.page|maps\.app\.goo\.gl)\//i.test(google))
+   throw Error("El enlace de reseñas debe pertenecer a Google");
+  const body={account_id:member.account_id,display_name:name,primary_color:color,logo_url:logo,google_review_url:google};
+  await query("/rest/v1/ed_brand_settings?on_conflict=account_id",{
+   method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(body)});
+  el("brandSaved").hidden=false;el("brandSaved").textContent="✓ Marca guardada para el seguimiento de pedidos.";
+ });
+});
+document.addEventListener("click",event=>{
+ const b=event.target.closest("button[data-track]");
+ if(!b||!member||member.role==="rider")return;
+ const id=b.dataset.track;
+ if(!orders.some(o=>o.id===id))return;
+ if(!window.confirm("Crear un enlace privado de seguimiento para este pedido. Si ya existe uno, dejará de funcionar el anterior. ¿Continuar?"))return;
+ void operation(async()=>{
+  const token=await query("/rest/v1/rpc/ed_issue_tracking_token",{method:"POST",body:JSON.stringify({p_order_id:id})});
+  if(typeof token!=="string"||!/^[a-f0-9]{64}$/.test(token))throw Error("Enlace no generado");
+  const link=new URL("track.html",location.href);link.hash="token="+token;
+  if(navigator.clipboard?.writeText){
+   try{await navigator.clipboard.writeText(link.href);
+    el("brandSaved").textContent="✓ Enlace copiado. Puedes enviarlo manualmente por WhatsApp o SMS al cliente de prueba.";
+    el("brandSaved").hidden=false;
+   }catch{window.prompt("Copia este enlace privado:",link.href);}
+  }else window.prompt("Copia este enlace privado:",link.href);
+ });
+});
+document.addEventListener("change",event=>{
+ const select=event.target.closest("select[data-feedback]");
+ if(!select||!member||member.role==="rider")return;
+ const id=select.dataset.feedback,status=select.value;
+ if(!["pending","contacted","resolved"].includes(status))return;
+ void operation(async()=>{
+  await query("/rest/v1/ed_customer_feedback?id=eq."+encodeURIComponent(id)+"&account_id=eq."+encodeURIComponent(member.account_id),{
+   method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({followup_status:status})});
+ });
+});
+
 el("cancelEdit").addEventListener("click",()=>{el("editCard").hidden=true;});
 document.addEventListener("click",e=>{
  const btn=e.target.closest("[data-edit]");

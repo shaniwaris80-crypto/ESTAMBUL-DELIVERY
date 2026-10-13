@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css"></head>
+<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=11"></head>
 <body>
 <header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
@@ -47,7 +47,21 @@
 </form>
 </section>
 <section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Usuarios vinculados a esta organización.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
-<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Seguimiento</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card" id="brandCard">
+<div class="section-head"><div><h2>Marca y experiencia del cliente</h2><p>Personaliza la página privada de seguimiento de los pedidos. No se envían SMS desde el sistema todavía.</p></div></div>
+<form id="brandForm" class="create-form">
+<label>Nombre visible del restaurante<input id="brandName" maxlength="80" required placeholder="ESTAMBUL DELIVERY"></label>
+<label>Color de marca<input id="brandColor" type="color" value="#14263b"></label>
+<label class="full-width">Logotipo (URL de imagen HTTPS, opcional)<input id="brandLogo" type="url" maxlength="500" placeholder="https://…/logo.png"></label>
+<label class="full-width">Enlace oficial de reseñas Google (opcional)<input id="brandReviewUrl" type="url" maxlength="500" placeholder="https://g.page/r/…/review"></label>
+<button type="submit" class="btn full-width" style="max-width:250px">Guardar marca</button>
+</form><p id="brandSaved" role="status" class="small-note" hidden></p>
+</section>
+<section class="card" id="feedbackAdmin">
+<div class="section-head"><div><h2>Opiniones y seguimiento</h2><p>Los clientes pueden valorar sus pedidos tras la entrega. Da prioridad a las incidencias y contacta de forma privada solo por canales autorizados.</p></div><span id="feedbackCount" class="tag">0 valoraciones</span></div>
+<div id="feedbackList" class="feedback-list"></div>
+</section>
 <section class="card" id="shiftHistoryCard">
 <div class="section-head"><div><h2>Arqueos de repartidores</h2><p>Pedidos en efectivo, tarjeta, total del día y diferencia de caja.</p></div><span id="shiftHistoryCount" class="tag">0 cierres</span></div>
 <div id="shiftHistory" class="shift-history"></div>
@@ -55,4 +69,4 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=10"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=11"></script></body></html>
