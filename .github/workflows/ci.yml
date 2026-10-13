@@ -14,9 +14,11 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Validate static demo JS and manifests
+      - name: Validate browser demos
         run: |
           node --check docs/demo.js
+          node --check docs/live.js
+          node --check docs/live-config.js
           node --check docs/sw.js
           node -e "JSON.parse(require('fs').readFileSync('docs/manifest.webmanifest'))"
       - name: Install workspace dependencies

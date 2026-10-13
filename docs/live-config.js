@@ -1,3 +1,4 @@
-// Configuración pública de Supabase (publishable/anon key, NUNCA service_role).
-// Se rellenará al crear un proyecto Supabase. Los datos se protegen mediante RLS.
+// ESTAMBUL DELIVERY / Supabase conexión de pruebas.
+// Esta clave es PUBLICABLE; nunca usar service_role ni clave secreta.
+// Puedes configurar los datos siguiendo docs/LIVE_MODE.md
 window.ESTAMBUL_SUPABASE = { url: "", anonKey: "" };

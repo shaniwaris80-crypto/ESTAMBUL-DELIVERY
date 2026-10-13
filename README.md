@@ -69,3 +69,9 @@ Consulta [plan de integración](docs/LAST_APP_INTEGRATION.md) y [plan de pruebas
 
 ## Propiedad y privacidad
 Proyecto específico para operaciones con repartidores propios. El repositorio hoy puede ser público: mantenerlo sin secretos ni datos personales. Para la aplicación real se recomienda gestionar código e infraestructura privada, políticas de acceso, documentación laboral de geolocalización y acuerdos de tratamiento.
+
+
+## Modo conectado entre ordenador y varios riders — NUEVO
+Además de la demo pública, hemos incorporado una **segunda aplicación web con autenticación y base de datos Supabase**, accesible desde \`live.html\` una vez que se configure un proyecto Supabase propio. También está añadido el modo conectado en la aplicación Expo de Android/iOS. Se sincroniza por sondeo cada ~5 segundos y los riders ven solo sus pedidos (RLS).
+
+**Importante:** el proyecto Supabase aún no está aprovisionado y Last.app no está enlazado. En la web conectada aparece «Conexión pendiente» hasta configurar \`docs/live-config.js\` con la URL y clave PUBLICABLE (nunca secretas). Las instrucciones paso a paso se encuentran en [docs/LIVE_MODE.md](docs/LIVE_MODE.md) y [supabase/README.md](supabase/README.md).
