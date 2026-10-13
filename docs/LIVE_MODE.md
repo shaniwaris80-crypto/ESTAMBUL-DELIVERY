@@ -32,3 +32,16 @@ GitHub Pages es público. La clave **publishable** es pública por diseño, pero
 - No está activado GPS real/segundo plano ni se envían SMS, WhatsApp o push.
 - No hay app firmada/TestFlight/APK aún; el código nativo requiere compilación con Expo EAS.
 - No introducir clientes reales hasta superar pruebas de seguridad y permisos.
+
+
+## Activación inicial del administrador (octubre 2026)
+En el proyecto Supabase vinculado a esta aplicación ya hay una **organización de reparto pendiente de activar**.
+El correo del administrador autorizado está reservado **en la base de datos, no en el código público**.
+
+1. Abre `/live.html` y rellena el correo de administrador con una **contraseña nueva, exclusiva para esta app**.
+2. Pulsa **Crear mi cuenta de administrador**. Si Supabase exige validación de email, confirma el mensaje recibido. Si la confirmación abre una página `localhost`, la verificación puede haberse completado igualmente; vuelve a `/live.html`.
+3. Pulsa **Entrar** en `/live.html` con tus credenciales. El servidor comprobará que el email de la sesión está verificado y, solo entonces, concederá la función de administrador.
+4. No compartas contraseñas por chat ni las guardes en GitHub. Es recomendable activar MFA para el administrador cuando el proyecto salga de pruebas.
+
+La pantalla pública **no puede activar la organización sin verificación de correo**.
+Después de validar el administrador, se crearán usuarios específicos para los riders.
