@@ -27,7 +27,7 @@
     <label>Referencia del pedido<input id="newReference" required maxlength="80" placeholder="PRUEBA-003"></label>
     <label>Nombre del cliente<input id="newCustomer" required maxlength="120" placeholder="Cliente de prueba"></label>
     <label>Teléfono de prueba (opcional)<input id="newPhone" maxlength="35" type="tel" autocomplete="off" placeholder="Teléfono de ejemplo"></label>
-    <label>Importe (€)<input id="newAmount" type="number" min="0" max="999999" step="0.01" value="0"></label>
+    <label>Importe (€)<input id="newAmount" type="number" min="0" max="999999" step="0.01" value="0"></label><label>Forma de pago<select id="newPayment" required><option value="" selected disabled>Seleccionar…</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
     <label class="full-width">Dirección completa de entrega<input id="newAddress" required maxlength="400" placeholder="Calle, número, piso, Burgos, España"></label>
     <label class="full-width">Notas / portal / instrucciones<input id="newNotes" maxlength="1000" placeholder="Ej.: portal, 2º A, llamar al timbre (solo datos ficticios)"></label>
     <button type="submit" class="btn full-width" style="max-width:250px">+ Crear pedido</button>
@@ -40,15 +40,15 @@
 <input id="editOrderId" type="hidden">
 <label>Nombre del cliente<input id="editCustomer" required maxlength="120"></label>
 <label>Teléfono de entrega<input id="editPhone" type="tel" maxlength="35" autocomplete="off"></label>
-<label>Importe (€)<input id="editAmount" type="number" min="0" max="999999" step=".01"></label>
+<label>Importe (€)<input id="editAmount" type="number" min="0" max="999999" step=".01"></label><label>Forma de pago<select id="editPayment"><option value="">Sin especificar (pedido anterior)</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
 <label class="full-width">Dirección completa<input id="editAddress" required maxlength="400"></label>
 <label class="full-width">Notas / portal / piso<input id="editNotes" maxlength="1000"></label>
 <button type="submit" class="btn full-width" style="max-width:250px">Guardar cambios</button>
 </form>
 </section>
 <section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Usuarios vinculados a esta organización.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
-<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Estado</th><th>Rider</th><th>Editar</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=4"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=5"></script></body></html>

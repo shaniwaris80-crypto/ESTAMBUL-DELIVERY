@@ -56,7 +56,7 @@ async function reload(){
  const q=encodeURIComponent(member.account_id);
  const [rs,os]=await Promise.all([
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
-  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
  ]);
  riders=rs||[];orders=os||[];render();
 }
@@ -83,9 +83,9 @@ function render(){
       (o.customer_phone?'<small>☎ '+esc(o.customer_phone)+'</small>':'')+
       (o.notes?'<small>📝 '+esc(o.notes)+'</small>':'')+
       (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
-      '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><span class="pill">'+esc(labels[o.status])+
+      '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
       '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td></tr>';
-  }).join("")||'<tr><td colspan="6">Sin pedidos.</td></tr>';
+  }).join("")||'<tr><td colspan="7">Sin pedidos.</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{
     const n=next[o.status],map=mapsLink(o);
@@ -161,6 +161,7 @@ document.addEventListener("click",e=>{
  el("editCustomer").value=o.customer_name||"";
  el("editPhone").value=o.customer_phone||"";
  el("editAmount").value=String(o.amount||0);
+ el("editPayment").value=o.payment_method||"";
  el("editAddress").value=o.destination||"";
  el("editNotes").value=o.notes||"";
  el("editCard").hidden=false;
@@ -175,7 +176,7 @@ el("editForm").addEventListener("submit",e=>{
   if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe inválido");
   const item={customer_name:el("editCustomer").value.trim(),
    customer_phone:el("editPhone").value.trim()||null,
-   destination:el("editAddress").value.trim(),notes:el("editNotes").value.trim(),amount};
+   destination:el("editAddress").value.trim(),notes:el("editNotes").value.trim(),payment_method:el("editPayment").value||null,amount};
   const path="/rest/v1/ed_orders?id=eq."+encodeURIComponent(id)+"&account_id=eq."+encodeURIComponent(member.account_id);
   const rows=await query(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(item)});
   if(!rows?.length)throw Error("No se pudo actualizar el pedido");
@@ -191,7 +192,7 @@ el("createForm").addEventListener("submit",e=>{
   const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",
     customer_name:el("newCustomer").value.trim(),customer_phone:phone||null,
     destination:el("newAddress").value.trim(),notes:el("newNotes").value.trim(),
-    amount,status:"pendiente"};
+    amount,payment_method:el("newPayment").value,status:"pendiente"};
   await query("/rest/v1/ed_orders",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)});
   el("createForm").reset();
  });
