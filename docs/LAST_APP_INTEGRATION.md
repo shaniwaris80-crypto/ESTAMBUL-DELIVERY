@@ -1,42 +1,57 @@
-# Integración con Last.app — Estambul Delivery
+# Last.app → Estambul Delivery: contrato de integración pendiente
 
-## Decisión de producto
-**Last.app es la fuente maestra**: se crean, renombran y desactivan riders desde Last.app; las asignaciones se realizan allí. Estambul Delivery consume los datos y ofrece la app rider, rutas, GPS y back office. La app propia NO debe crear un segundo catálogo independiente en producción.
+## Objetivo
+**Last.app es la fuente de verdad** de los riders propios y sus asignaciones. Los nombres visibles pueden coincidir, pero NO deben usarse como identificador primario si Last.app proporciona un ID. Una modificación o baja en Last.app debe propagarse sin dejar pedidos entregables a un rider inactivo.
 
-## No confirmado en la API pública
-- Endpoint oficial para listar todos los riders de una tienda con ID, nombre, teléfono y estado.
-- Eventos/webhooks de alta, baja, edición o reasignación de riders.
-- Campo de identificador único del courier en todas las versiones/respuestas de pedidos.
-- Si se exponen todas las asignaciones de Uber Eats y Just Eat cuando los reparte el propio restaurante.
-- Si los cambios de estado de la app propia pueden reflejarse directamente en Uber Eats / Just Eat.
+## Confirmado vs pendiente
+- Last.app gestiona riders propios en LastAdmin/LastPOS y ha documentado información sobre courier en ciertos datos de pedido.
+- Debemos confirmar con datos de sandbox los campos exactos y versiones de respuesta API, ya que un ejemplo público no garantiza que se facilite un listado de riders.
+- **No** se ha confirmado endpoint público para listar todos los riders, ni webhook específico de asignación/baja.
+- No leer ni reproducir pantallas de LastPOS con scraping; obtener permisos oficiales.
 
-**No se implementa un conector de producción hasta obtener endpoints, permisos y un ejemplo de respuesta reales aprobados por Last.app.** Los cambios visibles en la demo son simulados y NO se transmiten a Last.app.
+## Preguntas a integrations@last.app
+1. ¿API o método oficial para listar riders de cada localización con \`id\`, \`name\`, \`phone\`, \`active\`?
+2. ¿Cómo se notifican altas/bajas/modificaciones y cómo se reconoce la eliminación de un rider?
+3. ¿Qué campos contiene \`delivery.courier\` en \`GET /v2/tabs/{tabId}\` y en listado de pedidos?
+4. ¿Qué eventos permiten webhooks para asignaciones, reasignaciones, cancelaciones y entregas? ¿Cómo verificar firmas/reintentos?
+5. ¿Los pedidos de Uber Eats y Just Eat **con reparto propio**, recogidos en LastPOS, incluyen el rider y estados con los mismos permisos?
+6. ¿Hay sandbox/organización ficticia y cuotas de consulta acordes al intervalo previsto?
 
-## Contrato objetivo (pendiente de validación)
-```ts
-interface LastAppRider { externalId: string; name: string; phone?: string; active: boolean; locationId: string }
-interface AssignedDelivery { externalOrderId: string; externalRiderId: string | null; channel: "lastapp"|"uber"|"justeat"; deliveryAddress: string; latitude?: number; longitude?: number }
-```
+## Arquitectura de producción propuesta
+\`\`\`
+Last.app --(API autorizada / webhooks firmados)--> Servicio de ingesta (servidor)
+     --> normalización + deduplicación (lastTabId, version, source)
+     --> base de datos (riders, orders, assignments, status_events)
+     --> canal de eventos autenticado
+     --> App Rider iOS/Android + Back Office web
+     --> enlaces efímeros /track/{token} para cliente
+\`\`\`
 
-## Sincronización propuesta
-1. Registrar integración oficial en el portal de desarrolladores de Last.app, usando su entorno de pruebas.
-2. Importación inicial del catálogo de riders, asociando **ID externo**, nunca solo el nombre.
-3. Consumir webhooks autorizados de pedidos/asignaciones si existen; validar origen/firma y registrar idempotencia.
-4. Si falta evento de asignación, estudiar un polling moderado de endpoints aprobados y respetando límites publicados.
-5. Al desactivar un rider, revocar su sesión y requerir reasignación segura de sus pedidos activos (mantener auditoría).
-6. Consolidar las órdenes de tienda propia, Uber y Just Eat por IDs de fuente evitando duplicados y sin asumir equivalencia de estados entre plataformas.
-7. Errores y cancelaciones deben recibir reconciliación periódica, especialmente cuando el canal de origen no sincronice cancelaciones automáticamente.
+Siempre verificar en backend los permisos: usuario rider X puede leer solo pedidos asignados a X; supervisor puede operar únicamente con los establecimientos autorizados.
 
-## Preguntas para integrations@last.app
-- ¿Podemos listar riders propios, incluyendo ID inmutable, nombre, teléfono, estado, establecimiento y fecha de modificación?
-- ¿Hay eventos fiables para crear, modificar, borrar o reasignar riders?
-- ¿Qué campos devuelve v2 para el courier asignado a cada pedido, y con qué latencia?
-- ¿Podemos utilizar la API con pedidos de Uber Eats y Just Eat de entrega propia que entren en LastPOS?
-- ¿Cómo sincronizamos la confirmación de recogida/entrega y las cancelaciones?
-- ¿Cómo se habilita una organización sandbox y cuáles son límites de rate, políticas de almacenamiento y firma de webhooks?
+## Reglas de sincronización
+- **ID externo**: enlazar rider por \`lastRiderId\`. Solo usar el nombre como posible coincidencia manual si es **único**; nunca asignar de manera silenciosa por un nombre ambiguo.
+- **Alta**: crear asociación inactiva o pendiente de enrolamiento; enviar invitación controlada para activar la cuenta móvil.
+- **Renombre**: actualizar nombre sin cambiar identificador ni historial.
+- **Baja**: desactivar cuenta, cerrar sesiones, detener tracking y notificar al supervisor de pedidos sin rider. Conservar histórico mínimo necesario según política.
+- **Reasignación**: actualizar atómicamente el rider de pedido, retirar acceso del anterior, notificar al nuevo. Evitar entregas duplicadas.
+- **Cancelación**: bloquear entrega y retirar rutas activas. Especial atención a cancelaciones no sincronizadas en todos los canales.
+- **Sin webhook**: sondeo moderado de API dentro de cuota autorizada más reconciliación de estado, con ventana de seguridad y alerta de último sync.
+- **Conflictos**: Last.app manda en asignaciones, pero la app móvil reporta recogida/entrega y el servidor decide qué estados puede devolver.
 
-## URLs
-- Documentación oficial: https://developers.last.app/
-- Contacto oficial de integraciones: integrations@last.app
+## Contrato de datos mínimo (por validar)
+\`\`\`json
+{
+  "external_order_id": "id-de-lastapp",
+  "external_rider_id": "id-estable-del-repartidor",
+  "rider_name": "Nombre visible",
+  "source_channel": "lastapp|uber|justeat",
+  "destination": {"lat": 0, "lng": 0, "address": "..."},
+  "status": "pending|assigned|picked_up|en_route|delivered|cancelled",
+  "source_updated_at": "fecha fuente"
+}
+\`\`\`
+Es un **contrato interno propuesto**, NO un JSON ni endpoint oficial confirmado de Last.app.
 
-No añadir tokens ni credenciales a GitHub; usar exclusivamente variables de servidor y un gestor de secretos.
+## Datos de prueba
+Utilizar solo organizaciones ficticias y pedidos de test. La demo en \`docs/\` no accede a Last.app. No cargar tokens en GitHub ni en la app cliente.

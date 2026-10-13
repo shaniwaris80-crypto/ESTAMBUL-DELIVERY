@@ -1,67 +1,71 @@
 # ESTAMBUL DELIVERY 🚴
 
-Aplicación propia para repartidores de restaurante: **Android/iPhone instalable**, **back office con mapa**, y futura integración oficial autorizada con **Last.app**.
+Plataforma propia de reparto para el restaurante con aplicación instalable de riders (**Android + iOS**), back office, vista de seguimiento y futura integración oficial con **Last.app** (con pedidos propios, Uber Eats y Just Eat servidos por riders propios).
 
-> **ESTADO: DEMO v0.1**. Todas las personas, ubicaciones y pedidos son ficticios; no existen sesiones seguras, asignación de Last.app activa, GPS real en segundo plano ni notificaciones push. No sirve todavía para producción ni debe reemplazar Shipday.
+## Estado actual — Octubre 2026
+- ✅ **Demo web estática interactiva**: \`docs/index.html\`. Funciona sin backend. Permite ver riders, altas/bajas ficticias, cambiar asignaciones, simular posiciones, filtrar pedidos, navegar a Google Maps y alternar entre Back Office / Rider / Cliente. Almacena cambios solo en el navegador local.
+- ✅ **Back office Next.js**: \`apps/backoffice\`, API local de pruebas, panel de despacho, listado, mapa simulado.
+- ✅ **Rider App Expo / React Native**: \`apps/rider\`, Android e iOS, pantalla de pedidos y cambios de estado de DEMO.
+- ✅ **Modelos compartidos**: \`packages/shared\`.
+- ⏳ **Last.app real**: pendiente de tokens privados autorizados, prueba de endpoint de riders, confirmación de permisos y webhooks.
+- ⏳ **Producción**: faltan identidad/autenticación, base de datos persistente, GPS protegido, permisos laborales y RGPD, notificaciones push, pruebas en dispositivo y despliegue seguro. No usar con datos reales.
 
-## Qué puedes probar ya
-- Back office responsive en español con mapa de Burgos (OpenStreetMap), pines de riders y pedidos, y rutas simuladas.
-- Filtrar por canales Last.app / Uber Eats / Just Eat y por rider.
-- Asignar y reasignar pedidos, cambiar estados y consultar conteos en tiempo real simulado (refresco cada 5 s).
-- Dar de alta/desactivar riders demo (imitación del catálogo de Last.app).
-- Simular movimiento de un rider y restablecer todos los datos de prueba.
-- App Expo para Android/iPhone: elegir rider **ficticio**, ver solo sus pedidos asignados, abrir Google Maps y actualizar estado de entrega.
+**Ninguna demo comparte posiciones reales, envía WhatsApp o accede a clientes. No sustituir Shipday todavía.**
 
-## Estructura
-```
-apps/
-  backoffice/  # Next.js + API local demo + mapa Leaflet
-  rider/       # React Native / Expo
-packages/
-  shared/      # Tipos y seed de datos ficticios
-docs/
-  LAST_APP_INTEGRATION.md
-  SECURITY_PRIVACY.md
-  TEST_PLAN.md
-```
+## Abrir la demo web ahora, sin instalar Node
+En un servidor estático, abrir \`docs/index.html\`. Los datos están precargados. Para ponerla online gratis:
+1. Abrir **Settings → Pages** de este repositorio en GitHub.
+2. En **Source**, elegir **Deploy from a branch**.
+3. Elegir rama \`main\`, carpeta \`/docs\` y pulsar **Save**.
+4. Esperar la publicación que GitHub muestre en Pages. Nunca publicar datos reales aquí: GitHub Pages es público.
 
-## Instalar y ejecutar
-Necesitas **Node.js 20+** y una red de desarrollo. En la raíz del proyecto:
+La demo es un sitio estático/PWA de ejemplo. **No es el backend de producción, ni un GPS real, ni sustituye la app nativa**.
 
-```bash
+## Desarrollo local
+Requiere Node.js 22 (20+ compatible para la mayoría de paquetes).
+
+\`\`\`bash
 npm install
 npm run dev:backoffice
-```
-
-En tu ordenador abre http://localhost:3000. En otra terminal:
-
-```bash
-# Copia apps/rider/.env.example a apps/rider/.env y pon la IP LAN de tu ordenador.
+# otro terminal, en la misma red para pruebas con móvil:
 npm run dev:rider
-```
+\`\`\`
 
-Escanea el QR de Expo en Android/iPhone con Expo Go (en desarrollo). El ordenador y el teléfono tienen que estar en la misma Wi-Fi, y el puerto 3000 debe ser accesible desde el teléfono. **Desde un teléfono físico, localhost no apunta al ordenador.**
+Back office: http://localhost:3000. Expo: abrir QR con herramientas de desarrollo. Para compartir cambios entre rider y back office durante la demo, copiar \`apps/rider/.env.example\` a \`apps/rider/.env.local\` y definir \`EXPO_PUBLIC_DEMO_API_URL=http://IP_LAN_DE_PC:3000/api/demo\`. No funciona en internet ni aporta seguridad; usar solo red de pruebas controlada.
 
-Al elegir Rider A en la app verás sus pedidos; desde el back office puedes cambiar ED-1004 de sin asignar a Rider A, y aparecerá en su app en aproximadamente cinco segundos. Para instalar una versión propia con notificaciones nativas y GPS de segundo plano se necesitan development builds, configuración y pruebas en dispositivos reales.
+\`\`\`bash
+npm run typecheck:backoffice
+npm run typecheck:rider
+npm run check:demo
+npm run build:backoffice
+\`\`\`
 
-## Limitaciones importantes
-- El estado de la demo es **volátil** y se reinicia al reiniciar Next.js. No hay persistencia real ni autenticación.
-- No habilitar `ENABLE_DEMO_API=true` en ningún despliegue público; en desarrollo local funciona automáticamente.
-- No hay integración de Last.app en esta versión: las altas, bajas y asignaciones hechas en back office son **simuladas**.
-- Las direcciones y coordenadas son ficticias y las rutas del mapa son líneas, NO optimización de ruta real.
-- Se requiere obtener de Last.app acceso autorizado al catálogo de riders (ID/nombre/teléfono), cambios y asignaciones de pedidos para sincronizar automáticamente.
+**Importante:** el modo demo dinámico de Next no debe exponerse a internet con \`ENABLE_DEMO_API=true\`, porque no tiene login. En producción debe permanecer apagado.
 
-## Documentación
-- [Integración y dudas abiertas de Last.app](docs/LAST_APP_INTEGRATION.md)
-- [Seguridad y privacidad](docs/SECURITY_PRIVACY.md)
-- [Plan de pruebas completo](docs/TEST_PLAN.md)
+## Arquitectura
+\`\`\`
+apps/
+  backoffice/       Next.js: panel y API DEMO en memoria
+  rider/            Expo (Android/iPhone): vista nativa DEMO
+packages/
+  shared/           modelos y datos simulados
+docs/
+  index.html        web DEMO estática apta para GitHub Pages
+  demo.css/demo.js  controles, mapa esquemático y localStorage
+  LAST_APP_INTEGRATION.md
+  TEST_PLAN.md
+  SECURITY_PRIVACY.md
+  RELEASE_CHECKLIST.md
+\`\`\`
 
-## Seguridad de GitHub
-**No subir secretos, datos reales o credenciales.** El repositorio está actualmente configurado como público; recomendamos cambiarlo a **privado** en Settings → General → Danger Zone → Change repository visibility antes de trabajar con información sensible.
+## Limitaciones clave a validar con Last.app
+1. Listado completo de riders propios con **ID estable**, nombre y teléfono.
+2. Detección de altas, bajas y cambios de asignación.
+3. Campos reales \`delivery.courier\` en pedidos de Last.app, Uber Eats y Just Eat.
+4. Webhooks de cambio de rider, cancelación y entrega.
+5. Autorización de Last.app para esta integración propia.
 
-## Hoja de ruta
-1. Validar demo local en ambos móviles y en back office.
-2. Obtener sandbox y permisos para sincronizar rider IDs, altas/bajas y asignaciones reales desde Last.app.
-3. Añadir almacenamiento persistente, autenticación por rol y backend seguro.
-4. GPS durante turno, push nativo, geocercas opcionales, auditoría y enlaces de seguimiento seguros.
-5. Prueba piloto paralela a Shipday antes de reemplazarlo.
+Consulta [plan de integración](docs/LAST_APP_INTEGRATION.md) y [plan de pruebas](docs/TEST_PLAN.md). No incluir claves API en GitHub ni en variables \`EXPO_PUBLIC_*\`.
+
+## Propiedad y privacidad
+Proyecto específico para operaciones con repartidores propios. El repositorio hoy puede ser público: mantenerlo sin secretos ni datos personales. Para la aplicación real se recomienda gestionar código e infraestructura privada, políticas de acceso, documentación laboral de geolocalización y acuerdos de tratamiento.
