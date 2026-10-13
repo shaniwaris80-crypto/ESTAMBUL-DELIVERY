@@ -15,3 +15,4 @@ jobs:
       - run: npm run typecheck:backoffice
       - run: npm run typecheck:rider
       - run: npm run build:backoffice
+      - run: cd apps/rider && npx expo export --platform android --output-dir /tmp/ed-rider-android
