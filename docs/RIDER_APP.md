@@ -77,3 +77,21 @@ Se han incorporado estas mejoras a la App Rider web, accesible en /rider.html:
 **Límite importante:** NO hay push en segundo plano. El sonido está pensado para la app abierta; con el móvil bloqueado, la app cerrada o el navegador suspendido, no se puede garantizar aviso sonoro. Para sustituir a Shipday hacen falta notificaciones push y compilación/distribución nativa, además de integrar Last.app.
 
 **Prueba recomendada:** abrir Rider en el móvil con su usuario, pulsar «Activar sonido» y «Probar sonido», mantener la app visible; desde el panel crear un pedido ficticio con dirección completa y asignarlo a ese rider. La tarjeta aparecerá tras sincronizar y sonará el aviso. El botón Google Maps deberá estar disponible aunque no haya coordenadas.
+
+
+## Arqueo de caja y terminar día — octubre 2026
+
+Desde la App Rider, tocar **Ver arqueo de hoy**. Se muestra la lista de pedidos entregados con referencia, cliente e importe, separada en **Efectivo**, **Tarjeta** y **Sin clasificar**, y el TOTAL REPARTIDO. Se puede copiar en TXT para WhatsApp.
+
+El repartidor declara el efectivo REAL contado. El sistema muestra la diferencia frente al efectivo previsto. Al pulsar **Terminar día**, se guarda una copia de los pedidos del cierre y se pasa automáticamente a **Offline**. El administrador puede consultar cada arqueo, con detalle por pedido, efectivo declarado y diferencia, en `live.html`.
+
+- No permite cerrar con entregas pendientes ni pagos sin clasificar.
+- No pone como pagados los cargos de tarjeta; solo indica el método previsto.
+- Utiliza el día natural de **Europe/Madrid**, con `delivered_at` para entregas nuevas. Los pedidos históricos anteriores a esta mejora tienen fecha estimada por última modificación, indicada en pantalla.
+- El cierre no borra el historial. Un Rider cerrado no puede volver a activar su turno ni recibir asignaciones el mismo día.
+
+## Rutas con varios pedidos
+
+Si Rider tiene dos o más pedidos activos aparece el planificador **Mi ruta**. Puede mover paradas arriba/abajo y abrir **Google Maps** con los destinos en ese orden. Debido a los límites de Maps en móvil, rutas largas se ofrecen por tramos de hasta cuatro paradas; el siguiente tramo empieza donde termina el anterior.
+
+El botón de optimización solo se activa si **todas** las paradas tienen coordenadas; pide la ubicación del rider y aplica una heurística de vecino más cercano basada en distancia en línea recta. No calcula tiempo de conducción, tráfico, ventanas de entrega ni óptimo global. Direcciones sin coordenadas se pueden ordenar manualmente y abrir en Google Maps. Para optimización real por carretera hay que integrar geocodificación y Google Routes API u otro servicio adecuado, con credenciales protegidas en el servidor.

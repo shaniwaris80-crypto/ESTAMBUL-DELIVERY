@@ -1,5 +1,18 @@
 # ESTAMBUL DELIVERY 🚴
 
+## Estado verificable del sistema conectado (14 octubre 2026)
+
+El modo de prueba conectado **YA dispone de Supabase** y corre en `/live.html` y `/rider.html`:
+- Administrador y Rider 1 activos; Rider 2 pendiente de terminar el alta.
+- Formularios de pedidos y asignación manual, importe, efectivo/tarjeta, datos e instrucciones de cliente ficticio.
+- La App Rider permite sonido con el navegador abierto, navegación en Google Maps al iniciar reparto y rutas de múltiples paradas.
+- El Rider presenta un arqueo de cierre diario: detalle por pedido en efectivo, tarjeta y sin clasificar, total del día, efectivo realmente contado y diferencia. El cierre permanece guardado para consulta del administrador y deja al Rider offline.
+- Rutas de varios pedidos: paradas reordenables a mano, enlaces por tramos a Google Maps; optimización aproximada por proximidad solo si todas las paradas tienen coordenadas. **No hay optimización automática real por carretera sin un servicio de geocodificación y rutas**.
+- **Todavía NO hay** integración Last.app real, push con móvil bloqueado, GPS operativo continuo, app nativa instalada, chat, auto-despacho ni pagos bancarios. El proyecto sigue siendo de pruebas: no cargar clientes reales hasta completar seguridad, RGPD y piloto.
+
+---
+
+
 Plataforma propia de reparto para el restaurante con aplicación instalable de riders (**Android + iOS**), back office, vista de seguimiento y futura integración oficial con **Last.app** (con pedidos propios, Uber Eats y Just Eat servidos por riders propios).
 
 ## Estado actual — Octubre 2026
