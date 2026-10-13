@@ -50,9 +50,14 @@ export async function loginRider(email:string,password:string){
 export async function logoutRider(){await persist(null);}
 export async function loadConnected():Promise<ConnectedState>{
  const user=await request("/auth/v1/user") as User;
- const memberships=await request("/rest/v1/ed_members?select=account_id,role&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true") as {account_id:string;role:string}[];
- const membership=memberships.find(m=>m.role==="rider");
- if(!membership)throw new Error("Esta cuenta no está vinculada a un rider activo.");
+ let memberships=await request("/rest/v1/ed_members?select=account_id,role&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true") as {account_id:string;role:string}[];
+ let membership=memberships.find(m=>m.role==="rider");
+ if(!membership){
+  await request("/rest/v1/rpc/ed_activate_rider",{method:"POST",body:"{}"});
+  memberships=await request("/rest/v1/ed_members?select=account_id,role&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true") as {account_id:string;role:string}[];
+  membership=memberships.find(m=>m.role==="rider");
+  if(!membership)throw new Error("El usuario no tiene una invitación de Rider válida.");
+ }
  const riders=await request("/rest/v1/ed_riders?select=id,display_name,online,active,user_id&account_id=eq."+membership.account_id) as ConnectedRider[];
  const rider=riders.find(r=>r.user_id===user.id&&r.active);
  if(!rider)throw new Error("No hay un rider activo vinculado a esta cuenta.");
