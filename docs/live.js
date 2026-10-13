@@ -8,6 +8,7 @@ const labels={pendiente:"Pendiente",asignado:"Asignado",recogido:"Recogido",en_r
 const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
+let shiftClosures=[],shiftClosureItems=[];
 const storage="estambul-secure-test-session";
 try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
 function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
@@ -58,7 +59,15 @@ async function reload(){
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
   query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
  ]);
- riders=rs||[];orders=os||[];render();
+ riders=rs||[];orders=os||[];
+ if(member.role!=="rider"){
+  try{
+   shiftClosures=await query("/rest/v1/ed_shift_closures?select=id,account_id,rider_id,shift_day,completed_count,cash_expected,card_total,unknown_total,cash_declared,cash_difference,notes,closed_at,legacy_count&account_id=eq."+q+"&order=closed_at.desc&limit=30");
+   const ids=(shiftClosures||[]).map(c=>c.id);
+   shiftClosureItems=ids.length?await query("/rest/v1/ed_shift_closure_items?select=close_id,reference,customer_name,payment_method,amount,legacy_timestamp&close_id=in.("+ids.join(",")+")"):[];
+  }catch(error){shiftClosures=[];shiftClosureItems=[];message(error);}
+ }
+ render();
 }
 function mapsLink(o){
  const target=(o.lat!=null&&o.lng!=null)?String(o.lat)+","+String(o.lng):String(o.destination||"").trim();
@@ -66,6 +75,36 @@ function mapsLink(o){
  const location=(o.lat!=null&&o.lng!=null)?target:(/burgos|españa|spain/i.test(target)?target:target+", Burgos, España");
  return "https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(location)+"&travelmode=driving";
 }
+
+function formatArcheoEuro(n){return new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(Number(n||0));}
+function drawShiftHistory(){
+ el("shiftHistoryCount").textContent=shiftClosures.length+" cierres";
+ const target=el("shiftHistory");
+ if(!shiftClosures.length){target.innerHTML='<p class="shift-empty">Aún no hay jornadas cerradas. Al terminar un Rider, su arqueo aparecerá aquí.</p>';return;}
+ target.innerHTML=shiftClosures.map(s=>{
+  const name=riders.find(r=>r.id===s.rider_id)?.display_name||"Repartidor";
+  const list=shiftClosureItems.filter(li=>li.close_id===s.id);
+  const amount=Number(s.cash_expected)+Number(s.card_total)+Number(s.unknown_total);
+  const group=(method,title)=>{
+   const current=list.filter(row=>row.payment_method===method);
+   return '<h4>'+title+' · '+current.length+' pedidos</h4>'+
+     (current.length?current.map(row=>
+      '<div class="shift-admin-line"><span>#'+esc(row.reference)+' · '+esc(row.customer_name)+'</span><strong>'+formatArcheoEuro(row.amount)+'</strong></div>').join(""):'<p class="shift-empty">Sin pedidos.</p>');
+  };
+  return '<details class="shift-admin-report"><summary><strong>'+esc(name)+' · '+esc(s.shift_day)+'</strong><span>'+s.completed_count+' entregas · '+formatArcheoEuro(amount)+'</span></summary>'+
+    '<div class="shift-admin-sums"><span>💶 Efectivo: <b>'+formatArcheoEuro(s.cash_expected)+'</b></span>'+
+    '<span>💳 Tarjeta: <b>'+formatArcheoEuro(s.card_total)+'</b></span>'+
+    '<span>⚠ Por clasificar: <b>'+formatArcheoEuro(s.unknown_total)+'</b></span>'+
+    '<span>Total: <b>'+formatArcheoEuro(amount)+'</b></span>'+
+    '<span>Contado: <b>'+formatArcheoEuro(s.cash_declared)+'</b></span>'+
+    '<span>Diferencia: <b>'+formatArcheoEuro(s.cash_difference)+'</b></span></div>'+
+    '<div class="shift-admin-lines">'+group("efectivo","Efectivo")+group("tarjeta","Tarjeta")+group(null,"Sin clasificar")+'</div>'+
+    (s.notes?'<p class="shift-admin-notes">Observaciones: '+esc(s.notes)+'</p>':'')+
+    (s.legacy_count?'<p class="shift-admin-notes">Incluye '+s.legacy_count+' entregas antiguas con fecha estimada.</p>':'')+
+    '</details>';
+ }).join("");
+}
+
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
@@ -74,6 +113,7 @@ function render(){
  if(staff){
   el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
   el("orderCount").textContent=orders.length+" pedidos";
+  drawShiftHistory();
   el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
   el("ordersTable").innerHTML=orders.map(o=>{
     const options='<option value="">Sin asignar</option>'+riders.filter(r=>r.active).map(r=>'<option value="'+esc(r.id)+'" '+(o.rider_id===r.id?"selected":"")+'>'+esc(r.display_name)+'</option>').join("");
