@@ -39,3 +39,7 @@
 .day-close-final,.shift-secondary{display:block;width:100%;padding:12px;border-radius:9px;margin-top:12px;font-weight:900}
 .day-close-final{background:#178762;color:#fff;border:0}.day-close-final:disabled{opacity:.45}.shift-secondary{background:#f1f5f9;color:#294c69;border:1px solid #b7ccdd}
 .day-close-success{color:#11734f;font-weight:800;background:#e2f6e9;border:1px solid #9ccfb0;padding:12px;margin-top:12px;border-radius:9px;font-size:12px}
+
+.provisional-consent{margin-top:14px;padding:12px;border:1px solid #e7b463;border-radius:9px;background:#fff3dc}
+.provisional-consent label{display:flex;align-items:flex-start;gap:9px;font-size:12px;color:#765029;line-height:1.5;cursor:pointer}
+.provisional-consent input{width:19px;height:19px;flex:none;accent-color:#9d661e}

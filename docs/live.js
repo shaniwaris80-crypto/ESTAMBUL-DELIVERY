@@ -72,7 +72,7 @@ async function reload(){
  }
  if(member.role!=="rider"){
   try{
-   shiftClosures=await query("/rest/v1/ed_shift_closures?select=id,account_id,rider_id,shift_day,completed_count,cash_expected,card_total,unknown_total,cash_declared,cash_difference,notes,closed_at,legacy_count&account_id=eq."+q+"&order=closed_at.desc&limit=30");
+   shiftClosures=await query("/rest/v1/ed_shift_closures?select=id,account_id,rider_id,shift_day,completed_count,cash_expected,card_total,unknown_total,cash_declared,cash_difference,notes,closed_at,legacy_count,is_provisional&account_id=eq."+q+"&order=closed_at.desc&limit=30");
    const ids=(shiftClosures||[]).map(c=>c.id);
    shiftClosureItems=ids.length?await query("/rest/v1/ed_shift_closure_items?select=close_id,reference,customer_name,payment_method,amount,legacy_timestamp&close_id=in.("+ids.join(",")+")"):[];
   }catch(error){shiftClosures=[];shiftClosureItems=[];message(error);}
@@ -101,7 +101,7 @@ function drawShiftHistory(){
      (current.length?current.map(row=>
       '<div class="shift-admin-line"><span>#'+esc(row.reference)+' · '+esc(row.customer_name)+'</span><strong>'+formatArcheoEuro(row.amount)+'</strong></div>').join(""):'<p class="shift-empty">Sin pedidos.</p>');
   };
-  return '<details class="shift-admin-report"><summary><strong>'+esc(name)+' · '+esc(s.shift_day)+'</strong><span>'+s.completed_count+' entregas · '+formatArcheoEuro(amount)+'</span></summary>'+
+  return '<details class="shift-admin-report"><summary><strong>'+esc(name)+' · '+esc(s.shift_day)+(s.is_provisional?' · ⚠ PROVISIONAL':'')+'</strong><span>'+s.completed_count+' entregas · '+formatArcheoEuro(amount)+'</span></summary>'+
     '<div class="shift-admin-sums"><span>💶 Efectivo: <b>'+formatArcheoEuro(s.cash_expected)+'</b></span>'+
     '<span>💳 Tarjeta: <b>'+formatArcheoEuro(s.card_total)+'</b></span>'+
     '<span>⚠ Por clasificar: <b>'+formatArcheoEuro(s.unknown_total)+'</b></span>'+

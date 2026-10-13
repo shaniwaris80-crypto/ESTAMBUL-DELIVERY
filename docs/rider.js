@@ -55,15 +55,18 @@ function drawCashClose(data){
    shiftItems(orders,g.type)+'</section>').join("");
  const warnings=[];
  if(Number(data.pending_count)>0)warnings.push(data.pending_count+" entregas sin terminar");
- if(Number(data.unknown_count)>0)warnings.push(data.unknown_count+" pedidos sin método de pago: el administrador debe completarlo");
+ if(Number(data.unknown_count)>0)warnings.push(data.unknown_count+" pedidos ("+cashLabel(data.unknown_total)+") sin forma de pago: puedes cerrar provisionalmente con explicación y confirmación, dejando esos importes pendientes de conciliación.");
  if(Number(data.legacy_count)>0)warnings.push(data.legacy_count+" entregas antiguas con fecha estimada (última modificación)");
  $("shiftWarning").textContent=warnings.join(". ");
  $("shiftWarning").hidden=!warnings.length;
- $("finalizeDay").disabled=!!data.closed||Number(data.pending_count)>0||Number(data.unknown_count)>0;
+ const provisional=Number(data.unknown_count)>0;
+ $("provisionalAcknowledgement").hidden=!provisional||!!data.closed;
+ $("finalizeDay").textContent=provisional?"Terminar día provisional y ponerme offline ✓":"Terminar día y ponerme offline ✓";
+ $("finalizeDay").disabled=!!data.closed||Number(data.pending_count)>0;
  $("dayCloseInputs").hidden=Boolean(data.closed);
  $("dayCloseDone").hidden=!data.closed;
  if(data.closed){
-  $("dayCloseDone").textContent="✓ Jornada cerrada y rider offline. Efectivo contado: "+cashLabel(data.cash_declared)+
+  $("dayCloseDone").textContent=(data.is_provisional?"⚠ Jornada cerrada provisionalmente. Los pagos sin clasificar requieren conciliación. ":"✓ Jornada cerrada. ")+"Rider offline. Efectivo contado: "+cashLabel(data.cash_declared)+
     " · Diferencia: "+cashLabel(data.cash_difference)+".";
   rider.online=false;
   $("onlineLabel").textContent="Jornada cerrada";
@@ -475,23 +478,35 @@ $("copyReconciliation").addEventListener("click",()=>{
 });
 $("finalizeDay").addEventListener("click",async()=>{
  if(busy||!shiftReport||shiftReport.closed)return;
- const raw=$("declaredCash").value;
- const declared=Number(raw);
- if(raw===""||!Number.isFinite(declared)||declared<0||Math.round(declared*100)!==declared*100){
-  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Introduce el efectivo contado (dos decimales como máximo).";return;
+ const raw=$("declaredCash").value,declared=Number(raw);
+ if(raw===""||!Number.isFinite(declared)||declared<0||declared>999999||Math.abs(declared*100-Math.round(declared*100))>1e-6){
+  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Introduce el efectivo real contado (dos decimales como máximo).";return;
  }
- if(Number(shiftReport.pending_count)>0||Number(shiftReport.unknown_count)>0){
-  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Hay pedidos pendientes o sin forma de pago. Corrígelos antes de cerrar.";return;
+ if(Number(shiftReport.pending_count)>0){
+  $("dayCloseError").hidden=false;$("dayCloseError").textContent="Debes terminar o reasignar todas las entregas pendientes antes de cerrar.";return;
  }
- if(!window.confirm("¿Cerrar la jornada y dejar el Rider fuera de servicio? No podrás recibir más pedidos hoy."))return;
+ const provisional=Number(shiftReport.unknown_count)>0;
+ const notes=$("shiftNotes").value.trim();
+ if(provisional&&(!$("acknowledgeUnclassified").checked||notes.length<8)){
+  $("dayCloseError").hidden=false;
+  $("dayCloseError").textContent="Para cerrar provisionalmente, marca la confirmación y escribe una observación de al menos 8 caracteres sobre los pagos pendientes.";return;
+ }
+ const confirmation=provisional
+  ?"¿Terminar jornada provisionalmente dejando "+shiftReport.unknown_count+" pedidos ("+cashLabel(shiftReport.unknown_total)+") pendientes de conciliar? Quedarán registrados como sin clasificar."
+  :"¿Terminar la jornada y dejar el rider fuera de servicio hasta mañana?";
+ if(!window.confirm(confirmation))return;
  busy=true;$("finalizeDay").disabled=true;$("dayCloseError").hidden=true;
  try{
-  await withAuth("/rest/v1/rpc/ed_shift_close",{method:"POST",
-   body:JSON.stringify({p_declared_cash:declared,p_notes:$("shiftNotes").value.trim()})});
-  await previewCashClose();
-  await fetchOrders();
- }catch(e){$("dayCloseError").hidden=false;$("dayCloseError").textContent=e.message||"Cierre no guardado";$("finalizeDay").disabled=false;}
- finally{busy=false;}
+  const rpc=provisional?"ed_shift_close_provisional":"ed_shift_close";
+  const request=provisional?{p_declared_cash:declared,p_notes:notes,p_acknowledge_unknown:true}
+    :{p_declared_cash:declared,p_notes:notes};
+  await withAuth("/rest/v1/rpc/"+rpc,{method:"POST",body:JSON.stringify(request)});
+  await previewCashClose();await fetchOrders();
+ }catch(e){
+  $("dayCloseError").hidden=false;
+  $("dayCloseError").textContent=e.message||"No se pudo guardar el cierre";
+  $("finalizeDay").disabled=false;
+ }finally{busy=false;}
 });
 
 $("availabilityButton").addEventListener("click", () => {
