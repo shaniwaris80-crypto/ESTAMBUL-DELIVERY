@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css"></head>
+<body>
+<header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
+<div class="header-right"><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
+<main class="wrap">
+<div id="noConfig" class="card center" hidden><h1>Conexión pendiente</h1><p>El modo con cuentas reales de prueba está preparado, pero todavía no se ha configurado un proyecto Supabase.</p><p>Lee <a href="https://github.com/shaniwaris80-crypto/ESTAMBUL-DELIVERY/blob/main/supabase/README.md" target="_blank" rel="noopener noreferrer">las instrucciones de activación</a>. Nunca pongas una clave secreta en GitHub.</p><a href="./" class="btn">Volver a la demostración pública</a></div>
+<section id="loginSection" class="auth-layout" hidden>
+<div class="auth-art"><div class="eyebrow">ESTAMBUL DELIVERY · VERSIÓN CONECTADA</div><h1>Un panel.<br>Todos los riders.</h1><p>Inicia sesión como responsable o repartidor para comprobar la asignación de pedidos en varios teléfonos, con cuentas independientes.</p><div class="graphic">🛵 <span>→</span> 📍 <span>→</span> 📦</div><p class="disclaimer">Solo para pedidos ficticios de pruebas. No integrado todavía con Last.app.</p></div>
+<form id="loginForm" class="card login" autocomplete="on"><span class="eyebrow">ACCESO SEGURO</span><h2>Entrar en Estambul</h2><p>Usa uno de los usuarios de prueba configurados en Supabase.</p><label for="email">Correo electrónico</label><input id="email" type="email" required autocomplete="username" placeholder="rider@ejemplo.com">
+<label for="password">Contraseña</label><input id="password" type="password" required autocomplete="current-password" minlength="6" placeholder="••••••••">
+<button type="submit" class="btn" id="signInButton">Entrar</button><div id="loginError" role="alert" class="error" hidden></div></form></section>
+<section id="appSection" hidden><div class="app-title"><div><span class="eyebrow" id="accountLabel">CUENTA</span><h1 id="viewTitle">Centro de reparto</h1><p id="viewSub">Pedidos de prueba sincronizados a través de Supabase.</p></div><button class="outline" id="refresh">↻ Actualizar</button></div>
+<div id="errorBox" class="error" role="alert" hidden></div>
+<div class="stats" id="stats"></div>
+<div id="staffView" hidden>
+<section class="card" id="createCard"><h2>Nuevo pedido ficticio</h2><p>Prueba la asignación. No introduzcas información de clientes reales.</p><form id="createForm" class="create-form"><label>Referencia<input id="newReference" required maxlength="80" placeholder="PRUEBA-010"></label><label>Cliente ficticio<input id="newCustomer" required maxlength="120" placeholder="Cliente de prueba"></label><label>Destino ficticio<input id="newAddress" required maxlength="400" placeholder="Burgos, dirección inventada"></label><button type="submit" class="btn">+ Crear pedido</button></form></section>
+<section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Usuarios vinculados a esta organización.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
+<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Estado</th><th>Rider</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+</div>
+<div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
+<footer id="lastSync" class="footer">Esperando datos...</footer></section>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js"></script></body></html>
