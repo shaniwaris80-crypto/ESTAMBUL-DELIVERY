@@ -28,6 +28,18 @@
 </form>
 <div class="login-bottom">¿Todavía no tienes usuario? Pide al responsable que te dé de alta.<br>No introduzcas datos de clientes reales en esta fase.</div>
 </section>
+<section id="setPassword" class="panel login-card" hidden>
+  <div class="card-symbol">🔐</div><h2>Activa tu cuenta Rider</h2>
+  <p>Invitación verificada. Establece una contraseña personal para acceder desde este y otros dispositivos.</p>
+  <form id="passwordSetupForm">
+    <label for="setupPassword">CONTRASEÑA NUEVA (MÍNIMO 10 CARACTERES)</label>
+    <input id="setupPassword" type="password" minlength="10" autocomplete="new-password" required>
+    <label for="setupPasswordConfirm">REPITE LA CONTRASEÑA</label>
+    <input id="setupPasswordConfirm" type="password" minlength="10" autocomplete="new-password" required>
+    <button id="savePasswordButton" class="btn btn-main" type="submit">Activar mi acceso <span>→</span></button>
+    <div id="setupError" class="error" role="alert" hidden></div>
+  </form>
+</section>
 <section id="dashboard" hidden>
 <div class="welcome"><div><span class="eyebrow">TU TURNO DE REPARTO</span><h1>Hola, <span id="riderName">Rider</span><span class="wave"> 👋</span></h1><p id="accountName">ESTAMBUL DELIVERY</p></div><button class="icon-button" id="refreshButton" aria-label="Actualizar mis pedidos" title="Actualizar">↻</button></div>
 <div class="notice" id="connectionNotice" hidden></div>

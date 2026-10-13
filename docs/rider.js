@@ -63,7 +63,7 @@ async function withAuth(path, options) {
   return jsonResponse(resp);
 }
 function setVisible(view) {
-  ["loading", "login", "dashboard", "setup"].forEach(id => { $(id).hidden = id !== view; });
+  ["loading", "login", "dashboard", "setup", "setPassword"].forEach(id => { $(id).hidden = id !== view; });
 }
 function setError(message, loginError) {
   const el = $(loginError ? "loginError" : "connectionNotice");
@@ -277,15 +277,70 @@ if ("serviceWorker" in navigator) {
     navigator.serviceWorker.register("./rider-sw.js").catch(() => {});
   });
 }
+$("passwordSetupForm").addEventListener("submit", async event => {
+  event.preventDefault();
+  if (busy) return;
+  const password = $("setupPassword").value;
+  if (password.length < 10 || password !== $("setupPasswordConfirm").value) {
+    $("setupError").hidden = false;
+    $("setupError").textContent = "Las contraseñas deben coincidir y tener al menos 10 caracteres.";
+    return;
+  }
+  busy = true;
+  $("savePasswordButton").disabled = true;
+  $("setupError").hidden = true;
+  try {
+    // Supabase Auth validates the invitation JWT; password is never stored by this app.
+    await withAuth("/auth/v1/user", { method: "PUT", body: JSON.stringify({ password }) });
+    $("setupPassword").value = ""; $("setupPasswordConfirm").value = "";
+    await fetchOrders();
+    setVisible("dashboard");
+  } catch (error) {
+    $("setupError").textContent = error.message || "No se pudo actualizar la contraseña.";
+    $("setupError").hidden = false;
+  } finally {
+    busy = false;
+    $("savePasswordButton").disabled = false;
+  }
+});
 async function start() {
   if (!configured) { setVisible("setup"); return; }
-  session = getSaved();
+  const hash=new URLSearchParams(window.location.hash.slice(1));
+  let invited=false;
+  if (hash.get("access_token") && hash.get("refresh_token") && ["invite", "recovery", "signup"].includes(hash.get("type"))) {
+    setSaved({
+      access:hash.get("access_token"),
+      refresh:hash.get("refresh_token"),
+      expiry:Date.now()+Number(hash.get("expires_in")||3600)*1000
+    });
+    invited=hash.get("type")==="invite" || hash.get("type")==="recovery";
+    // Remove credentials from the browser address bar as soon as they are read.
+    window.history.replaceState(null,"",window.location.pathname+window.location.search);
+  } else if (new URLSearchParams(window.location.search).get("token_hash")) {
+    const q=new URLSearchParams(window.location.search);
+    const type=q.get("type");
+    try {
+      const data=await jsonResponse(await fetch(base+"/auth/v1/verify", {
+        method:"POST",headers:heads(),body:JSON.stringify({token_hash:q.get("token_hash"),type})
+      }));
+      if (data.access_token && data.refresh_token) {
+        setSaved({access:data.access_token,refresh:data.refresh_token,expiry:Date.now()+data.expires_in*1000});
+        invited=type==="invite" || type==="recovery";
+      }
+      window.history.replaceState(null,"",window.location.pathname);
+    } catch (error) {
+      window.history.replaceState(null,"",window.location.pathname);
+      setVisible("login");setError("No fue posible confirmar la invitación: "+(error.message||"Error"),true);return;
+    }
+  } else session = getSaved();
   if (!session) { setVisible("login"); return; }
   try {
-    await authenticate(); await fetchOrders(); setVisible("dashboard");
-  } catch {
-    // Session not authorized or expired: require sign-in again, without exposing another user's data.
+    await authenticate();
+    await fetchOrders();
+    setVisible(invited ? "setPassword" : "dashboard");
+  } catch (error) {
     resetLocal();
+    if (invited) setError("La invitación no pudo activarse: "+(error.message||"Error"),true);
   }
 }
 void start();
