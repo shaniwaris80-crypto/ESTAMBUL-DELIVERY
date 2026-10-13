@@ -31,7 +31,14 @@ async function query(path,options={}){
 async function identity(){
  const user=await query("/auth/v1/user");
  const m=await query("/rest/v1/ed_members?select=account_id,role,active&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true");
- if(!m?.length)throw Error("Usuario sin organización. Vincúlalo desde Supabase siguiendo la guía.");
+ if(!m?.length){
+  // An email-verified, pre-authorized owner may claim the initial admin account.
+  // The RPC validates the email server-side and is safe to call for other users.
+  await query("/rest/v1/rpc/ed_activate_admin",{method:"POST",body:"{}"});
+  const claimed=await query("/rest/v1/ed_members?select=account_id,role,active&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true");
+  if(!claimed?.length)throw Error("No hay organización asignada a este usuario.");
+  m.push(...claimed);
+ }
  member=m.find(x=>x.role==="admin"||x.role==="dispatcher")||m[0];
  const a=await query("/rest/v1/ed_accounts?select=id,name&id=eq."+encodeURIComponent(member.account_id));
  if(!a?.length)throw Error("Organización no encontrada");account=a[0];
@@ -83,6 +90,24 @@ async function start(){
  if(!session){el("loginSection").hidden=false;el("connection").textContent="Acceso requerido";return}
  try{await identity();logged();await reload()}catch(e){session=null;persist();member=null;el("loginSection").hidden=false;message(e,true)}
 }
+el("signUpButton").addEventListener("click",async()=>{
+ if(busy)return;
+ const email=el("email").value.trim(),password=el("password").value;
+ if(!email||!password){message(Error("Introduce tu correo y una contraseña nueva para registrarte."),true);return;}
+ if(password.length<8){message(Error("Utiliza una contraseña de al menos 8 caracteres."),true);return;}
+ busy=true;clearError();el("signUpButton").disabled=true;el("signInButton").disabled=true;
+ try{
+  // Email confirmation is required by default on hosted Supabase.
+  const redirect=encodeURIComponent("https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/live.html");
+  const res=await parsed(await fetch(base+"/auth/v1/signup?redirect_to="+redirect,{
+   method:"POST",headers:headers(),body:JSON.stringify({email,password})
+  }));
+  el("signUpInfo").textContent="Registro solicitado. Revisa tu correo y confirma la cuenta. Si la confirmación abre otra página, vuelve aquí y pulsa Entrar.";
+  el("signUpInfo").hidden=false;
+  el("password").value="";
+ }catch(e){message(e,true);}
+ finally{busy=false;el("signUpButton").disabled=false;el("signInButton").disabled=false;}
+});
 el("loginForm").addEventListener("submit",async e=>{
  e.preventDefault();if(busy)return;busy=true;clearError();el("signInButton").disabled=true;
  try{
