@@ -1,0 +1,11 @@
+node_modules/
+.next/
+.expo/
+dist/
+coverage/
+.env
+.env.local
+.env.*.local
+.expo-shared/
+*.log
+.DS_Store
