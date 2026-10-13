@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=11"></head>
+<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=14"></head>
 <body>
 <header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
@@ -30,7 +30,11 @@
     <label>Importe (€)<input id="newAmount" type="number" min="0" max="999999" step="0.01" value="0"></label><label>Forma de pago<select id="newPayment" required><option value="" selected disabled>Seleccionar…</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
     <label class="full-width">Dirección completa de entrega<input id="newAddress" required maxlength="400" placeholder="Calle, número, piso, Burgos, España"></label>
     <label class="full-width">Notas / portal / instrucciones<input id="newNotes" maxlength="1000" placeholder="Ej.: portal, 2º A, llamar al timbre (solo datos ficticios)"></label>
-    <button type="submit" class="btn full-width" style="max-width:250px">+ Crear pedido</button>
+    <div class="notification-settings full-width">
+<label>Canal de avisos de estado<select id="newNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS</option><option value="whatsapp">WhatsApp</option></select></label>
+<label class="notification-consent"><input type="checkbox" id="newNoticeConsent"><span>El cliente ha autorizado los avisos de servicio al teléfono indicado (registrar solo si ha dado permiso).</span></label>
+<p>Los avisos quedarán preparados en la cola, pero **no se enviarán** hasta conectar un proveedor autorizado de SMS/WhatsApp.</p>
+</div><button type="submit" class="btn full-width" style="max-width:250px">+ Crear pedido</button>
   </form>
   <p class="small-note">Introduce una dirección completa: Google Maps podrá localizarla incluso cuando no haya coordenadas GPS.</p>
 </section>
@@ -43,11 +47,18 @@
 <label>Importe (€)<input id="editAmount" type="number" min="0" max="999999" step=".01"></label><label>Forma de pago<select id="editPayment"><option value="">Sin especificar (pedido anterior)</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
 <label class="full-width">Dirección completa<input id="editAddress" required maxlength="400"></label>
 <label class="full-width">Notas / portal / piso<input id="editNotes" maxlength="1000"></label>
-<button type="submit" class="btn full-width" style="max-width:250px">Guardar cambios</button>
+<div class="notification-settings full-width">
+<label>Canal de avisos de estado<select id="editNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS</option><option value="whatsapp">WhatsApp</option></select></label>
+<label class="notification-consent"><input type="checkbox" id="editNoticeConsent"><span>El cliente ha autorizado los avisos de servicio al teléfono indicado (registrar solo si ha dado permiso).</span></label>
+<p>Los avisos quedarán preparados en la cola, pero **no se enviarán** hasta conectar un proveedor autorizado de SMS/WhatsApp.</p>
+</div><button type="submit" class="btn full-width" style="max-width:250px">Guardar cambios</button>
 </form>
 </section>
 <section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Usuarios vinculados a esta organización.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
 <section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Seguimiento</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>💬 Avisos automáticos SMS / WhatsApp</h2><p>Ya se registran preferencias por pedido. Los mensajes están desactivados hasta contratar y configurar el proveedor.</p></div></div><p class="small-note">Solo se preparan avisos de servicio para clientes que autorizaron ese canal. No se enviarán comunicaciones promocionales ni se facturará mensajería desde esta aplicación por ahora.</p></section>
+<section class="card" id="gpsAdminCard"><div class="section-head"><div><h2>📍 GPS de los repartidores</h2><p>Ubicación voluntaria del rider durante un pedido en curso. Solo visible para el equipo autorizado; posiciones de más de 2 minutos se ocultan.</p></div><span class="tag" id="gpsAdminCount">0 compartiendo</span></div>
+<div id="gpsRiderList" class="gps-admin-list"></div></section>
 <section class="card" id="brandCard">
 <div class="section-head"><div><h2>Marca y experiencia del cliente</h2><p>Personaliza la página privada de seguimiento de los pedidos. No se envían SMS desde el sistema todavía.</p></div></div>
 <form id="brandForm" class="create-form">
@@ -69,4 +80,4 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=12"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=14"></script></body></html>

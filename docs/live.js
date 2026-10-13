@@ -10,6 +10,7 @@ const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
 let shiftClosures=[],shiftClosureItems=[];
 let brandDetails=null,customerFeedback=[];
+let riderPositions=[];
 const storage="estambul-secure-test-session";
 try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
 function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
@@ -58,9 +59,14 @@ async function reload(){
  const q=encodeURIComponent(member.account_id);
  const [rs,os]=await Promise.all([
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
-  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,notifications_consent,notification_channel,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
  ]);
  riders=rs||[];orders=os||[];
+ if(member.role!=="rider"){
+   try{riderPositions=await query("/rest/v1/ed_rider_positions?select=rider_id,latitude,longitude,accuracy_m,updated_at&account_id=eq."+q);}
+   catch(error){riderPositions=[];message(error);}
+ }
+
  if(member.role!=="rider"){
   try{
    const [brands,feedback]=await Promise.all([
@@ -143,6 +149,22 @@ function renderFeedback(){
    '</select></div></article>';
  }).join("");
 }
+
+function renderGpsPositions(){
+ const now=Date.now();
+ const active=riderPositions.filter(p=>Date.now()-Date.parse(p.updated_at)<=120000);
+ el("gpsAdminCount").textContent=active.length+" compartiendo";
+ el("gpsRiderList").innerHTML=riders.map(r=>{
+  const p=active.find(x=>x.rider_id===r.id);
+  const pos=p?String(p.latitude)+","+String(p.longitude):null;
+  const g=pos?"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(pos):null;
+  return '<div class="gps-admin-row"><div><strong>'+esc(r.display_name)+'</strong>'+
+   '<small>'+(p?"📍 GPS actualizado "+new Date(p.updated_at).toLocaleTimeString("es-ES")+
+     " · precisión aproximada "+Number(p.accuracy_m||0)+" m":"Sin ubicación compartida reciente")+
+    '</small></div>'+(g?'<a href="'+g+'" target="_blank" rel="noopener noreferrer">Ver ubicación en Maps ↗</a>':'<span>—</span>')+'</div>';
+ }).join("")||'<p class="small-note">Todavía no hay repartidores vinculados.</p>';
+}
+
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
@@ -151,7 +173,7 @@ function render(){
  if(staff){
   el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
   el("orderCount").textContent=orders.length+" pedidos";
-  renderBrand();renderFeedback();
+  renderBrand();renderFeedback();renderGpsPositions();
   drawShiftHistory();
   el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
   el("ordersTable").innerHTML=orders.map(o=>{
@@ -289,6 +311,8 @@ document.addEventListener("click",e=>{
  el("editPhone").value=o.customer_phone||"";
  el("editAmount").value=String(o.amount||0);
  el("editPayment").value=o.payment_method||"";
+ el("editNoticeChannel").value=o.notification_channel||"none";
+ el("editNoticeConsent").checked=!!o.notifications_consent;
  el("editAddress").value=o.destination||"";
  el("editNotes").value=o.notes||"";
  el("editCard").hidden=false;
@@ -301,9 +325,13 @@ el("editForm").addEventListener("submit",e=>{
  void operation(async()=>{
   const amount=Number(el("editAmount").value||0);
   if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe inválido");
+  if(el("editNoticeChannel").value!=="none"&&(!el("editNoticeConsent").checked||!el("editPhone").value.trim()))
+    throw Error("Para activar avisos necesitas teléfono y permiso del cliente");
   const item={customer_name:el("editCustomer").value.trim(),
    customer_phone:el("editPhone").value.trim()||null,
-   destination:el("editAddress").value.trim(),notes:el("editNotes").value.trim(),payment_method:el("editPayment").value||null,amount};
+   destination:el("editAddress").value.trim(),notes:el("editNotes").value.trim(),payment_method:el("editPayment").value||null,amount,
+   notifications_consent:el("editNoticeConsent").checked,
+   notification_channel:el("editNoticeChannel").value};
   const path="/rest/v1/ed_orders?id=eq."+encodeURIComponent(id)+"&account_id=eq."+encodeURIComponent(member.account_id);
   const rows=await query(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(item)});
   if(!rows?.length)throw Error("No se pudo actualizar el pedido");
@@ -316,10 +344,13 @@ el("createForm").addEventListener("submit",e=>{
   const phone=el("newPhone").value.trim();
   const amount=Number(el("newAmount").value||"0");
   if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe no válido");
+  if(el("newNoticeChannel").value!=="none"&&(!el("newNoticeConsent").checked||!phone))throw Error("Necesitas teléfono y autorización para avisos de servicio");
   const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",
     customer_name:el("newCustomer").value.trim(),customer_phone:phone||null,
     destination:el("newAddress").value.trim(),notes:el("newNotes").value.trim(),
-    amount,payment_method:el("newPayment").value,status:"pendiente"};
+    amount,payment_method:el("newPayment").value,status:"pendiente",
+    notifications_consent:el("newNoticeConsent").checked,
+    notification_channel:el("newNoticeChannel").value};
   await query("/rest/v1/ed_orders",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)});
   el("createForm").reset();
  });
