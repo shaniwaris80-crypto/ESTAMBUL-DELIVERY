@@ -102,3 +102,17 @@ Además de la demo pública, hemos incorporado una **segunda aplicación web con
 
 ### Provisión inmediata de Riders de prueba
 Desde el panel autenticado `live.html`, el administrador puede pulsar **Crear y activar cuentas Rider**. Una función Supabase Edge (JWT obligatorio) genera credenciales temporales distintas para cada repartidor ya autorizado; deben cambiarlas en la app Rider al primer acceso. La activación requiere pulsar el botón con sesión de administrador y aún no equivale a integración de Last.app. Consulta [docs/RIDER_APP.md](docs/RIDER_APP.md).
+
+## Seguimiento personalizado y opiniones (versión de prueba)
+
+Se ha añadido una página de seguimiento por pedido en `/track.html#token=...`. El enlace se crea **desde el administrador autenticado** con el botón «🔗 Enlace» junto a cada pedido, y se copia al portapapeles para que el establecimiento pueda compartirlo manualmente. Un nuevo enlace invalida el anterior. Caduca a los 21 días.
+
+El cliente puede comprobar **pedido recibido → asignado → recogido → en camino → entregado** sin iniciar sesión, y no se publica su nombre, teléfono, dirección ni la posición del rider. Cada enlace utiliza un token aleatorio fuerte guardado únicamente como hash en Supabase; evita enviarlo a personas ajenas.
+
+En **Marca y experiencia del cliente** el administrador configura el nombre visible, color corporativo, logo mediante URL HTTPS y enlace oficial de reseñas de Google opcional. No se crea por defecto ningún enlace de Google Reviews: hay que introducir el real.
+
+Después de la entrega, el cliente puede dejar una valoración del **1 al 5** y comentario. Se almacena una sola valoración por pedido y aparece en «Opiniones y seguimiento» del administrador, con estado **Pendiente / Contactado / Resuelto**. La invitación a reseña pública, si está configurada, se muestra a **todos los clientes entregados**, independientemente de la valoración que hayan dado; no hacer review gating.
+
+**Todavía no implementados:** envío automático de SMS/WhatsApp, avisos al cliente sin abrir el enlace, recuperación automática de malas experiencias, campañas de repetición de pedidos, seguimiento GPS con ETA, automatización comercial y conectividad con pedidos reales de Last.app. Las comunicaciones promocionales futuras exigirán consentimiento específico verificable y baja sencilla; antes de activarlas se necesita un proveedor de mensajería apropiado (SMS/WhatsApp Business), políticas de privacidad y comprobaciones legales.
+
+Seguridad: el enlace de seguimiento se trata como credencial privada y se puede revocar al generar uno nuevo; no se debe publicar en redes o loguear el token. La URL emplea el fragmento de la dirección para que no se transmita automáticamente en las solicitudes HTTP del sitio.

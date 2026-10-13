@@ -36,3 +36,15 @@ Enlaces públicos de referencia:
 - https://www.shipday.com/features/mobile-app-for-drivers
 - https://www.shipday.com/features/proof-of-delivery
 - https://www.shipday.com/features/branded-tracking-and-customer-communication
+
+
+## Nuevas funciones destacadas de Shipday: marca y fidelización
+
+| Función | Estambul Delivery |
+|---|---|
+| Seguimiento personalizado con la marca | MVP web disponible: nombre, colores, logo externo y enlace privado por pedido |
+| SMS de estado automático | Pendiente de proveedor de mensajería y consentimiento/avisos adecuados |
+| Feedback tras cada entrega | Disponible mediante enlace de seguimiento; 1–5 estrellas y comentario, una valoración por pedido |
+| Invitación a reseña Google | Disponible **si el administrador configura el enlace oficial**, mostrada a todos los clientes que recibieron su pedido |
+| Recuperación automática de clientes insatisfechos | Pendiente de automatización; opiniones negativas destacadas y estados de atención manual |
+| Recordatorios automáticos de repetición | No implementados; requieren consentimiento promocional explícito, proveedor y opción de baja |
