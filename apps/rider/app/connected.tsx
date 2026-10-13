@@ -39,9 +39,23 @@ export default function Connected(){
 }
 function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvance:(status:DeliveryStatus)=>void}){
  const status=next[order.status];
- const nav=()=>{if(order.lat==null||order.lng==null){Alert.alert("Destino","Sin coordenadas");return}void Linking.openURL("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(order.lat+","+order.lng)+"&travelmode=driving")};
- return <View style={s.card}><Text style={s.eyebrow}>{order.channel.toUpperCase()} · {order.reference}</Text><Text style={s.title}>{order.customer_name}</Text><Text style={s.help}>{order.destination}</Text><Text style={s.status}>{order.status.toUpperCase()}</Text>
- <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>Google Maps ↗</Text></Pressable>{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
+ const nav=()=>{
+  const text=String(order.destination||"").trim();
+  const destination=order.lat!=null&&order.lng!=null
+    ?order.lat+","+order.lng
+    :(/burgos|españa|spain/i.test(text)?text:text+", Burgos, España");
+  if(!destination){Alert.alert("Destino","Sin dirección registrada");return;}
+  void Linking.openURL("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination)+"&travelmode=driving");
+ };
+ const call=()=>{const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");if(phone.length>=6)void Linking.openURL("tel:"+phone)};
+ return <View style={s.card}><Text style={s.eyebrow}>{order.channel.toUpperCase()} · {order.reference}</Text><Text style={s.title}>{order.customer_name}</Text>
+ <Text style={s.eyebrow}>DIRECCIÓN DE ENTREGA</Text>
+ <Text style={s.help}>{order.destination}</Text>
+ <Text style={s.help}>{order.customer_phone?"☎ "+order.customer_phone:"Sin teléfono de cliente registrado"}</Text>
+ {order.notes?<View style={{backgroundColor:"#fff6e8",padding:12,borderRadius:9,marginBottom:12}}><Text style={s.help}>📝 {order.notes}</Text></View>:null}
+ <Text style={s.help}>Importe: {new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
+ <Text style={s.status}>{order.status.toUpperCase()}</Text>
+ <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
 }
 const s=StyleSheet.create({
