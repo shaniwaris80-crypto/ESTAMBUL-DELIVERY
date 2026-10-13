@@ -1,7 +1,7 @@
 # Lista de publicación
 
 ## Sitio demo público (sin backend)
-- [x] Código estático en \`docs/index.html\`, \`demo.css\` y \`demo.js\`.
+- [x] Código estático en `docs/index.html`, `demo.css` y `demo.js`.
 - [x] Vista Back Office + Rider + Seguimiento con información ficticia.
 - [x] PWA ligera (manifest, service worker), acceso con navegador en móvil.
 - [ ] Activar GitHub Pages en Settings → Pages → Deploy from branch → main → /docs → Save.
@@ -9,8 +9,8 @@
 - [ ] Revisar el demo tras cada actualización.
 
 ## Aplicaciones de prueba
-- [x] Código React Native + Expo de ejemplo en \`apps/rider\`.
-- [ ] Ejecutar \`npm install\`, \`npm run dev:rider\`.
+- [x] Código React Native + Expo de ejemplo en `apps/rider`.
+- [ ] Ejecutar `npm install`, `npm run dev:rider`.
 - [ ] Instalar Development Build para Android/iPhone.
 - [ ] Prueba real de navegación Google Maps y actualizaciones de pedidos en red local.
 - [ ] Configurar perfiles EAS y credenciales Apple/Google.

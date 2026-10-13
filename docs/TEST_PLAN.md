@@ -1,7 +1,7 @@
 # Plan de pruebas — Estambul Delivery
 
 ## A. Demo local (sin datos reales)
-1. Abrir \`docs/index.html\`, verificar 7 pedidos ficticios y 4 riders de ejemplo.
+1. Abrir `docs/index.html`, verificar 7 pedidos ficticios y 4 riders de ejemplo.
 2. Cambiar filtro de canal entre Last.app / Uber Eats / Just Eat.
 3. Asignar ED-1004 al Rider A; comprobar que desaparece de "Sin asignar".
 4. Ir a "App Rider (vista demo)" y seleccionar Rider A; ED-1004 debe aparecer.
