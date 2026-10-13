@@ -1,0 +1,124 @@
+/* Estambul Delivery: Supabase Auth and PostgREST, staff/rider access via SQL RLS. */
+(function(){"use strict";
+const cfg=window.ESTAMBUL_SUPABASE||{},base=(cfg.url||"").replace(/\/+$/,""),key=cfg.anonKey||"";
+const ready=/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base)&&key.length>20;
+const el=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const labels={pendiente:"Pendiente",asignado:"Asignado",recogido:"Recogido",en_ruta:"En reparto",entregado:"Entregado",cancelado:"Cancelado"};
+const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
+const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
+let session=null,member=null,account=null,orders=[],riders=[],busy=false;
+const storage="estambul-secure-test-session";
+try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
+function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
+function message(e,login=false){const box=el(login?"loginError":"errorBox");box.textContent=e.message||String(e);box.hidden=false;}
+function clearError(){el("loginError").hidden=true;el("errorBox").hidden=true}
+async function parsed(r){const raw=await r.text();let o=null;try{o=JSON.parse(raw)}catch{o=raw}if(!r.ok)throw Error(o?.message||o?.error_description||o?.error||"HTTP "+r.status);return o}
+function headers(){return {"apikey":key,"Content-Type":"application/json"}}
+async function newToken(){
+ if(!session?.refresh_token)throw Error("Sesión caducada");
+ const o=await parsed(await fetch(base+"/auth/v1/token?grant_type=refresh_token",{method:"POST",headers:headers(),body:JSON.stringify({refresh_token:session.refresh_token})}));
+ session={access_token:o.access_token,refresh_token:o.refresh_token,expires:Date.now()+o.expires_in*1000};persist();
+}
+async function query(path,options={}){
+ if(!session?.access_token)throw Error("Inicia sesión");
+ if(!session.expires||Date.now()>session.expires-60000)await newToken();
+ const hdr={...headers(),Authorization:"Bearer "+session.access_token,...(options.headers||{})};
+ let r=await fetch(base+path,{...options,headers:hdr});
+ if(r.status===401){await newToken();hdr.Authorization="Bearer "+session.access_token;r=await fetch(base+path,{...options,headers:hdr});}
+ return parsed(r);
+}
+async function identity(){
+ const user=await query("/auth/v1/user");
+ const m=await query("/rest/v1/ed_members?select=account_id,role,active&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true");
+ if(!m?.length)throw Error("Usuario sin organización. Vincúlalo desde Supabase siguiendo la guía.");
+ member=m.find(x=>x.role==="admin"||x.role==="dispatcher")||m[0];
+ const a=await query("/rest/v1/ed_accounts?select=id,name&id=eq."+encodeURIComponent(member.account_id));
+ if(!a?.length)throw Error("Organización no encontrada");account=a[0];
+}
+function logged(){
+ el("loginSection").hidden=true;el("appSection").hidden=false;el("logout").hidden=false;el("noConfig").hidden=true;
+ const staff=member.role!=="rider";
+ el("staffView").hidden=!staff;el("riderView").hidden=staff;
+ el("accountLabel").textContent=account.name+" · "+member.role.toUpperCase();
+ el("viewTitle").textContent=staff?"Centro de reparto":"Mis entregas";
+ el("viewSub").textContent="Sincronizado entre dispositivos · actualización cada 5 segundos · solo datos de prueba";
+ el("connection").textContent="Conectado";
+}
+async function reload(){
+ const q=encodeURIComponent(member.account_id);
+ const [rs,os]=await Promise.all([
+  query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
+  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,destination,lat,lng,amount,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+ ]);
+ riders=rs||[];orders=os||[];render();
+}
+function render(){
+ const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
+ const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
+ el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
+ el("lastSync").textContent="Actualizado a las "+new Date().toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)";
+ if(staff){
+  el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
+  el("orderCount").textContent=orders.length+" pedidos";
+  el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
+  el("ordersTable").innerHTML=orders.map(o=>{
+    const options='<option value="">Sin asignar</option>'+riders.filter(r=>r.active).map(r=>'<option value="'+esc(r.id)+'" '+(o.rider_id===r.id?"selected":"")+'>'+esc(r.display_name)+'</option>').join("");
+    return '<tr><td><strong>'+esc(o.reference)+'</strong></td><td><strong>'+esc(o.customer_name)+'</strong><small>'+esc(o.destination)+'</small></td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><span class="pill">'+esc(labels[o.status])+'</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td></tr>';
+  }).join("")||'<tr><td colspan="5">Sin pedidos.</td></tr>';
+ }else{
+  el("myOrders").innerHTML=orders.map(o=>{
+    const n=next[o.status],map=(o.lat!=null&&o.lng!=null)?"https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(o.lat+","+o.lng)+"&travelmode=driving":null;
+    return '<article class="my-order"><small>'+esc(chan[o.channel]||o.channel)+'</small><h3>'+esc(o.reference)+'</h3><p><strong>'+esc(o.customer_name)+'</strong></p><p>'+esc(o.destination)+'</p><p class="pill">'+esc(labels[o.status])+'</p><div class="actions">'+(map?'<a target="_blank" rel="noopener noreferrer" href="'+map+'">Google Maps ↗</a>':"")+(n?'<button class="btn" data-advance="'+esc(o.id)+'" data-next="'+n+'">'+esc({recogido:"Recogido",en_ruta:"Iniciar reparto",entregado:"Entregado"}[n])+'</button>':"")+'</div></article>';
+  }).join("")||'<p>No hay pedidos asignados a este rider.</p>';
+ }
+}
+async function operation(fn){
+ if(busy)return;busy=true;clearError();
+ try{await fn();await reload()}catch(e){message(e)}
+ finally{busy=false}
+}
+async function start(){
+ if(!ready){el("noConfig").hidden=false;el("connection").textContent="Sin configurar";return}
+ if(!session){el("loginSection").hidden=false;el("connection").textContent="Acceso requerido";return}
+ try{await identity();logged();await reload()}catch(e){session=null;persist();member=null;el("loginSection").hidden=false;message(e,true)}
+}
+el("loginForm").addEventListener("submit",async e=>{
+ e.preventDefault();if(busy)return;busy=true;clearError();el("signInButton").disabled=true;
+ try{
+  const auth=await parsed(await fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:headers(),body:JSON.stringify({email:el("email").value.trim(),password:el("password").value})}));
+  session={access_token:auth.access_token,refresh_token:auth.refresh_token,expires:Date.now()+auth.expires_in*1000};persist();
+  await identity();logged();await reload();el("password").value="";
+ }catch(err){session=null;persist();member=null;el("loginSection").hidden=false;message(err,true)}
+ finally{busy=false;el("signInButton").disabled=false}
+});
+el("logout").addEventListener("click",()=>{session=null;persist();member=null;account=null;orders=[];riders=[];el("appSection").hidden=true;el("logout").hidden=true;el("loginSection").hidden=false;el("connection").textContent="Desconectado"});
+el("refresh").addEventListener("click",()=>void operation(async()=>{}));
+el("createForm").addEventListener("submit",e=>{
+ e.preventDefault();void operation(async()=>{
+  const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",customer_name:el("newCustomer").value.trim(),destination:el("newAddress").value.trim(),status:"pendiente"};
+  await query("/rest/v1/ed_orders",{method:"POST",headers:{"Prefer":"return=minimal"},body:JSON.stringify(item)});
+  el("createForm").reset();
+ });
+});
+document.addEventListener("change",e=>{
+ const sel=e.target;if(!sel.dataset.assign)return;
+ const o=orders.find(x=>x.id===sel.dataset.assign);if(!o)return;
+ void operation(async()=>{
+  const rid=sel.value||null,params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
+  await query("/rest/v1/ed_orders"+params,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({rider_id:rid,status:rid?"asignado":"pendiente"})});
+ });
+});
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-advance]");if(!b)return;
+ const o=orders.find(x=>x.id===b.dataset.advance);
+ if(!o||next[o.status]!==b.dataset.next)return;
+ void operation(async()=>{
+  const params="?id=eq."+encodeURIComponent(o.id)+"&rider_id=eq."+encodeURIComponent(o.rider_id)+"&status=eq."+encodeURIComponent(o.status);
+  const result=await query("/rest/v1/ed_orders"+params,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({status:b.dataset.next})});
+  if(!result?.length)throw Error("Este pedido cambió de asignación. Actualiza.");
+ });
+});
+setInterval(()=>{if(member&&!busy)void operation(async()=>{});},5000);
+start();
+})();
