@@ -2,7 +2,6 @@
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
 import { Fragment } from "react";
 import { divIcon } from "leaflet";
-import { Fragment } from "react";
 import type { DemoState } from "@estambul/shared";
 const colors=["#16a34a","#2563eb","#d97706","#9333ea","#0d9488"];
 export default function DeliveryMap({data,focusRider}:{data:DemoState;focusRider:string}){
