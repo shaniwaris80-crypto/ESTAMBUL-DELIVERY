@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { router } from "expo-router";
 import { ActivityIndicator, Alert, FlatList, Linking, Pressable, RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from "react-native";
 import { channelLabels, statusLabels, type DeliveryOrder, type DeliveryStatus, type DemoState } from "@estambul/shared";
 import { isRemoteDemo, loadDemo, openDirections, updateDemoStatus } from "../lib/demo";
@@ -35,6 +36,7 @@ export default function RiderHome(){
     <View style={styles.top}><View><Text style={styles.brand}>ESTAMBUL DELIVERY</Text><Text style={styles.subtitle}>APP RIDER · DEMOSTRACIÓN</Text></View><View style={styles.topIcon}><Text style={{fontSize:20}}>🚴</Text></View></View>
     <ScrollView contentContainerStyle={styles.content} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh}/>}>
       <View style={styles.warning}><Text style={styles.warningText}>MODO DEMO · Pedidos ficticios · Sin cuenta real ni GPS activo</Text></View>
+      <Pressable onPress={()=>router.push("/connected")} style={{backgroundColor:"#203d5a",padding:15,borderRadius:12,marginBottom:18}}><Text style={{color:"#fff",fontWeight:"900",textAlign:"center"}}>🔒 Abrir modo conectado con mi cuenta →</Text></Pressable>
       <Text style={styles.sectionLabel}>SELECCIONAR RIDER DE PRUEBA</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.riderSelector}>
         {data?.riders.filter(r=>r.active).map(r=><Pressable key={r.id} onPress={()=>setRiderId(r.id)} style={[styles.riderOption,r.id===riderId&&styles.riderSelected]}>
