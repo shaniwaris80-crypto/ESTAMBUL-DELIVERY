@@ -98,3 +98,6 @@ td small{color:#728674}
  .v2-admin-nav a{padding:9px 12px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Admin shortcuts are visible only when the dispatcher staff view is active. */
+#staffView>.v2-admin-nav{grid-column:1/-1;margin-top:1px}
