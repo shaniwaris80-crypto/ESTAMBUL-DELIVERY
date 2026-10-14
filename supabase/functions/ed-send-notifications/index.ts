@@ -84,6 +84,9 @@ Deno.serve(async(req:Request)=>{
      if(!formats.has(status))throw Error("Unsupported status");
      const form=new URLSearchParams();
      if(channel==="sms"){
+       // Single-SMS policy: acceptance link is sent only by ed-rider-accept-sms.
+       // Status updates belong inside the same tracking link, never by extra SMS.
+       throw Error("Status SMS disabled by single-message policy");
        if(!smsFrom)throw Error("SMS sender unavailable");
        form.set("To",to);form.set("From",smsFrom);
        form.set("Body",String(item.body||"").slice(0,420));
