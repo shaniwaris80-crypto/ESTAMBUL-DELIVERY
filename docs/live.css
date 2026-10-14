@@ -40,3 +40,35 @@
 .rider-call-config{padding:9px 11px;font-size:11px;white-space:nowrap}
 .share-actions .whatsapp-action{min-width:120px}
 @media(max-width:600px){.rider-call-config{white-space:normal;max-width:130px}}
+
+
+/* V16 · ESTAMBUL DISPATCH / modern courier interface */
+:root{--navy:#161c18;--text:#18241c;--muted:#738174;--line:#e3e9e3;--blue:#1d7652;--orange:#17201a;--green:#138559}
+body{background:#f6f8f6}
+.bar{background:#151b17;box-shadow:0 8px 28px #142b1915;position:sticky;top:0;z-index:30}
+.brand-icon{background:#fff;color:#17231a;border-radius:13px}
+.bar .tag{background:#26382b;color:#ccf0d7}
+.outline{background:#fff;color:#22412c;border:1px solid #d5e0d8;border-radius:12px}
+.btn{background:#171e19;border-radius:12px}
+.card{border-radius:22px;box-shadow:0 12px 32px #19291e08}
+.card h2{font-size:21px;letter-spacing:-.04em}
+.eyebrow{color:#197450}
+.app-title h1{font-size:34px;letter-spacing:-.05em;color:#17251b}
+.stat{border-radius:18px}
+.stat:first-child{background:#171d19;color:#fff;border-color:#171d19}
+.stat:first-child b,.stat:first-child small{color:#fff}
+.stat:first-child small{opacity:.78}
+.stat b{font-weight:950;font-size:33px}
+.avatar{border-radius:14px;background:#e2f4e9;color:#13754b}
+.rider-item{border-radius:16px}
+.pill{background:#e4f4e9;color:#13794f;border-radius:99px}
+table{min-width:890px}th{background:#f3f7f3;color:#607165}
+td{border-top-color:#e8eee9}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid #82c6a1;outline-offset:2px}
+.archive-control{display:inline-flex;align-items:center;gap:10px;min-height:44px;padding:11px 14px;background:#f4f8f4;border:1px solid #d8e9dc;color:#355643;font-size:12px;font-weight:800;border-radius:13px;margin:4px 0 16px}
+.archive-control input{width:19px;height:19px;accent-color:#178258;padding:0}
+.share-actions .stop-public-gps{background:#fff0ec;border-color:#f0cec2;color:#98472e}
+#shiftHistoryCard{border:1px solid #cfe3d3}
+.shift-admin-report{border-radius:14px}
+.shift-admin-report summary{background:#f3f8f4}
+@media(max-width:650px){.app-title h1{font-size:26px}.archive-control{display:flex}}
