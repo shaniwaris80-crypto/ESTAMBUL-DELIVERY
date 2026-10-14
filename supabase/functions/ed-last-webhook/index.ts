@@ -1,7 +1,8 @@
+declare const EdgeRuntime: {waitUntil(promise:Promise<unknown>):void};
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
 
-// Last.app v2 -> ESTAMBUL DELIVERY. Inbox only; does not create, change,
-// assign, or SMS any orders until a separate reviewed sync worker exists.
+// Last.app v2 -> ESTAMBUL DELIVERY. Authentic webhook inbox, then private auto-sync.
+// No external order is imported until its location is explicitly approved.
 const env=(name:string)=>Deno.env.get(name)?.trim()||"";
 const enc=new TextEncoder();
 function equalSecret(a:string,b:string):boolean{
@@ -59,6 +60,13 @@ Deno.serve(async(req:Request)=>{
       p_data:payload
     });
     if(error)return plain(503);
+    // Acknowledge Last immediately; process the order in the private worker.
+    // If Last.app retries, SQL deduplication by webhook event ID and tab ID is safe.
+    const work=fetch(url+"/functions/v1/ed-last-auto-sync",{
+      method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+service},
+      body:JSON.stringify({event_id:eventId})
+    }).catch(()=>undefined);
+    if(typeof EdgeRuntime!=="undefined")EdgeRuntime.waitUntil(work);
     return plain(200); // Last.app requires an empty HTTP 200
   }catch{return plain(503);}
 });
