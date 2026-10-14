@@ -191,3 +191,9 @@ body{background:var(--light);color:var(--dark);font-family:Inter,ui-sans-serif,-
 .order-wait{display:block;font-size:12px;font-weight:800;padding:8px 11px;background:#f5f8f5;color:#306144;border:1px solid #e2ebe4;border-radius:11px;margin-bottom:10px}
 .order-wait-urgent{background:#fff0ed;border-color:#f4c6bf}
 .order-wait-warning{background:#fff8e9;border-color:#e9d7ab}
+
+/* Rider must verify actual collection before closing any delivery. */
+.payment-confirmation {display:flex;flex-direction:column;gap:7px;margin:12px 0;padding:13px;border:1px solid #b0bec9;border-radius:12px;background:rgba(130,146,160,.11);}
+.payment-confirmation span {font-size:.83rem;font-weight:800;letter-spacing:.02em;}
+.payment-confirmation select {width:100%;min-height:46px;padding:9px;border:1px solid #718197;border-radius:8px;background:var(--paper,#fff);color:var(--ink,#122238);font:inherit;font-weight:700;}
+.payment-confirmation small {font-size:.74rem;opacity:.87;}
