@@ -83,7 +83,9 @@ Deno.serve(async(req:Request)=>{
      method:"POST",
      headers:{"Authorization":"Basic "+btoa(sid+":"+secret),
       "Content-Type":"application/x-www-form-urlencoded"},
-     body:form.toString()
+     body:form.toString(),
+     // Bound request time; an ambiguous timeout is recorded as a failure for manual review.
+     signal:AbortSignal.timeout(12000)
    });
    const raw=await response.text();
    let data:Record<string,unknown>={};
