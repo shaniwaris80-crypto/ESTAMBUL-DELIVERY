@@ -55,3 +55,6 @@ fieldset{padding:0;border:0;margin:0}legend{font-size:12px;font-weight:800;color
 .restaurant-call{background:#fff;box-shadow:0 15px 30px #1b32210a;border:1px solid #d6e5d9}
 .restaurant-call .call-rider-action{background:#181d1a}
 .restaurant-call .call-rider-icon{background:#e1f4e9}
+
+.connection-notice{margin:12px 0 0;padding:12px 14px;border-radius:10px;background:#fff4db;color:#714700;border:1px solid #f2d68b;font-size:14px;font-weight:600;line-height:1.45}
+@media (prefers-reduced-motion:reduce){.spinner,.location-pulse{animation:none!important}html{scroll-behavior:auto}}
