@@ -19,6 +19,7 @@ const cases = [
   ['Map hidden without current authorized GPS', track.includes('el("liveMapPanel").hidden=!hasGps')],
   ['Tracking verifies order in route', track.includes('data.status==="en_ruta"')],
   ['No stale rider marker retained', track.includes('removeAttribute("src")')],
+  ['Revoked token clears previously rendered private map', track.includes('current=null;') && track.includes('el("orderContent").hidden=true;')],
   ['Stale live map is hidden on connection loss', track.includes('A failed poll must not leave an old GPS marker') && track.includes('el("liveMapPanel").hidden=true')],
   ['Admin includes rider location section', live.includes('id="gpsAdminCard"')],
   ['Rider has location control', rider.includes('geolocation')],
@@ -28,4 +29,4 @@ for(const [description,ok] of cases){
   process.stdout.write((ok?'PASS':'FAIL')+' '+description+'\n');
 }
 assert.equal(cases.filter(([,ok])=>!ok).length,0,'Customer experience checks failed');
-console.log('13 structural customer-experience checks passed. These are not end-to-end integration tests.');
+console.log('14 structural customer-experience checks passed. These are not end-to-end integration tests.');
