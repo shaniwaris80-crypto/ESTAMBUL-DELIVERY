@@ -19,6 +19,7 @@ jobs:
           node --check docs/demo.js
           node --check docs/live.js
           node --check docs/rider.js
+          node --check docs/track.js
           node --check rider-sw.js
           node -e "JSON.parse(require('fs').readFileSync('rider.webmanifest'))"
           node --check docs/live-config.js
