@@ -99,7 +99,7 @@ declare
  pickup text; courier_id text; matched_rider uuid; courier_count integer;
  chosen_rider uuid; rider_explicit boolean:=false;
  cancelled boolean; code text; ref text; name text; addr text;
- notes text; channel text; method text; total_cents numeric:=0; amount_eur numeric:=0;
+ notes text; channel text; method text; v_name text; v_notes text; v_channel text; v_method text; v_status text; v_lat double precision; v_lng double precision; total_cents numeric:=0; amount_eur numeric:=0;
  lat double precision; lng double precision; source text; status text;
 begin
  if (select auth.role())<>'service_role' then raise exception 'Unauthorized';end if;
@@ -123,26 +123,26 @@ begin
  addr=btrim(coalesce(delivery->>'address',''));
  if addr='' then raise exception 'Delivery address missing in Last tab';end if;
  customer=coalesce(p_tab->'customerInfo',p_tab->'customer','{}'::jsonb);
- name=left(btrim(concat_ws(' ',nullif(customer->>'name',''),nullif(customer->>'surname',''))),120);
- if name='' then name='Cliente';end if;
+ v_name=left(btrim(concat_ws(' ',nullif(customer->>'name',''),nullif(customer->>'surname',''))),120);
+ if v_name='' then v_name='Cliente';end if;
  code=left(coalesce(nullif(p_tab->>'code',''),p_tab_id),55);
  ref=left('LA-'||p_tab_id,80);
- notes=left(concat_ws(' | ',nullif(btrim(coalesce(delivery->>'details','')),''),
+ v_notes=left(concat_ws(' | ',nullif(btrim(coalesce(delivery->>'details','')),''),
        nullif(btrim(coalesce(p_tab->>'customerNote','')),''),
        'Last.app #'||code),1000);
 
  if (delivery->>'latitude') ~ '^[-]?[0-9]+([.][0-9]+)?$' and
     (delivery->>'longitude') ~ '^[-]?[0-9]+([.][0-9]+)?$' then
-  lat=(delivery->>'latitude')::double precision;
-  lng=(delivery->>'longitude')::double precision;
-  if lat not between -90 and 90 or lng not between -180 and 180 then lat=null;lng=null;end if;
+  v_lat=(delivery->>'latitude')::double precision;
+  v_lng=(delivery->>'longitude')::double precision;
+  if v_lat not between -90 and 90 or v_lng not between -180 and 180 then v_lat=null;v_lng=null;end if;
  end if;
 
  source=lower(coalesce(p_tab->>'source',''));
- channel=case when source like '%uber%' then 'uber'
+ v_channel=case when source like '%uber%' then 'uber'
    when source like '%just%eat%' then 'justeat' else 'lastapp' end;
  method=lower(coalesce(p_tab->>'preferredPaymentMethod',''));
- method=case when method like '%cash%' or method like '%efectiv%' then 'efectivo'
+ v_method=case when method like '%cash%' or method like '%efectiv%' then 'efectivo'
    when method like '%card%' or method like '%tarje%' or method like '%online%' then 'tarjeta'
    else null end;
  if jsonb_typeof(p_tab->'bills')='array' then
@@ -177,7 +177,7 @@ begin
   select * into existing from public.ed_orders o where o.id=oid for update;
   if existing.status in ('entregado','cancelado') then
     return jsonb_build_object('order_id',oid,'status',existing.status,'final',true);end if;
-  if chosen_rider is null and rider_explicit then chosen_rider=existing.rider_id;end if;
+  if chosen_rider is null and existing.rider_id is not null then chosen_rider=existing.rider_id;end if;
  end if;
  if chosen_rider is null and not rider_explicit then
   -- Online and enrolled only. Least open orders; deterministic tie-break.
@@ -187,32 +187,32 @@ begin
        where o.rider_id=r.id and o.status in ('asignado','recogido','en_ruta')),
       r.created_at,r.id limit 1 for update of r skip locked;
  end if;
- status=case when cancelled then 'cancelado'
+ v_status=case when cancelled then 'cancelado'
     when chosen_rider is not null then 'asignado' else 'pendiente' end;
 
  if oid is null then
   insert into public.ed_orders(account_id,reference,channel,customer_name,customer_phone,
      destination,lat,lng,amount,status,rider_id,notes,payment_method,
      notifications_consent,notification_channel)
-  values(account,ref,channel,name,left(nullif(customer->>'phoneNumber',''),35),
-     left(addr,400),lat,lng,amount_eur,status,chosen_rider,notes,method,false,'none')
+  values(account,ref,v_channel,v_name,left(nullif(customer->>'phoneNumber',''),35),
+     left(addr,400),v_lat,v_lng,amount_eur,v_status,chosen_rider,v_notes,v_method,false,'none')
   returning id into oid;
   insert into private.ed_last_order_links(location_id,tab_id,order_id)
    values(p_location_id,p_tab_id,oid);
  else
   -- Only pending/assigned fields are synchronized. Rider-owned picked-up states survive.
   update public.ed_orders o set
-   channel=channel,customer_name=name,customer_phone=left(nullif(customer->>'phoneNumber',''),35),
-   destination=left(addr,400),lat=lat,lng=lng,amount=amount_eur,notes=notes,
-   payment_method=method,
+   channel=v_channel,customer_name=v_name,customer_phone=left(nullif(customer->>'phoneNumber',''),35),
+   destination=left(addr,400),lat=v_lat,lng=v_lng,amount=amount_eur,notes=v_notes,
+   payment_method=v_method,
    rider_id=case when existing.status in ('pendiente','asignado') then chosen_rider else existing.rider_id end,
    status=case when cancelled then 'cancelado'
-       when existing.status in ('pendiente','asignado') then status else existing.status end
+       when existing.status in ('pendiente','asignado') then v_status else existing.status end
   where o.id=oid;
   update private.ed_last_order_links set updated_at=now()
   where location_id=p_location_id and tab_id=p_tab_id;
  end if;
- return jsonb_build_object('order_id',oid,'status',status,
+ return jsonb_build_object('order_id',oid,'status',v_status,
    'rider_assigned',chosen_rider is not null,'waiting_for_online_rider',chosen_rider is null);
 end $function$;
 
@@ -231,7 +231,32 @@ begin
  return true;
 end $function$;
 
+
+-- Immediately stop importing for disconnected locations.
+create or replace function public.ed_last_disable_location(p_location_id text)
+ returns boolean language plpgsql security definer set search_path to ''
+as $function$
+begin
+ if (select auth.role())<>'service_role' then raise exception 'Unauthorized';end if;
+ update private.ed_last_locations set enabled=false,updated_at=now()
+ where location_id=p_location_id;
+ return found;
+end $function$;
+
+create or replace function public.ed_last_pending_events(p_limit integer default 20)
+ returns jsonb language sql stable security definer set search_path to ''
+as $function$
+ select case when (select auth.role())='service_role'
+ then coalesce((select jsonb_agg(e.event_id) from (
+   select event_id from private.ed_last_webhook_events
+   where processed_at is null order by received_at limit least(greatest(p_limit,1),25)
+ ) e),'[]'::jsonb)
+ else '[]'::jsonb end
+$function$;
+
 revoke all on function
+ public.ed_last_disable_location(text),
+ public.ed_last_pending_events(integer),
  public.ed_last_record_location(text,text,text),
  public.ed_last_bind_location(text,uuid),
  public.ed_last_get_event(text),
@@ -240,6 +265,8 @@ revoke all on function
  public.ed_last_cancel_tab(text,text)
  from public,anon,authenticated;
 grant execute on function
+ public.ed_last_disable_location(text),
+ public.ed_last_pending_events(integer),
  public.ed_last_record_location(text,text,text),
  public.ed_last_bind_location(text,uuid),
  public.ed_last_get_event(text),
