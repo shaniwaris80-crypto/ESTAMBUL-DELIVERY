@@ -114,6 +114,7 @@ function cashDifference(){
 }
 function drawCashClose(data){
  shiftReport=data;
+ $("shiftShareActions").hidden=false;
  const orders=Array.isArray(data.orders)?data.orders:[];
  $("shiftDateLabel").textContent="Día "+data.shift_day+" · "+data.completed_count+" entregas realizadas";
  const groups=[{type:"efectivo",name:"💶 EFECTIVO",count:data.cash_count,total:data.cash_expected},
