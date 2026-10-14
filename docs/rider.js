@@ -789,6 +789,17 @@ $("copyRiderTracking").addEventListener("click",()=>{
   }).catch(()=>window.prompt("Copia el enlace:",link));
  }else window.prompt("Copia el enlace:",link);
 });
+// Si el rider permanece quieto, algunos navegadores dejan de disparar watchPosition.
+ // Actualización puntual mientras la web esté visible, sin compartir con clientes sin opt-in.
+setInterval(()=>{
+ if(gpsWatchId===null||document.hidden||!session||!rider?.online||!hasInProgressOrder())return;
+ if(Date.now()-gpsLastSend<17000||gpsBusy)return;
+ navigator.geolocation?.getCurrentPosition(
+  pos=>void shareGps(pos),
+  ()=>{$("gpsStatus").textContent="Esperando señal GPS reciente. Revisa los permisos de ubicación.";},
+  {enableHighAccuracy:true,maximumAge:8000,timeout:12000}
+ );
+},20000);
 $("toggleGps").addEventListener("click",()=>void toggleGps());
 $("closeRiderChat").addEventListener("click",closeRiderChat);
 $("orders").addEventListener("click",e=>{
