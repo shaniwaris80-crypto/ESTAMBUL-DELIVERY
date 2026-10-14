@@ -74,13 +74,13 @@
 <section class="card" id="ordersArea">
 <div class="section-head"><div><span class="eyebrow">DESPACHO · PEDIDOS EN DIRECTO</span><h2>Pedidos y asignaciones</h2><p>Consulta y localiza pedidos al instante. Los repartidores se asignan exclusivamente desde LastPOS; este panel no asigna pedidos reales.</p></div><span id="orderCount" class="tag"></span></div>
 <div id="opsOverview" class="ops-overview" role="group" aria-label="Accesos rápidos a incidencias de reparto">
-  <button type="button" data-ops-focus="unassigned" class="ops-insight" aria-pressed="false"><span>Sin rider</span><strong id="opsUnassignedCount">0</strong><small>Requieren asignación en LastPOS</small></button>
+  <button type="button" data-ops-focus="unassigned" class="ops-insight" aria-pressed="false"><span>Sin rider · reales</span><strong id="opsUnassignedCount">0</strong><small>Requieren asignación en LastPOS</small></button>
   <button type="button" data-ops-focus="route" class="ops-insight" aria-pressed="false"><span>En reparto</span><strong id="opsRouteCount">0</strong><small>Entregas activas</small></button>
   <button type="button" data-ops-focus="payment_missing" class="ops-insight" aria-pressed="false"><span>Cobros pendientes</span><strong id="opsPaymentCount">0</strong><small>Entregados sin clasificar</small></button>
 </div>
 <div class="ops-toolbar" role="search" aria-label="Buscar y filtrar pedidos">
   <label class="ops-field ops-search-field" for="opsSearch"><span>BUSCAR PEDIDO</span><input id="opsSearch" type="search" autocomplete="off" placeholder="Código GF, cliente, teléfono, calle…" aria-controls="ordersTable"></label>
-  <label class="ops-field" for="opsFocus"><span>ESTADO / INCIDENCIA</span><select id="opsFocus" aria-controls="ordersTable"><option value="all">Todos los estados</option><option value="unassigned">Sin rider</option><option value="route">En reparto</option><option value="active">Activos</option><option value="payment_missing">Entregados sin pago clasificado</option><option value="sms_off">SMS no habilitado</option><option value="gps_shared">Mapa compartido</option><option value="delivered">Entregados</option></select></label>
+  <label class="ops-field" for="opsFocus"><span>ESTADO / INCIDENCIA</span><select id="opsFocus" aria-controls="ordersTable"><option value="all">Todos los estados</option><option value="unassigned">Reales sin rider</option><option value="route">En reparto</option><option value="active">Activos</option><option value="payment_missing">Entregados sin pago clasificado</option><option value="sms_off">SMS no habilitado</option><option value="gps_shared">Mapa compartido</option><option value="delivered">Entregados</option></select></label>
   <label class="ops-field" for="opsChannel"><span>ORIGEN</span><select id="opsChannel" aria-controls="ordersTable"><option value="all">Todos los canales</option><option value="lastapp">Last.app / GloriaFood</option><option value="uber">Uber Eats</option><option value="justeat">Just Eat</option><option value="test">Pruebas</option></select></label>
   <button type="button" id="opsReset" class="ops-reset">Limpiar filtros</button>
 </div>
