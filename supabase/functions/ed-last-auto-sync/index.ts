@@ -58,7 +58,7 @@ Deno.serve(async req=>{
     });
    }else if(eventType==="location:desintegrated"){
     if(location)await rpc("ed_last_disable_location",{p_location_id:location});
-   }else if(["tab:created","tab:updated","tab:cancelled","tab:closed","delivery-status:updated"].includes(eventType)){
+   }else if(["tab:created","tab:updated","tab:cancelled","tab:closed","tab:delivery-status-updated","delivery-status:updated"].includes(eventType)){
     const innerTab=dict(detail.tab);
     const tabId=get(detail,"tabId")||get(detail,"id")||get(innerTab,"id")||
       get(detail,"orderId");
