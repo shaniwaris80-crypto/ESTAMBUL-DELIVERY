@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#14253b"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=15"></head>
+<meta name="theme-color" content="#151917"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=16"></head>
 <body>
 <header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
@@ -55,9 +55,9 @@
 </form>
 </section>
 <section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Configura el número de trabajo del rider y autoriza que los clientes puedan llamarlo desde su seguimiento.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
-<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Enlace / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><label class="archive-control"><input id="showArchivedOrders" type="checkbox"> Mostrar también pedidos ya incluidos en arqueos cerrados</label><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Enlace / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
 <section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>🔗 Seguimiento por WhatsApp</h2><p>Cuando el Rider pulsa «Aceptar pedido», el sistema intenta enviar automáticamente el enlace por SMS (solo si hay autorización y Twilio está activado). WhatsApp normal queda como opción manual de respaldo.</p></div></div><p class="small-note">Para SMS automático, elige SMS, indica teléfono y autorización. Mientras Twilio esté sin configurar NO se enviará ningún SMS; Rider ofrecerá el enlace para compartir. «Enviar seguimiento» sigue como respaldo manual. Desde Riders puedes configurar un número de trabajo para que el cliente también llame al repartidor.</p></section>
-<section class="card" id="gpsAdminCard"><div class="section-head"><div><h2>📍 GPS de los repartidores</h2><p>Ubicación voluntaria del rider durante un pedido en curso. Solo visible para el equipo autorizado; posiciones de más de 2 minutos se ocultan.</p></div><span class="tag" id="gpsAdminCount">0 compartiendo</span></div>
+<section class="card" id="gpsAdminCard"><div class="section-head"><div><h2>📍 GPS de los repartidores</h2><p>GPS voluntario del rider: solo visible al cliente con enlace privado y autorización expresa para ese pedido. El administrador puede revocar la vista desde Pedidos.</p></div><span class="tag" id="gpsAdminCount">0 compartiendo</span></div>
 <div id="gpsRiderList" class="gps-admin-list"></div></section>
 <section class="card" id="brandCard">
 <div class="section-head"><div><h2>Marca y experiencia del cliente</h2><p>Personaliza la página privada de seguimiento de los pedidos. No se envían SMS desde el sistema todavía.</p></div></div>
@@ -80,4 +80,4 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=18"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=19"></script></body></html>
