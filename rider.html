@@ -10,11 +10,11 @@
 <link rel="manifest" href="rider.webmanifest">
 <link rel="icon" href="docs/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="docs/rider-icon.png">
-<link rel="stylesheet" href="docs/rider.css?v=21">
+<link rel="stylesheet" href="docs/rider.css?v=21"><link rel="stylesheet" href="docs/v2-rider.css?v=1">
 <title>Estambul Delivery · Rider</title>
 </head>
 <body>
-<header class="topbar"><div class="topbar-inner"><div class="brand"><div class="mark">E<span>↗</span></div><div><strong>ESTAMBUL</strong><small>DELIVERY · RIDER</small></div></div><span class="mode-tag">MODO PRUEBAS</span></div></header>
+<header class="topbar"><div class="topbar-inner"><div class="brand"><div class="mark">E<span>↗</span></div><div><strong>ESTAMBUL</strong><small>DELIVERY · RIDER</small></div></div><span class="mode-tag">V2 · DISEÑO PRUEBA</span></div></header>
 <main class="app">
 <section id="loading" class="loading"><span class="loader"></span><p>Conectando con Estambul Delivery...</p></section>
 <section id="login" class="login-screen" hidden>
@@ -62,7 +62,8 @@
   <div class="alert-content"><span class="alert-icon">🚨</span><div><strong id="alertHeadline">NUEVO PEDIDO</strong><p id="alertDetail">Tienes un nuevo reparto asignado.</p></div></div>
   <button id="acknowledgeAlert" type="button">✓ He visto el pedido</button>
 </div>
-<div class="summary"><div class="metric"><span class="metric-icon">📦</span><strong id="pendingCount">0</strong><small>Por entregar</small></div><div class="metric"><span class="metric-icon">🛵</span><strong id="routeCount">0</strong><small>En ruta</small></div><div class="metric"><span class="metric-icon">✅</span><strong id="doneCount">0</strong><small>Entregados</small></div></div>
+<div class="summary" aria-label="Resumen de la jornada"><div class="metric"><span class="metric-icon" aria-hidden="true">📦</span><strong id="pendingCount">0</strong><small>Por entregar</small></div><div class="metric"><span class="metric-icon" aria-hidden="true">🛵</span><strong id="routeCount">0</strong><small>En ruta</small></div><div class="metric"><span class="metric-icon" aria-hidden="true">✅</span><strong id="doneCount">0</strong><small>Entregados</small></div></div>
+<nav class="v2-rider-nav" aria-label="Accesos de la jornada"><a href="#activeDeliveries">📦 Entregas</a><a href="#dayCloseSection">💶 Arqueo</a><a href="#gpsSection">📍 GPS</a><a href="#multiRoutePanel">🗺️ Ruta</a></nav>
 <section id="multiRoutePanel" class="panel multi-route-panel" hidden>
 <div class="route-title"><div><span class="eyebrow">VARIOS PEDIDOS</span><h2>Mi ruta · <span id="routeCountBadge">0</span> paradas</h2></div><span>🗺️</span></div>
 <p id="routeHint" class="route-hint">Prepara los pedidos de la ruta.</p>
@@ -71,7 +72,7 @@
 <button type="button" id="optimizeRoute" class="route-optimize">🧭 Optimizar: antigüedad + proximidad</button>
 <p class="route-disclaimer">Puedes cambiar el orden de las paradas. La recomendación prioriza pedidos antiguos. Con coordenadas también compara distancias aproximadas; nunca cambia el Rider asignado en Last.app ni calcula el tráfico.</p>
 </section>
-<section class="work-section" aria-labelledby="currentOrdersTitle">
+<section id="activeDeliveries" class="work-section" aria-labelledby="currentOrdersTitle">
   <div class="work-header">
     <div><span class="eyebrow">MI JORNADA · TRABAJO ACTIVO</span><h2 id="currentOrdersTitle">Entregas activas <span id="listCount" class="list-count">0</span></h2></div>
     <span class="live-indicator"><span></span>En directo</span>
@@ -127,7 +128,7 @@
 </section>
 <section id="setup" class="panel setup" hidden><div class="setup-icon">⚙️</div><h1>La app todavía no está configurada</h1><p>Falta conectar la clave pública de Supabase. El administrador debe revisar la configuración del proyecto.</p><a class="btn btn-main" href="./">Abrir demostración</a></section>
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
-<p class="disclaimer">VERSIÓN WEB DE PRUEBAS · GPS únicamente mientras la web esté visible; no se garantiza con pantalla bloqueada. Sin push nativo ni pedidos automáticos de Last.app. La ubicación pública necesita activación expresa por pedido.</p>
+<p class="disclaimer">V2 EN PRUEBAS · Integración Last.app conservada: asignación manual únicamente desde LastPOS. El GPS web requiere la aplicación visible; no está garantizado con el móvil bloqueado. Compartir la ubicación con el cliente requiere activación por pedido.</p>
 </main>
 <script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=21"></script>
 </body>
