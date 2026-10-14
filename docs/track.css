@@ -43,3 +43,15 @@ fieldset{padding:0;border:0;margin:0}legend{font-size:12px;font-weight:800;color
 .location-footer a{color:#0f7c50;text-decoration:none;font-weight:900}
 .location-panel .location-privacy{font-size:11px;color:#758778;margin-top:14px}
 @media(max-width:480px){.location-panel iframe{height:265px}.location-head{flex-wrap:wrap}}
+
+
+/* ETA and restaurant quick call — customer experience V5 */
+.arrival-panel{border:1px solid #cce4d4;background:linear-gradient(145deg,#f7fcf9,#fff)}
+.arrival-heading{display:flex;align-items:center;gap:13px}
+.arrival-mark{height:51px;width:51px;flex:none;border-radius:16px;background:#e0f4e9;color:#127d51;display:grid;place-items:center;font-size:33px;font-weight:850}
+.arrival-heading h2{font-size:26px;margin:5px 0 0;letter-spacing:-.04em}
+.arrival-panel>p{font-size:13px;margin:15px 0 0;line-height:1.55}
+.arrival-details{background:#edf6ef;border:1px solid #d7e9dc;color:#22593a;padding:10px 13px;border-radius:11px;font-size:12px;font-weight:800;margin-top:13px}
+.restaurant-call{background:#fff;box-shadow:0 15px 30px #1b32210a;border:1px solid #d6e5d9}
+.restaurant-call .call-rider-action{background:#181d1a}
+.restaurant-call .call-rider-icon{background:#e1f4e9}

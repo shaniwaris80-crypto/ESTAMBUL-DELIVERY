@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="es"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#121416">
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="theme-color" content="#121416">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <title>Seguimiento de pedido · ESTAMBUL DELIVERY</title>
-<link rel="stylesheet" href="docs/track.css?v=4">
+<link rel="stylesheet" href="docs/track.css?v=5">
 </head><body>
 <header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon">E<span>↗</span></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>SEGUIMIENTO DE TU PEDIDO</small></div></div></header>
 <main class="container">
@@ -19,13 +19,21 @@
 <div id="steps" class="steps"></div>
 <div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
 </section>
+<section id="arrivalPanel" class="panel arrival-panel" aria-live="polite">
+<div class="arrival-heading"><div class="arrival-mark">◷</div><div><span class="eyebrow">TIEMPO ESTIMADO</span><h2 id="arrivalTitle">Preparando entrega</h2></div></div>
+<p id="arrivalDescription">La estimación aparecerá cuando el pedido esté en camino.</p>
+<div id="arrivalDetails" class="arrival-details" hidden></div>
+</section>
 <section id="liveMapPanel" class="panel location-panel" hidden>
 <div class="location-head"><div><span class="eyebrow">REPARTO EN DIRECTO</span><h2>Tu repartidor en el mapa</h2></div><span class="location-pulse">● GPS activo</span></div>
 <p>El repartidor ha autorizado mostrar su posición durante este pedido. Se actualiza cuando la app envía coordenadas recientes.</p>
-<iframe id="riderMap" title="Mapa con la ubicación del repartidor" loading="lazy" referrerpolicy="no-referrer"></iframe>
+<iframe id="riderMap" title="Mapa con la ubicación del repartidor" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
 <div class="location-footer"><span id="riderMapTime">Actualizando posición…</span><a id="openRiderMap" href="#" target="_blank" rel="noopener noreferrer">Abrir mapa ↗</a></div>
 <p class="location-privacy">Mapa de OpenStreetMap: al visualizarlo se envían las coordenadas visibles al proveedor de mapas. El seguimiento termina al entregar, cerrar la app o retirar el permiso.</p>
 </section>
+<section class="panel restaurant-call"><div class="call-rider-top">
+<div class="call-rider-icon">☎</div><div><h2>¿Necesitas ayuda?</h2><p>Contacta directamente con el restaurante.</p></div></div>
+<a class="call-rider-action" href="tel:+34947009319">Llamar al restaurante · 947 009 319</a></section>
 <section id="riderCallPanel" class="panel call-rider" hidden>
 <div class="call-rider-top"><div class="call-rider-icon">☎</div><div><h2>¿Necesitas hablar con tu repartidor?</h2><p>Llama a su número de trabajo mientras esté asignado a tu entrega.</p></div></div>
 <a id="callRiderLink" class="call-rider-action" rel="nofollow">☎ Llamar al repartidor</a>
@@ -60,5 +68,5 @@
 <p class="privacy-note">Este enlace es privado: compártelo únicamente con personas de confianza. Muestra la ubicación GPS solo si el repartidor lo autoriza para este pedido. Los mensajes promocionales no están activados.</p>
 </div>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=4"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=5"></script>
 </body></html>

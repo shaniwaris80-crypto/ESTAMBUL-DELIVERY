@@ -128,7 +128,9 @@ async function shareGps(position){
  try{
   await withAuth("/rest/v1/rpc/ed_update_rider_position",{method:"POST",body:JSON.stringify({
    p_lat:position.coords.latitude,p_lng:position.coords.longitude,
-   p_accuracy:Math.round(position.coords.accuracy||0)
+   p_accuracy:Math.round(position.coords.accuracy||0),
+   p_speed_kmh:Number.isFinite(position.coords.speed)&&position.coords.speed>=0
+     ?Math.min(120,Math.round(position.coords.speed*36)/10):null
   })});
   gpsLastSend=Date.now();
   $("gpsStatus").textContent="Posición compartida con el administrador · "+new Date().toLocaleTimeString("es-ES");
@@ -137,15 +139,16 @@ async function shareGps(position){
 }
 async function toggleGps(){
  if(gpsWatchId!==null){await stopGps();return;}
- if(!navigator.geolocation){$("gpsStatus").textContent="Este navegador no ofrece geolocalización.";return;}
+ if(!navigator.geolocation){$("gpsStatus").textContent="Este navegador no ofrece geolocalización.";return false;}
  if(!rider?.online||!hasInProgressOrder()){
-  $("gpsStatus").textContent="Primero conéctate y recoge un pedido; el GPS solo se comparte durante repartos.";return;
+  $("gpsStatus").textContent="Primero conéctate y recoge un pedido; el GPS solo se comparte durante repartos.";return false;
  }
  $("gpsStatus").textContent="Solicitando permiso de ubicación…";
  gpsWatchId=navigator.geolocation.watchPosition(pos=>void shareGps(pos),
   err=>{void stopGps();$("gpsStatus").textContent="No se pudo obtener ubicación: "+(err.message||"Revisa el permiso de GPS.");},
   {enableHighAccuracy:true,maximumAge:8000,timeout:15000});
  $("toggleGps").textContent="Detener GPS";
+ return true;
 }
 let openChatOrderId=null,chatPolling=false;
 function chatText(value){return escapeText(value);}
@@ -572,7 +575,7 @@ function renderOrder(order,isPriority=false) {
   const guestSharing=Boolean(locationShares.get(order.id));
   const guestButton=locationSharingAvailable&&["recogido","en_ruta"].includes(order.status)
     ?'<button type="button" class="guest-share-action '+(guestSharing?'on':'')+'" data-public-gps="'+escapeText(order.id)+'" aria-pressed="'+guestSharing+'">'+
-      (guestSharing?'● Detener mapa del cliente':'◎ Mostrar mi ubicación al cliente')+'</button>'
+      (guestSharing?'● Detener mapa del cliente':'◎ Compartir GPS con este cliente')+'</button>'
     :'';
   const progressAction=nextStatus==="entregado"
     ?'<div class="swipe-finish" data-swipe-order="'+escapeText(order.id)+'" aria-label="Desliza para marcar entregado">'+
@@ -786,6 +789,17 @@ $("copyRiderTracking").addEventListener("click",()=>{
   }).catch(()=>window.prompt("Copia el enlace:",link));
  }else window.prompt("Copia el enlace:",link);
 });
+// Si el rider permanece quieto, algunos navegadores dejan de disparar watchPosition.
+ // Actualización puntual mientras la web esté visible, sin compartir con clientes sin opt-in.
+setInterval(()=>{
+ if(gpsWatchId===null||document.hidden||!session||!rider?.online||!hasInProgressOrder())return;
+ if(Date.now()-gpsLastSend<17000||gpsBusy)return;
+ navigator.geolocation?.getCurrentPosition(
+  pos=>void shareGps(pos),
+  ()=>{$("gpsStatus").textContent="Esperando señal GPS reciente. Revisa los permisos de ubicación.";},
+  {enableHighAccuracy:true,maximumAge:8000,timeout:12000}
+ );
+},20000);
 $("toggleGps").addEventListener("click",()=>void toggleGps());
 $("closeRiderChat").addEventListener("click",closeRiderChat);
 $("orders").addEventListener("click",e=>{
@@ -826,15 +840,18 @@ $("orders").addEventListener("click",event=>{
  });
 });
 // Customer location is opt-in per delivery. GPS must be enabled first by the rider.
-$("orders").addEventListener("click",event=>{
+$("orders").addEventListener("click",async event=>{
  const button=event.target.closest("button[data-public-gps]");
  if(!button||busy||!locationSharingAvailable)return;
  const order=orders.find(o=>o.id===button.dataset.publicGps);
  if(!order||!["recogido","en_ruta"].includes(order.status))return;
  const enabled=!Boolean(locationShares.get(order.id));
  if(enabled&&gpsWatchId===null){
-  setError("Activa primero el GPS de la app. Después podrás mostrar tu posición al cliente.",false);
-  return;
+  const started=await toggleGps();
+  if(!started){
+   setError("Necesitas autorizar el GPS con el móvil desbloqueado para compartir tu posición.",false);
+   return;
+  }
  }
  void operation(async()=>{
   await withAuth("/rest/v1/rpc/ed_set_customer_location_share",{

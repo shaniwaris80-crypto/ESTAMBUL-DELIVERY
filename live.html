@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#151917"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=16"></head>
+<meta name="theme-color" content="#151917"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=17"></head>
 <body>
 <header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
@@ -29,6 +29,12 @@
     <label>Teléfono de prueba (opcional)<input id="newPhone" maxlength="35" type="tel" autocomplete="off" placeholder="Teléfono de ejemplo"></label>
     <label>Importe (€)<input id="newAmount" type="number" min="0" max="999999" step="0.01" value="0"></label><label>Forma de pago<select id="newPayment" required><option value="" selected disabled>Seleccionar…</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
     <label class="full-width">Dirección completa de entrega<input id="newAddress" required maxlength="400" placeholder="Calle, número, piso, Burgos, España"></label>
+    <div class="coordinate-fields full-width">
+ <label>Latitud destino (opcional)<input id="newLat" type="number" min="-90" max="90" step="any" placeholder="42.3439"></label>
+ <label>Longitud destino (opcional)<input id="newLng" type="number" min="-180" max="180" step="any" placeholder="-3.6969"></label>
+ <p>Para calcular el tiempo de entrega necesitamos las coordenadas de la dirección. Puedes copiarlas desde Google Maps. No son coordenadas del rider.</p>
+ <button type="button" class="outline map-coords-help" data-maps-address="newAddress">Ver dirección en Google Maps ↗</button>
+</div>
     <label class="full-width">Notas / portal / instrucciones<input id="newNotes" maxlength="1000" placeholder="Ej.: portal, 2º A, llamar al timbre (solo datos ficticios)"></label>
     <div class="notification-settings full-width">
 <label>Canal de avisos de estado<select id="newNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS automático (requiere Twilio activo)</option><option value="whatsapp">WhatsApp normal (manual)</option></select></label>
@@ -46,6 +52,12 @@
 <label>Teléfono de entrega<input id="editPhone" type="tel" maxlength="35" autocomplete="off"></label>
 <label>Importe (€)<input id="editAmount" type="number" min="0" max="999999" step=".01"></label><label>Forma de pago<select id="editPayment"><option value="">Sin especificar (pedido anterior)</option><option value="efectivo">💶 Efectivo</option><option value="tarjeta">💳 Tarjeta</option></select></label>
 <label class="full-width">Dirección completa<input id="editAddress" required maxlength="400"></label>
+<div class="coordinate-fields full-width">
+ <label>Latitud destino (opcional)<input id="editLat" type="number" min="-90" max="90" step="any" placeholder="42.3439"></label>
+ <label>Longitud destino (opcional)<input id="editLng" type="number" min="-180" max="180" step="any" placeholder="-3.6969"></label>
+ <p>Estas coordenadas se usan únicamente para calcular una ETA orientativa. Si cambias la dirección, revisa su ubicación.</p>
+ <button type="button" class="outline map-coords-help" data-maps-address="editAddress">Ver dirección en Google Maps ↗</button>
+</div>
 <label class="full-width">Notas / portal / piso<input id="editNotes" maxlength="1000"></label>
 <div class="notification-settings full-width">
 <label>Canal de avisos de estado<select id="editNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS (futuro con Twilio)</option><option value="whatsapp">WhatsApp normal (manual)</option></select></label>
@@ -80,4 +92,4 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=19"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=20"></script></body></html>

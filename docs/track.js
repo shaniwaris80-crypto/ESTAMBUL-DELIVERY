@@ -70,6 +70,38 @@ function draw(data){
   heading.textContent=item.title;hint.textContent=item.info;copy.append(heading,hint);li.append(num,copy);el("steps").append(li);
  });
  el("updatedAt").textContent="Último cambio: "+prettyTime(data.updated_at);
+ // El ETA es una aproximación de distancia/velocidad del servidor. Nunca se simula GPS.
+ const eta=Number(data.eta_minutes);
+ const canEstimate=data.status==="en_ruta"&&data.eta_minutes!=null&&Number.isFinite(eta)&&eta>=0;
+ const state=String(data.gps_state||"");
+ if(data.status==="entregado"){
+  el("arrivalTitle").textContent="¡Pedido entregado!";
+  el("arrivalDescription").textContent="La entrega ya está finalizada.";
+ }else if(data.status==="cancelado"){
+  el("arrivalTitle").textContent="Pedido cancelado";
+  el("arrivalDescription").textContent="Llama al restaurante para cualquier consulta.";
+ }else if(canEstimate){
+  el("arrivalTitle").textContent="Unos "+Math.max(1,Math.round(eta))+" min";
+  el("arrivalDescription").textContent="Llegada orientativa; se recalcula con el GPS más reciente. No incluye tráfico ni una ruta real por carretera.";
+ }else if(data.status==="en_ruta"){
+  el("arrivalTitle").textContent="Repartidor en camino";
+  el("arrivalDescription").textContent=state==="not_shared"
+    ?"El repartidor aún no ha activado la ubicación para este pedido."
+    :state==="waiting_gps"
+    ?"Esperando una señal GPS reciente del repartidor. Puede dejar de actualizarse si bloquea el móvil o usa otra app."
+    :"Cuando haya GPS y coordenadas del destino podremos calcular el tiempo de llegada.";
+ }else{
+  el("arrivalTitle").textContent="Estamos preparando tu pedido";
+  el("arrivalDescription").textContent="La estimación aparecerá cuando el repartidor esté en camino y comparta su ubicación.";
+ }
+ const details=canEstimate
+  ?"Distancia aproximada: "+Number(data.eta_distance_km).toLocaleString("es-ES",{maximumFractionDigits:1})+
+    " km · Velocidad "+(data.eta_speed_source==="gps"?"GPS":"urbana de referencia")+
+    ": "+Math.round(Number(data.eta_speed_kmh))+" km/h"
+  :"";
+ el("arrivalDetails").textContent=details;
+ el("arrivalDetails").hidden=!details;
+ 
  // Never draw historical or staff-only GPS: the server releases coordinates only with
  // a valid private tracking token, an active rider opt-in and a very recent position.
  const pos=data.status==="en_ruta"&&data.live_location&&typeof data.live_location==="object"?data.live_location:null;
@@ -144,6 +176,6 @@ if(!token||!/^[a-f0-9]{64}$/.test(token)||!/^https:\/\/[a-z0-9-]+\.supabase\.co$
  el("loading").hidden=true;el("notFound").hidden=false;
 }else{
  void refresh();
- setInterval(()=>{if(document.visibilityState==="visible")void refresh();},15000);
+ setInterval(()=>{if(document.visibilityState==="visible")void refresh();},7000);
 }
 })();

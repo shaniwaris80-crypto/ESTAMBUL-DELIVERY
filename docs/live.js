@@ -12,6 +12,23 @@ let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),archivedOrder
 let brandDetails=null,customerFeedback=[];
 let riderPositions=[];
 const storage="estambul-secure-test-session";
+function destinationCoords(prefix){
+ const la=el(prefix+"Lat").value.trim().replace(",",".");
+ const lo=el(prefix+"Lng").value.trim().replace(",",".");
+ if(!la&&!lo)return {lat:null,lng:null};
+ if(!la||!lo)throw Error("Escribe latitud y longitud del destino, o deja ambas vacías");
+ const lat=Number(la),lng=Number(lo);
+ if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat < -90||lat >90||lng < -180||lng >180)
+  throw Error("Coordenadas inválidas. Latitud: -90 a 90; longitud: -180 a 180");
+ return {lat,lng};
+}
+document.addEventListener("click",event=>{
+ const btn=event.target.closest("button[data-maps-address]");
+ if(!btn)return;
+ const target=el(btn.dataset.mapsAddress)?.value.trim();
+ if(!target){message(Error("Introduce primero una dirección de entrega"));return;}
+ window.open("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(target),"_blank","noopener,noreferrer");
+});
 try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
 function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
 function message(e,login=false){const box=el(login?"loginError":"errorBox");box.textContent=e.message||String(e);box.hidden=false;}
@@ -418,6 +435,8 @@ document.addEventListener("click",e=>{
  el("editNoticeConsent").checked=!!o.notifications_consent;
  el("editAddress").value=o.destination||"";
  el("editNotes").value=o.notes||"";
+ el("editLat").value=o.lat==null?"":String(o.lat);
+ el("editLng").value=o.lng==null?"":String(o.lng);
  el("editCard").hidden=false;
  el("editCard").scrollIntoView({behavior:"smooth",block:"start"});
 });
@@ -430,7 +449,13 @@ el("editForm").addEventListener("submit",e=>{
   if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe inválido");
   if(el("editNoticeChannel").value!=="none"&&(!el("editNoticeConsent").checked||!el("editPhone").value.trim()))
     throw Error("Para activar avisos necesitas teléfono y permiso del cliente");
-  const item={customer_name:el("editCustomer").value.trim(),
+  const old=orders.find(o=>o.id===id);
+  const coordinates=destinationCoords("edit");
+  if(old&&old.destination!==el("editAddress").value.trim()
+    && coordinates.lat===old.lat&&coordinates.lng===old.lng){
+     coordinates.lat=null;coordinates.lng=null;
+  }
+  const item={...coordinates,customer_name:el("editCustomer").value.trim(),
    customer_phone:el("editPhone").value.trim()||null,
    destination:el("editAddress").value.trim(),notes:el("editNotes").value.trim(),payment_method:el("editPayment").value||null,amount,
    notifications_consent:el("editNoticeConsent").checked,
@@ -448,7 +473,8 @@ el("createForm").addEventListener("submit",e=>{
   const amount=Number(el("newAmount").value||"0");
   if(!Number.isFinite(amount)||amount<0||amount>999999)throw Error("Importe no válido");
   if(el("newNoticeChannel").value!=="none"&&(!el("newNoticeConsent").checked||!phone))throw Error("Necesitas teléfono y autorización para avisos de servicio");
-  const item={account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",
+  const coordinates=destinationCoords("new");
+  const item={...coordinates,account_id:member.account_id,reference:el("newReference").value.trim(),channel:"test",
     customer_name:el("newCustomer").value.trim(),customer_phone:phone||null,
     destination:el("newAddress").value.trim(),notes:el("newNotes").value.trim(),
     amount,payment_method:el("newPayment").value,status:"pendiente",
