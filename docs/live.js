@@ -10,7 +10,7 @@ const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
 let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),archivedOrderIds=new Set(),showArchivedOrders=false;
 let brandDetails=null,customerFeedback=[];
-let riderPositions=[];
+let riderPositions=[],lastReloadAt=0;
 let opsQuery="",opsFocus="all",opsChannel="all";
 const normalizeOps=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es-ES").trim();
 function matchOperations(o){
@@ -138,6 +138,8 @@ async function reload(){
    locationShares=new Map((Array.isArray(rows)?rows:[]).map(x=>[x.order_id,Boolean(x.enabled)]));
   }catch{locationShares=new Map();}
  }
+ lastReloadAt=Date.now();
+ el("connection").textContent="Sincronizado";
  render();
 }
 function mapsLink(o){
@@ -301,7 +303,7 @@ function render(){
  const visibleOrders=staff?allVisibleOrders.filter(matchOperations):allVisibleOrders;
  const stats=[["Pedidos visibles",staff?visibleOrders.length:orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
- el("lastSync").textContent="Actualizado a las "+new Date().toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)";
+ el("lastSync").textContent=lastReloadAt?"Datos recibidos a las "+new Date(lastReloadAt).toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)":"Esperando sincronización…";
  if(staff){
   el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
   el("orderCount").textContent=visibleOrders.length+" de "+allVisibleOrders.length+" pedidos";
@@ -349,7 +351,7 @@ function render(){
 }
 async function operation(fn){
  if(busy)return;busy=true;clearError();
- try{await fn();await reload()}catch(e){message(e)}
+ try{await fn();await reload()}catch(e){message(e);el("connection").textContent="Revisar actualización"}
  finally{busy=false}
 }
 async function start(){
