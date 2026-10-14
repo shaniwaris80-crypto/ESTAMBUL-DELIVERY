@@ -106,7 +106,7 @@ Si el rider tiene **cero pedidos pendientes**, pero existen pedidos antiguos ent
 4. Marca la confirmación de que esos pedidos quedan pendientes de conciliar.
 5. Pulsa **Terminar día provisional y ponerme offline** y acepta la confirmación.
 
-El servidor registra un cierre `is_provisional=true` y conserva un resumen con las líneas de pedido y el importe sin clasificar. Los pagos desconocidos **no se pasan automáticamente** a efectivo o tarjeta y las diferencias de caja se calculan solo sobre efectivo identificado. En el administrador aparece la etiqueta **PROVISIONAL**. Si hay entregas abiertas, el cierre sigue bloqueado; hay que completarlas o reasignarlas. Una vez cerrado, el repartidor queda offline hasta el día siguiente (Europe/Madrid). La acción es explícita: no se ejecuta de forma automática.
+El servidor registra un cierre `is_provisional=true` y conserva un resumen con las líneas de pedido y el importe sin clasificar. Los pagos desconocidos **no se pasan automáticamente** a efectivo o tarjeta y las diferencias de caja se calculan solo sobre efectivo identificado. En el administrador aparece la etiqueta **PROVISIONAL**. Si hay entregas abiertas, el cierre sigue bloqueado; hay que completarlas o reasignarlas. Una vez cerrado, el repartidor queda offline hasta que pulse Volver a ONLINE; puede iniciar varios turnos el mismo día (Europe/Madrid). La acción es explícita: no se ejecuta de forma automática.
 
 
 ## Rider interfaz 2.1: entregas activas e historial independiente
@@ -116,3 +116,15 @@ El servidor registra un cierre `is_provisional=true` y conserva un resumen con l
 **Avisos reforzados:** pulsar **Activar alertas** con interacción del usuario; Probar alarma reproduce la secuencia. Tras una asignación nueva detectada en el sondeo de 5 segundos, se muestra un banner rojo de alta visibilidad que requiere tocar **He visto el pedido** para cerrarse. Con sonido activado y la app visible reproduce una secuencia de seis tonos Web Audio, de nivel moderado, hasta tres veces separadas por aproximadamente seis segundos, y vibración cuando el móvil la admite. Al confirmar, se interrumpen los recordatorios. Nunca prometer alarmas fiables con el móvil bloqueado o el navegador suspendido: siguen pendientes las notificaciones push reales.
 
 Si ya había asignaciones al iniciar sesión, aparecen en la lista activa pero no se crea una alarma falsa por ellas. Durante la sesión, las nuevas asignaciones sí activan alerta. Historial mostrado en la web: los pedidos dentro del límite de 100 registros recientes de la consulta del Rider. La conciliación diaria utiliza las consultas del servidor, no depende del historial visible.
+
+## Arqueos múltiples y reapertura de Rider (octubre 2026)
+
+Después de **Terminar día** o **Cierre provisional**, Rider se pone offline pero conserva cada arqueo. El botón **Volver a ONLINE · Iniciar otro turno hoy** aparece bajo el arqueo guardado. También vuelve a funcionar el interruptor de disponibilidad. No es necesario esperar al siguiente día para aceptar nuevas asignaciones.
+
+Al volver online, empieza un **nuevo turno separado**, con efectivo contado y observaciones reiniciados. Los pedidos incluidos en cierres anteriores no se suman al nuevo arqueo, gracias a la tabla `ed_shift_closure_items`; se pueden guardar varios cierres por rider y fecha, cada uno con importes y referencias propios. No se permite volver a cerrar sin nuevas entregas. En el administrador se muestran todos los cierres individualmente. Ningún turno se reabre por sí solo: el rider lo solicita.
+
+### WhatsApp normal, sin Twilio todavía
+
+- **Rider:** pulsar **💬 Enviar arqueo por WhatsApp normal** desde la vista del arqueo. Se abre WhatsApp con todo el texto precargado; hay que seleccionar destinatario y pulsar Enviar. También se mantiene Copiar arqueo.
+- **Administrador:** en cada pedido hay un botón **💬 WhatsApp** que abre el chat al teléfono internacional registrado con número de pedido y estado actual precargados. Antes hay que guardar teléfono, canal WhatsApp y permiso del cliente en Editar pedido. El botón queda deshabilitado si no hay autorización.
+- **No es envío automático**: abrir un enlace WhatsApp `api.whatsapp.com/send` no equivale a enviar, ni permite confirmar recepción. La cola Twilio sigue montada pero desactivada hasta que se apruebe un proveedor y los remitentes.

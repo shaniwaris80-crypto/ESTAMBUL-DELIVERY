@@ -31,3 +31,7 @@ Limitaciones: no existen webhooks de estado de entrega de Twilio ni reintentos a
 - Los permisos RLS separan cuentas, rider y administrador. Las tablas de GPS y chat se escriben mediante RPC de servidor. No hay acceso anónimo a sus tablas.
 - Hay que establecer información de privacidad/retención, hacer pruebas en teléfonos reales y verificar el cumplimiento RGPD antes de activar con clientes reales.
 - Para SMS/WhatsApp en producción se requieren proveedores y autorización de los titulares del canal y de los destinatarios.
+
+## Fase temporal: WhatsApp normal, envío iniciado por la persona
+
+Mientras Twilio no está configurado, el administrador dispone del botón WhatsApp por pedido, que abre el teléfono y el texto de estado en WhatsApp normal. Solo se activa en pedidos con canal WhatsApp elegido, número válido y autorización registrada. El Rider también puede compartir el arqueo directamente por WhatsApp normal desde la app. En ambos casos es imprescindible revisar el mensaje y pulsar Enviar dentro de WhatsApp; **no se envía nada en segundo plano**. Los eventos SMS/WhatsApp automáticos permanecen en la cola de Supabase sin proveedor, como documentación del cambio de estado, sin envío real.
