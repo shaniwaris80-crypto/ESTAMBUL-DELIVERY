@@ -488,8 +488,9 @@ async function authenticate() {
 async function fetchOrders() {
   const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
-  const [response,openDone,shareRows]=await Promise.all([
-    withAuth(endpoint),
+  // Refresh auth token once on the primary query, before ancillary calls run together.
+  const response=await withAuth(endpoint);
+  const [openDone,shareRows]=await Promise.all([
     withAuth("/rest/v1/rpc/ed_rider_unclosed_completed_ids",{method:"POST",body:"{}"}).catch(()=>null),
     withAuth("/rest/v1/ed_order_location_shares?select=order_id,enabled").catch(()=>null)
   ]);
