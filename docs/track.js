@@ -55,6 +55,7 @@ function applyBrand(data){
  }
 }
 function draw(data){
+ el("connectionNotice").hidden=true;
  current=data;el("loading").hidden=true;el("notFound").hidden=false;el("orderContent").hidden=false;
  applyBrand(data);el("orderRef").textContent="Pedido #"+data.reference;
  const index=steps.findIndex(s=>s.status===data.status);
@@ -147,7 +148,7 @@ async function refresh(){
   void refreshCustomerChat();
  }catch{
   if(!current){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;}
-  else el("updatedAt").textContent="Sin conexión · prueba a actualizar";
+  else {el("updatedAt").textContent="Sin conexión · prueba a actualizar";el("connectionNotice").hidden=false;}
  }finally{polling=false;}
 }
 el("refreshButton").addEventListener("click",()=>void refresh());
