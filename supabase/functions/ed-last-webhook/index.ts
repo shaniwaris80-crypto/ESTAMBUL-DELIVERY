@@ -31,10 +31,15 @@ Deno.serve(async(req:Request)=>{
     console.error("[ED Last webhook] credential_unconfigured");
     return plain(503);
   }
-  const auth=req.headers.get("authorization")||"";
+  const auth=req.headers.get("authorization");
+  if(auth===null||auth.trim()===""){
+    // Only log header presence, never values, prefixes or credential lengths.
+    console.warn("[ED Last webhook] unauthorized_authorization_header_missing");
+    return plain(401);
+  }
   const match=auth.match(/^Bearer[ \t]+([^\r\n]+)$/i);
   if(!match){
-    console.warn("[ED Last webhook] unauthorized_missing_or_malformed_bearer");
+    console.warn("[ED Last webhook] unauthorized_authorization_header_malformed");
     return plain(401);
   }
   if(!equalSecret(match[1].trim(),expected)){
