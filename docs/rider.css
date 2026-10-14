@@ -183,3 +183,11 @@ body{background:var(--light);color:var(--dark);font-family:Inter,ui-sans-serif,-
 .history-empty{line-height:1.6}
 @media(max-width:385px){.swipe-prompt{font-size:12px;padding-left:45px}.metric{padding:14px 9px}}
 @media(prefers-reduced-motion:reduce){.swipe-progress{transition:none}.swipe-handle{transition:none!important}}
+
+/* Multi-drop waiting-time priority */
+.route-wait-urgent,.order-wait-urgent{color:#a3231a!important;font-weight:900}
+.route-wait-warning,.order-wait-warning{color:#946110!important;font-weight:800}
+.route-info small{display:block;line-height:1.55}
+.order-wait{display:block;font-size:12px;font-weight:800;padding:8px 11px;background:#f5f8f5;color:#306144;border:1px solid #e2ebe4;border-radius:11px;margin-bottom:10px}
+.order-wait-urgent{background:#fff0ed;border-color:#f4c6bf}
+.order-wait-warning{background:#fff8e9;border-color:#e9d7ab}

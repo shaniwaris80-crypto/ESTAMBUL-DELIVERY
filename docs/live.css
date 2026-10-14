@@ -81,3 +81,5 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 .coordinate-fields p{grid-column:1/-1;line-height:1.5;font-size:11px;color:#557461}
 .coordinate-fields button{grid-column:1/-1;justify-self:start}
 @media(max-width:500px){.coordinate-fields{grid-template-columns:1fr}}
+
+.last-manual{display:block;color:#225f42;background:#eaf6ed;border:1px solid #d1e9d8;border-radius:9px;padding:7px 8px;font-size:11px;white-space:nowrap}

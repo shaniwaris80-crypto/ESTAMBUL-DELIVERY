@@ -289,7 +289,9 @@ function render(){
       (o.notes?'<small>📝 '+esc(o.notes)+'</small>':'')+
       (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
       '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
-      '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
+      '</span></td><td>'+(o.channel!=="test"
+       ?'<strong class="last-manual">Gestionar en Last.app</strong><small>Asignación manual desde LastPOS</small>'
+       :'<select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select>')+'</td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
       '<td><div class="share-actions"><button class="outline" type="button" data-track="'+esc(o.id)+'">🔗 Enlace</button>'+
       '<button class="outline whatsapp-action" type="button" data-wa="'+esc(o.id)+'" '+((o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone))?"":'disabled title="Indica teléfono y activa WhatsApp con consentimiento en Editar"')+'>💬 Enviar seguimiento</button>'+
       (locationShares.get(o.id)?'<button class="outline stop-public-gps" type="button" data-stop-public-gps="'+esc(o.id)+'">■ Ocultar GPS del cliente</button>':'')+
@@ -486,7 +488,7 @@ el("createForm").addEventListener("submit",e=>{
 });
 document.addEventListener("change",e=>{
  const sel=e.target;if(!sel.dataset.assign)return;
- const o=orders.find(x=>x.id===sel.dataset.assign);if(!o||busy)return;
+ const o=orders.find(x=>x.id===sel.dataset.assign);if(!o||busy||o.channel!=="test")return;
  const rid=sel.value||null;
  void operation(async()=>{
   const params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);

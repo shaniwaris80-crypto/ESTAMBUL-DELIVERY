@@ -260,14 +260,27 @@ function archeoText(data){
 }
 
 
-const routeState={ids:[],coordsOptimized:false};
+// Reordering is a recommendation only: courier assignment stays in Last.app.
+const routeState={ids:[],coordsOptimized:false,manualOrder:false};
+function waitMinutes(order){
+ const created=Date.parse(String(order.created_at||""));
+ return Number.isFinite(created)?Math.max(0,Math.min(1440,Math.floor((Date.now()-created)/60000))):0;
+}
+function waitLabel(order){
+ const mins=waitMinutes(order);
+ return mins>=60?Math.floor(mins/60)+" h "+(mins%60)+" min esperando":mins+" min esperando";
+}
+function agePriority(a,b){
+ const aIn=a.status==="en_ruta"?0:1,bIn=b.status==="en_ruta"?0:1;
+ return aIn-bIn || waitMinutes(b)-waitMinutes(a) || String(a.reference).localeCompare(String(b.reference));
+}
 function routeStopsOrdered(){
  const active=orders.filter(o=>["asignado","recogido","en_ruta"].includes(o.status));
  const validIds=new Set(active.map(o=>o.id));
  routeState.ids=routeState.ids.filter(id=>validIds.has(id));
- const recent=active.slice().sort((a,b)=>(a.status==="en_ruta"?0:1)-(b.status==="en_ruta"?0:1)
-  || String(a.created_at||"").localeCompare(String(b.created_at||"")));
- for(const o of recent)if(!routeState.ids.includes(o.id))routeState.ids.push(o.id);
+ const recent=active.slice().sort(agePriority);
+ if(!routeState.manualOrder)routeState.ids=recent.map(o=>o.id);
+ else for(const o of recent)if(!routeState.ids.includes(o.id))routeState.ids.push(o.id);
  return routeState.ids.map(id=>active.find(o=>o.id===id)).filter(Boolean);
 }
 function routeTarget(o){
@@ -295,13 +308,13 @@ function renderRoute(){
  $("multiRoutePanel").hidden=stops.length<2;
  if(stops.length<2)return;
  $("routeCountBadge").textContent=String(stops.length);
- const allGps=stops.every(o=>o.lat!=null&&o.lng!=null);
- $("optimizeRoute").disabled=!allGps;
- $("routeHint").textContent=allGps
-  ?(routeState.coordsOptimized?"Orden recomendado según distancias aproximadas en línea recta, no tráfico.":"Puedes optimizar por proximidad o reordenar manualmente.")
-  :"Google Maps mostrará las direcciones. Sin coordenadas no podemos calcular el orden óptimo: utiliza las flechas para ordenar manualmente.";
+ const allGps=stops.every(o=>o.lat!=null&&o.lng!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lng)));
+ $("optimizeRoute").disabled=false;
+ $("routeHint").textContent=routeState.coordsOptimized
+  ?(allGps?"Ruta sugerida combinando espera y distancia en línea recta. Sin datos de tráfico.":"Ruta sugerida por antigüedad: faltan coordenadas para calcular distancias.")
+  :(allGps?"Prioridad por tiempo esperando. Optimiza para combinar urgencia y cercanía.":"Optimizar ordenará por antigüedad si faltan coordenadas. Puedes ajustar manualmente.");
  $("routeStops").innerHTML=stops.map((o,i)=>
-  '<div class="route-stop"><span class="route-number">'+(i+1)+'</span><div class="route-info"><strong>'+escapeText(o.customer_name)+'</strong><small>#'+escapeText(o.reference)+' · '+escapeText(o.destination)+'</small></div>'+
+  '<div class="route-stop"><span class="route-number">'+(i+1)+'</span><div class="route-info"><strong>'+escapeText(o.customer_name)+'</strong><small>#'+escapeText(o.reference)+' · '+escapeText(o.destination)+'</small><small class="'+(waitMinutes(o)>=30?"route-wait-urgent":waitMinutes(o)>=15?"route-wait-warning":"")+'">◷ '+escapeText(waitLabel(o))+(waitMinutes(o)>=30?" · PRIORIDAD POR ESPERA":"")+'</small></div>'+
   '<div class="route-move"><button type="button" data-route="up" data-index="'+i+'" '+(i===0?"disabled":"")+' aria-label="Subir parada">↑</button><button type="button" data-route="down" data-index="'+i+'" '+(i===stops.length-1?"disabled":"")+' aria-label="Bajar parada">↓</button></div></div>').join("");
  $("routeMapLinks").innerHTML=multiMapsLegs(stops).map((leg,i)=>
   '<a class="route-map-link" href="'+escapeText(leg.url)+'" target="_blank" rel="noopener noreferrer">'+
@@ -312,15 +325,25 @@ function routeDistance(a,b){
  const h=Math.sin(dlat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dlng/2)**2;
  return 6371*2*Math.asin(Math.min(1,Math.sqrt(h)));
 }
-function nearestOrder(stops,origin){
- const pool=stops.slice(),selected=[];let pos=origin;
+function recommendAgeAwareRoute(stops,origin){
+ const pool=stops.slice(),selected=[];let current=origin,travelled=0;
  while(pool.length){
-  let index=0,minimum=Infinity;
-  pool.forEach((s,i)=>{const d=routeDistance(pos,s);if(d<minimum){index=i;minimum=d;}});
-  const next=pool.splice(index,1)[0];selected.push(next);pos=next;
+  let bestIndex=0,bestScore=Infinity;
+  pool.forEach((order,i)=>{
+   const km=routeDistance(current,order);
+   const minutes=km/18*60;
+   const wait=waitMinutes(order)+travelled+minutes;
+   const delay=Math.max(0,wait-18)*1.3 + Math.max(0,wait-30)*3.5;
+   const score=minutes+delay;
+   if(score<bestScore){bestScore=score;bestIndex=i;}
+  });
+  const next=pool.splice(bestIndex,1)[0];
+  travelled+=routeDistance(current,next)/18*60+2;
+  selected.push(next);current=next;
  }
  return selected;
 }
+function optimizeRouteByAge(stops){return stops.slice().sort(agePriority);}
 
 let soundContext=null, soundEnabled=false, knownActiveOrders=new Set(), orderBaselineReady=false;
 let alertRepeatTimer=null, alertIsOpen=false, alertRingCount=0;
@@ -455,7 +478,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
-  routeState.ids=[];routeState.coordsOptimized=false;
+  routeState.ids=[];routeState.coordsOptimized=false;routeState.manualOrder=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
   $("riderTrackingFallback").hidden=true;
@@ -527,11 +550,11 @@ function draw(){
  $("onlineLabel").textContent=rider.online?"Estoy disponible":"No disponible";
  $("availabilityButton").setAttribute("aria-pressed",rider.online?"true":"false");
  const active=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
- const inRoute=active.filter(o=>o.status==="en_ruta");
+ const inRoute=active.filter(o=>o.status==="en_ruta").sort(agePriority);
  const toCollect=active.filter(o=>o.status!=="en_ruta");
  const done=orders.filter(o=>o.status==="entregado");
  const rank={en_ruta:0,recogido:1,asignado:2,pendiente:3};
- toCollect.sort((a,b)=>(rank[a.status]??4)-(rank[b.status]??4) || String(a.created_at||"").localeCompare(String(b.created_at||"")));
+ toCollect.sort((a,b)=>(rank[a.status]??4)-(rank[b.status]??4) || waitMinutes(b)-waitMinutes(a));
  $("pendingCount").textContent=active.length;
  $("routeCount").textContent=inRoute.length;
  $("doneCount").textContent=done.length;
@@ -597,6 +620,7 @@ function renderOrder(order,isPriority=false) {
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
     '</span></div><span class="status '+escapeText(order.status)+'">'+status+'</span></div>'+
+    '<div class="order-wait '+(waitMinutes(order)>=30?"order-wait-urgent":waitMinutes(order)>=15?"order-wait-warning":"")+'">◷ '+escapeText(waitLabel(order))+(waitMinutes(order)>=30?" · ENTREGA PRIORITARIA":"")+'</div>'+
     (isPriority?'<span class="priority-tag">● REPARTO EN CURSO</span>':'')+
     '<div class="client-label">CLIENTE</div><h3 class="destination-head">'+escapeText(order.customer_name)+'</h3>'+
     (order.customer_phone?'<p class="client-phone">☎ '+escapeText(order.customer_phone)+'</p>':'<p class="missing-detail">Sin teléfono de cliente registrado</p>')+
@@ -684,18 +708,24 @@ $("routeStops").addEventListener("click",e=>{
  const index=Number(b.dataset.index),other=index+(b.dataset.route==="up"?-1:1);
  if(!Number.isInteger(index)||index<0||other<0||other>=routeState.ids.length)return;
  [routeState.ids[index],routeState.ids[other]]=[routeState.ids[other],routeState.ids[index]];
- routeState.coordsOptimized=false;renderRoute();
+ routeState.coordsOptimized=false;routeState.manualOrder=true;renderRoute();
 });
 $("optimizeRoute").addEventListener("click",()=>{
- const stops=routeStopsOrdered();
- if(stops.length<2||!stops.every(o=>o.lat!=null&&o.lng!=null))return;
- if(!navigator.geolocation){$("routeHint").textContent="Este dispositivo no permite obtener la ubicación.";return;}
+ const stops=routeStopsOrdered();if(stops.length<2)return;
+ const allGps=stops.every(o=>o.lat!=null&&o.lng!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lng)));
+ const ageOnly=()=>{
+  routeState.ids=optimizeRouteByAge(stops).map(o=>o.id);
+  routeState.coordsOptimized=true;routeState.manualOrder=true;renderRoute();
+ };
+ if(!allGps||!navigator.geolocation){ageOnly();return;}
  $("optimizeRoute").disabled=true;
  navigator.geolocation.getCurrentPosition(position=>{
-  routeState.ids=nearestOrder(stops,{lat:position.coords.latitude,lng:position.coords.longitude}).map(o=>o.id);
-  routeState.coordsOptimized=true;renderRoute();
- },()=>{$("optimizeRoute").disabled=false;$("routeHint").textContent="Ubicación no disponible; ordena las paradas manualmente.";},
- {enableHighAccuracy:false,timeout:10000,maximumAge:60000});
+  routeState.ids=recommendAgeAwareRoute(stops,{lat:position.coords.latitude,lng:position.coords.longitude}).map(o=>o.id);
+  routeState.coordsOptimized=true;routeState.manualOrder=true;renderRoute();
+ },()=>{
+  ageOnly();
+  $("routeHint").textContent="GPS no disponible: ruta por los pedidos que más llevan esperando.";
+ },{enableHighAccuracy:false,timeout:10000,maximumAge:60000});
 });
 
 
