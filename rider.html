@@ -10,7 +10,7 @@
 <link rel="manifest" href="rider.webmanifest">
 <link rel="icon" href="docs/icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="docs/rider-icon.png">
-<link rel="stylesheet" href="docs/rider.css?v=16">
+<link rel="stylesheet" href="docs/rider.css?v=17">
 <title>Estambul Delivery · Rider</title>
 </head>
 <body>
@@ -54,6 +54,10 @@
   <p class="sound-detail">El aviso sonoro necesita tu permiso y la aplicación abierta. No funciona de forma garantizada con el teléfono bloqueado.</p>
 </div>
 <p id="riderShareNotice" class="rider-share-notice" role="status" aria-live="polite" hidden></p>
+<div id="riderTrackingFallback" class="rider-track-fallback" hidden>
+ <a id="riderTrackingLink" target="_blank" rel="noopener noreferrer">Abrir seguimiento</a>
+ <button type="button" id="copyRiderTracking" data-link="">📋 Copiar enlace</button>
+</div>
 <div id="newOrderAlert" class="new-order-alert" role="alert" aria-live="assertive" hidden>
   <div class="alert-content"><span class="alert-icon">🚨</span><div><strong id="alertHeadline">NUEVO PEDIDO</strong><p id="alertDetail">Tienes un nuevo reparto asignado.</p></div></div>
   <button id="acknowledgeAlert" type="button">✓ He visto el pedido</button>
@@ -125,6 +129,6 @@
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
 <p class="disclaimer">VERSIÓN WEB DE PRUEBAS · Sin ubicación GPS real, avisos push ni pedidos reales de Last.app. Las entregas se consultan en el servidor, no se guardan en el móvil sin conexión.</p>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=16"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/rider.js?v=17"></script>
 </body>
 </html>

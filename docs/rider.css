@@ -110,3 +110,7 @@ body{background:linear-gradient(180deg,#e9eef5 0,#f6f8fb 220px,#f6f8fb 100%)}
 .order-card .actions button.accept-action{background:#167a55;color:#fff;order:-2;width:100%;font-size:14px;font-weight:900}
 .order-card .actions button.share-action{background:#e5f6ed;color:#14684b;border:1px solid #b8dbc8;order:10;width:100%;font-size:12px}
 .rider-share-notice{background:#e6f8ec;color:#165b3c;border:1px solid #aedabe;border-radius:12px;padding:14px;font-weight:750;font-size:12px;line-height:1.6;margin:12px 0 17px}
+
+.rider-track-fallback{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px;padding:12px;background:#eef5ff;border:1px solid #bed3ef;border-radius:11px}
+.rider-track-fallback a,.rider-track-fallback button{border:1px solid #b4cce8;background:#fff;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:850;color:#205a87;text-decoration:none}
+.rider-track-fallback button{cursor:pointer}

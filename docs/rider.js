@@ -52,19 +52,48 @@ function shareTrackingByWhatsApp(order,link,tab){
   :"✓ Pedido aceptado. WhatsApp fue bloqueado: copia y comparte el enlace privado.";
 }
 async function riderAcceptance(order,resend,tab){
- const output=await withAuth("/rest/v1/rpc/ed_rider_accept_tracking",{
-  method:"POST",body:JSON.stringify({p_order_id:order.id,p_resend:Boolean(resend)})
+ const output=await withAuth("/functions/v1/ed-rider-accept-sms",{
+  method:"POST",body:JSON.stringify({order_id:order.id,resend:Boolean(resend)})
  });
- if(!output?.accepted)throw Error("No se ha podido aceptar el pedido");
- if(output.link_created&&/^[a-f0-9]{64}$/.test(String(output.token||""))){
-  const link=getTrackLink(output.token);
-  if(canShareFollowup(order))shareTrackingByWhatsApp(order,link,tab);
-  else{
-   if(tab&&!tab.closed)tab.close();
-   $("riderShareNotice").hidden=false;
-   $("riderShareNotice").textContent="✓ Pedido aceptado. Seguimiento creado; falta teléfono o consentimiento para enviarlo por WhatsApp. Pide al administrador que lo complete.";
-  }
- }else if(tab&&!tab.closed)tab.close();
+ if(!output?.accepted)throw Error("El pedido no se pudo aceptar");
+ const link=typeof output.link==="string"&&/^https:\/\/shaniwaris80-crypto\.github\.io\/ESTAMBUL-DELIVERY\/track\.html#token=[a-f0-9]{64}$/.test(output.link)
+  ?output.link:null;
+ $("riderTrackingFallback").hidden=!link;
+ if(link){$("riderTrackingLink").href=link;$("riderTrackingLink").textContent="Abrir seguimiento";$("copyRiderTracking").dataset.link=link;}
+ if(output.already_accepted){
+  if(tab&&!tab.closed)tab.close();
+  $("riderShareNotice").hidden=false;
+  $("riderShareNotice").textContent="Pedido ya aceptado. Usa «Reenviar seguimiento» si el cliente necesita otro enlace.";
+  return output;
+ }
+ if(!link){
+  if(tab&&!tab.closed)tab.close();
+  $("riderShareNotice").hidden=false;
+  $("riderShareNotice").textContent="Pedido aceptado, pero no se recibió enlace. Consulta con el administrador.";
+  return output;
+ }
+ if(output.sms_status==="provider_accepted"){
+  if(tab&&!tab.closed)tab.close();
+  $("riderShareNotice").hidden=false;
+  $("riderShareNotice").textContent="✓ Pedido aceptado. El proveedor ha aceptado el SMS con el enlace para el cliente. La entrega del SMS aún no está confirmada.";
+ }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)){
+  shareTrackingByWhatsApp(order,link,tab);
+ }else{
+  if(tab&&!tab.closed)tab.close();
+  const reasons={
+   provider_disabled:"El envío automático está pendiente de activar con Twilio.",
+   provider_not_configured:"Faltan datos del proveedor SMS para enviar automáticamente.",
+   provider_rejected:"El proveedor SMS ha rechazado el intento de envío.",
+   invalid_phone:"El teléfono del cliente no es válido para SMS.",
+   sms_not_authorized:"El cliente no tiene SMS autorizado para este pedido.",
+   permission_or_order_error:"No se ha podido verificar el destinatario del SMS.",
+   link_error:"No se pudo generar un enlace válido."
+  };
+  $("riderShareNotice").hidden=false;
+  $("riderShareNotice").textContent="✓ Pedido aceptado. NO se ha enviado ningún SMS. "+
+    (reasons[output.sms_status]||"Comprueba la configuración del aviso.")+
+    " Puedes copiar el enlace para enviarlo manualmente.";
+ }
  return output;
 }
 
@@ -414,6 +443,8 @@ function resetLocal() {
   routeState.ids=[];routeState.coordsOptimized=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
+  $("riderTrackingFallback").hidden=true;
+  $("copyRiderTracking").dataset.link="";
   if(gpsWatchId!==null)void stopGps();closeRiderChat();
   $("password").value = "";
   clearError();
@@ -521,10 +552,12 @@ function renderOrder(order,isPriority=false) {
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
       (["asignado","recogido","en_ruta"].includes(order.status)?'<button type="button" class="chat-action" data-chat="'+escapeText(order.id)+'">💬 Chat cliente</button>':'')+
       (order.status==="asignado"&&!order.accepted_at
-        ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+(canShareFollowup(order)?" y enviar seguimiento":"")+'</button>'
+        ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+
+          (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
+           canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'')+
-      (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)&&canShareFollowup(order)
-        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">💬 Reenviar enlace de seguimiento</button>':'');
+      (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
+        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -712,6 +745,15 @@ $("shareReconciliationWhatsApp").addEventListener("click",()=>{
  if(!w)window.location.assign(url);
 });
 $("refreshButton").addEventListener("click", () => void operation(async () => {}));
+$("copyRiderTracking").addEventListener("click",()=>{
+ const link=$("copyRiderTracking").dataset.link;
+ if(!link)return;
+ if(navigator.clipboard?.writeText){
+  void navigator.clipboard.writeText(link).then(()=>{
+   $("riderShareNotice").hidden=false;$("riderShareNotice").textContent="✓ Enlace de seguimiento copiado.";
+  }).catch(()=>window.prompt("Copia el enlace:",link));
+ }else window.prompt("Copia el enlace:",link);
+});
 $("toggleGps").addEventListener("click",()=>void toggleGps());
 $("closeRiderChat").addEventListener("click",closeRiderChat);
 $("orders").addEventListener("click",e=>{
