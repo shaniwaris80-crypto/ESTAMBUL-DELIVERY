@@ -42,17 +42,18 @@ Deno.serve(async(req:Request)=>{
   const auth=await client.auth.getUser(jwt);
   if(auth.error||!auth.data.user)return json({error:"Sesión de Rider no válida"},401);
   const {data:accepted,error:acceptError}=await client.rpc("ed_rider_accept_tracking",{
-   p_order_id:orderId,p_resend:input.resend===true
+   p_order_id:orderId,p_resend:false
   });
   if(acceptError)return json({error:acceptError.message||"Pedido no autorizado"},403);
   if(!accepted?.accepted)return json({error:"Pedido no aceptado"},409);
-  if(!accepted.link_created)
+  if(accepted.already_accepted||!accepted.link_created)
    return json({accepted:true,already_accepted:Boolean(accepted.already_accepted),sms_status:"already_accepted"});
 
   const token=String(accepted.token||"");
   if(!/^[a-f0-9]{64}$/.test(token))return json({accepted:true,sms_status:"link_error"});
   const track=trackBase+"#token="+token;
   const result={accepted:true,link:track,sms_status:"not_requested"};
+  // One transactional SMS on first acceptance. Never resend from this endpoint.
 
   // Rider can read only orders assigned to himself through RLS.
   const {data:order,error:orderError}=await client.from("ed_orders")
