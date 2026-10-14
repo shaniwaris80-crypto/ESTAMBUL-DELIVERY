@@ -111,3 +111,10 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
  .v2-rider-nav a{padding:9px 12px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* PRO indicators stay visible and honest about network reliability. */
+#riderSyncHealth{display:inline-flex;align-items:center;gap:6px;background:#e3f4e7;color:#17633c;border:1px solid #bee1c5}
+#riderSyncHealth.stale{background:#fff0dc;color:#99611d;border-color:#efd1a0}
+.order-number{font-variant-numeric:tabular-nums;letter-spacing:.006em}
+.mode-tag{background:#2a5039;color:#ddf7df;border-color:#4d7657}
+@media(max-width:380px){#riderSyncHealth{font-size:9px}}
