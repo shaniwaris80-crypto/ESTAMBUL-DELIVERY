@@ -172,3 +172,6 @@ td small{color:#728674}
 @media(max-width:360px){
  .ops-insight span{font-size:10px}.ops-insight strong{font-size:25px}.ops-insight small{font-size:8px}
 }
+
+/* Human-readable LastPOS / GloriaFood code, full immutable reference beneath. */
+#ordersArea .ops-full-ref{display:block;font-size:10px;font-weight:450;color:#8c9d8e;overflow-wrap:anywhere;line-height:1.4;margin:4px 0}
