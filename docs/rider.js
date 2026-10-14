@@ -20,6 +20,8 @@ const nextNames = { recogido: "Confirmar recogida", en_ruta: "Iniciar reparto", 
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
+// Only unclosed deliveries belong to the current rider workday; the server keeps all settled orders.
+let unsettledIds=null, locationShares=new Map(), locationSharingAvailable=false;
 let deferredInstall = null;
 let mustChangePassword=false;
 const followupPhone=(raw)=>{
@@ -103,7 +105,17 @@ async function stopGps(){
  if(gpsWatchId!==null){navigator.geolocation?.clearWatch(gpsWatchId);gpsWatchId=null;}
  $("toggleGps").textContent="Activar GPS";
  $("gpsStatus").textContent="Ubicación detenida. No estás compartiendo GPS.";
- try{if(session&&rider)await withAuth("/rest/v1/rpc/ed_stop_rider_position",{method:"POST",body:"{}"});}catch{}
+ try{
+  if(session&&rider){
+   await withAuth("/rest/v1/rpc/ed_stop_rider_position",{method:"POST",body:"{}"});
+   const previouslyShared=[...locationShares].filter(([,enabled])=>enabled).map(([id])=>id);
+   await Promise.all(previouslyShared.map(id=>withAuth("/rest/v1/rpc/ed_set_customer_location_share",{
+    method:"POST",body:JSON.stringify({p_order_id:id,p_enabled:false})
+   }).catch(()=>{})));
+   for(const id of previouslyShared)locationShares.set(id,false);
+   if(identity)draw();
+  }
+ }catch{}
 }
 function hasInProgressOrder(){return orders.some(o=>["recogido","en_ruta"].includes(o.status));}
 async function shareGps(position){
@@ -476,10 +488,19 @@ async function authenticate() {
 async function fetchOrders() {
   const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
-  const response = await withAuth(endpoint);
+  // Refresh auth token once on the primary query, before ancillary calls run together.
+  const response=await withAuth(endpoint);
+  const [openDone,shareRows]=await Promise.all([
+    withAuth("/rest/v1/rpc/ed_rider_unclosed_completed_ids",{method:"POST",body:"{}"}).catch(()=>null),
+    withAuth("/rest/v1/ed_order_location_shares?select=order_id,enabled").catch(()=>null)
+  ]);
   const updated = Array.isArray(response) ? response : [];
+  // Graceful fallback until migration 013 is installed; never delete completed orders.
+  unsettledIds=Array.isArray(openDone)?new Set(openDone):null;
+  locationSharingAvailable=Array.isArray(shareRows);
+  locationShares=new Map(locationSharingAvailable?shareRows.map(row=>[row.order_id,Boolean(row.enabled)]):[]);
   detectAssigned(updated);
-  orders=updated;
+  orders=updated.filter(o=>o.status!=="entregado"||unsettledIds===null||unsettledIds.has(o.id));
   if(gpsWatchId!==null&&(!rider?.online||!hasInProgressOrder()))void stopGps();
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
@@ -516,12 +537,12 @@ function draw(){
  $("orders").innerHTML=active.length
   ? (inRoute.length?'<div class="group-title"><span class="group-dot route"></span>EN REPARTO <small>'+inRoute.length+'</small></div>'+inRoute.map(o=>renderOrder(o,true)).join(""):"")+
     (toCollect.length?'<div class="group-title"><span class="group-dot"></span>POR RECOGER / PREPARAR <small>'+toCollect.length+'</small></div>'+toCollect.map(o=>renderOrder(o,false)).join(""):"")
-  :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos pendientes ni en reparto. Las entregas realizadas están en el historial de abajo.</p></div>';
+  :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos activos. Las entregas sin arqueo aparecen en el historial.</p></div>';
  $("toggleHistory").setAttribute("aria-expanded",showHistory?"true":"false");
  $("historyPanel").hidden=!showHistory;
  $("historyChevron").textContent=showHistory?"Ocultar ↑":"Mostrar ↓";
  $("historyOrders").innerHTML=showHistory?(done.length?done.map(renderHistoryOrder).join("")
-   :'<div class="history-empty">Aún no tienes entregas completadas.</div>'):"";
+   :'<div class="history-empty">Sin entregas pendientes de arqueo. Las jornadas cerradas siguen disponibles para administración.</div>'):"";
  $("syncStamp").textContent="Actualizado a las "+new Date(lastSync).toLocaleTimeString("es-ES");
  renderRoute();
 }
@@ -548,6 +569,17 @@ function renderOrder(order,isPriority=false) {
   const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");
   const tel=(phone.length>=6&&phone.length<=16)?"tel:"+phone:"";
   const status=escapeText(statusNames[order.status]||order.status);
+  const guestSharing=Boolean(locationShares.get(order.id));
+  const guestButton=locationSharingAvailable&&["recogido","en_ruta"].includes(order.status)
+    ?'<button type="button" class="guest-share-action '+(guestSharing?'on':'')+'" data-public-gps="'+escapeText(order.id)+'" aria-pressed="'+guestSharing+'">'+
+      (guestSharing?'● Detener mapa del cliente':'◎ Mostrar mi ubicación al cliente')+'</button>'
+    :'';
+  const progressAction=nextStatus==="entregado"
+    ?'<div class="swipe-finish" data-swipe-order="'+escapeText(order.id)+'" aria-label="Desliza para marcar entregado">'+
+      '<span class="swipe-progress"></span><span class="swipe-prompt">Desliza para entregar →</span>'+
+      '<button type="button" class="swipe-handle" aria-label="Desliza hacia la derecha para confirmar entrega">➜</button></div>'+
+      '<button type="button" class="finish-accessible" data-order="'+escapeText(order.id)+'" data-next="entregado">Confirmar entrega con botón</button>'
+    :nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'';
   const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
       (["asignado","recogido","en_ruta"].includes(order.status)?'<button type="button" class="chat-action" data-chat="'+escapeText(order.id)+'">💬 Chat cliente</button>':'')+
@@ -555,7 +587,7 @@ function renderOrder(order,isPriority=false) {
         ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+
           (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
-        :nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'')+
+        :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
         ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
@@ -578,7 +610,7 @@ async function operation(fn) {
   if (busy) return;
   busy = true; clearError();
   $("availabilityButton").disabled = true; $("refreshButton").disabled = true;
-  document.querySelectorAll("[data-order],[data-accept],[data-share]").forEach(button => { button.disabled = true; });
+  document.querySelectorAll("[data-order],[data-accept],[data-share],[data-public-gps]").forEach(button => { button.disabled = true; });
   try {
     await fn();
     await fetchOrders();
@@ -793,6 +825,66 @@ $("orders").addEventListener("click",event=>{
   catch(err){if(tab&&!tab.closed)tab.close();throw err;}
  });
 });
+// Customer location is opt-in per delivery. GPS must be enabled first by the rider.
+$("orders").addEventListener("click",event=>{
+ const button=event.target.closest("button[data-public-gps]");
+ if(!button||busy||!locationSharingAvailable)return;
+ const order=orders.find(o=>o.id===button.dataset.publicGps);
+ if(!order||!["recogido","en_ruta"].includes(order.status))return;
+ const enabled=!Boolean(locationShares.get(order.id));
+ if(enabled&&gpsWatchId===null){
+  setError("Activa primero el GPS de la app. Después podrás mostrar tu posición al cliente.",false);
+  return;
+ }
+ void operation(async()=>{
+  await withAuth("/rest/v1/rpc/ed_set_customer_location_share",{
+   method:"POST",body:JSON.stringify({p_order_id:order.id,p_enabled:enabled})
+  });
+ });
+});
+
+// Pointer swipe completion: touch, mouse and pen. Keyboard users have the ordinary button.
+let activeSwipe=null;
+function resetSwipe(bar){
+ bar.style.removeProperty("--swipe-distance");
+ bar.style.removeProperty("--swipe-fill");
+ bar.classList.remove("dragging");
+}
+$("orders").addEventListener("pointerdown",event=>{
+ const knob=event.target.closest(".swipe-handle");
+ if(!knob||busy||!rider?.online)return;
+ const bar=knob.closest(".swipe-finish");
+ if(!bar)return;
+ activeSwipe={id:event.pointerId,bar,knob,startX:event.clientX,travel:Math.max(1,bar.clientWidth-knob.offsetWidth-10),distance:0};
+ bar.classList.add("dragging");
+ knob.setPointerCapture?.(event.pointerId);
+ event.preventDefault();
+});
+$("orders").addEventListener("pointermove",event=>{
+ const a=activeSwipe;if(!a||event.pointerId!==a.id)return;
+ a.distance=Math.min(a.travel,Math.max(0,event.clientX-a.startX));
+ a.bar.style.setProperty("--swipe-distance",a.distance+"px");
+ a.bar.style.setProperty("--swipe-fill",Math.round(a.distance/a.travel*100)+"%");
+});
+function endSwipe(event){
+ const a=activeSwipe;if(!a||event.pointerId!==a.id)return;
+ activeSwipe=null;
+ const completed=event.type!=="pointercancel"&&a.distance>=a.travel*0.8;
+ resetSwipe(a.bar);
+ if(completed){
+  const fallback=a.bar.parentElement?.querySelector('button[data-next="entregado"]');
+  if(fallback&&!fallback.disabled)fallback.click();
+ }
+}
+$("orders").addEventListener("pointerup",endSwipe);
+$("orders").addEventListener("pointercancel",endSwipe);
+$("orders").addEventListener("keydown",event=>{
+ if((event.key==="Enter"||event.key===" ")&&event.target.matches(".swipe-handle")){
+  event.preventDefault();
+  event.target.closest(".swipe-finish")?.parentElement?.querySelector('button[data-next="entregado"]')?.click();
+ }
+});
+
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;

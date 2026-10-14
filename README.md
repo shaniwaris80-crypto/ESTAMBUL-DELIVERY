@@ -1,5 +1,16 @@
 # ESTAMBUL DELIVERY 🚴
 
+## Diseño Rider v18 — nueva experiencia de reparto (preparada para pruebas)
+
+- Interfaz más moderna de estética propia y navegación tipo apps de reparto.
+- **Deslizar para terminar la entrega**, con alternativa accesible mediante botón.
+- Las entregas pasan al historial pendiente; **desaparecen al cerrar arqueo**, sin borrar pedidos ni importes. El administrador puede mostrar los archivados y consultar cada cierre.
+- Ubicación del repartidor en la página privada del cliente **solo por pedido autorizado, en ruta, y con GPS reciente**. El rider activa/desactiva la visibilidad; el administrador puede revocarla. La PWA no garantiza GPS con el móvil bloqueado.
+- Requiere migración SQL `013_rider_ux_private_guest_gps.sql`. Véase [guía Rider v18](docs/UX_V18_TRACKING_ARCHIVE.md).
+
+---
+
+
 ## Estado verificable del sistema conectado (14 octubre 2026)
 
 El modo de prueba conectado **YA dispone de Supabase** y corre en `/live.html` y `/rider.html`:
