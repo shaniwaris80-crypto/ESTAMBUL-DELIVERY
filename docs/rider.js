@@ -22,6 +22,52 @@ let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
 let deferredInstall = null;
 let mustChangePassword=false;
+const followupPhone=(raw)=>{
+ const s=String(raw||"").trim(),d=s.replace(/\D/g,"");
+ if(s.startsWith("+")&&/^[1-9]\d{7,14}$/.test(d))return d;
+ if(/^00[1-9]\d{7,14}$/.test(d))return d.slice(2);
+ if(/^[6789]\d{8}$/.test(d))return "34"+d;
+ return "";
+};
+const canShareFollowup=(order)=>Boolean(order.notifications_consent&&order.notification_channel==="whatsapp"&&followupPhone(order.customer_phone));
+function getTrackLink(token){
+ const url=new URL("track.html",window.location.href);
+ url.hash="token="+token;
+ return url.href;
+}
+function shareTrackingByWhatsApp(order,link,tab){
+ const phone=followupPhone(order.customer_phone);
+ const msg="Hola, sigue tu pedido #"+order.reference+
+   " de ESTAMBUL DELIVERY desde este enlace privado:\n"+
+   link+"\nPuedes consultar su progreso, hablar o llamar al repartidor mientras esté disponible.";
+ const wa="https://api.whatsapp.com/send?phone="+encodeURIComponent(phone)+
+    "&text="+encodeURIComponent(msg);
+ if(tab&&!tab.closed){tab.location.replace(wa);}
+ else if(navigator.clipboard?.writeText){
+  void navigator.clipboard.writeText(link).catch(()=>{window.prompt("Copia el enlace de seguimiento:",link);});
+ }else window.prompt("Copia el enlace de seguimiento:",link);
+ $("riderShareNotice").hidden=false;
+ $("riderShareNotice").textContent=tab?
+  "✓ Seguimiento preparado en WhatsApp para #"+order.reference+". Revisa el mensaje y pulsa ENVIAR en WhatsApp."
+  :"✓ Pedido aceptado. WhatsApp fue bloqueado: copia y comparte el enlace privado.";
+}
+async function riderAcceptance(order,resend,tab){
+ const output=await withAuth("/rest/v1/rpc/ed_rider_accept_tracking",{
+  method:"POST",body:JSON.stringify({p_order_id:order.id,p_resend:Boolean(resend)})
+ });
+ if(!output?.accepted)throw Error("No se ha podido aceptar el pedido");
+ if(output.link_created&&/^[a-f0-9]{64}$/.test(String(output.token||""))){
+  const link=getTrackLink(output.token);
+  if(canShareFollowup(order))shareTrackingByWhatsApp(order,link,tab);
+  else{
+   if(tab&&!tab.closed)tab.close();
+   $("riderShareNotice").hidden=false;
+   $("riderShareNotice").textContent="✓ Pedido aceptado. Seguimiento creado; falta teléfono o consentimiento para enviarlo por WhatsApp. Pide al administrador que lo complete.";
+  }
+ }else if(tab&&!tab.closed)tab.close();
+ return output;
+}
+
 
 let gpsWatchId=null,gpsLastSend=0,gpsBusy=false;
 async function stopGps(){
@@ -397,7 +443,7 @@ async function authenticate() {
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
 }
 async function fetchOrders() {
-  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,status,rider_id,lat,lng,created_at&account_id=eq." +
+  const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
   const response = await withAuth(endpoint);
   const updated = Array.isArray(response) ? response : [];
@@ -474,7 +520,11 @@ function renderOrder(order,isPriority=false) {
   const actions=(url?'<a class="maps-action" href="'+escapeText(url)+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a>':'')+
       (tel?'<a class="phone-action" href="'+escapeText(tel)+'">☎ Llamar</a>':'')+
       (["asignado","recogido","en_ruta"].includes(order.status)?'<button type="button" class="chat-action" data-chat="'+escapeText(order.id)+'">💬 Chat cliente</button>':'')+
-      (nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'');
+      (order.status==="asignado"&&!order.accepted_at
+        ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+(canShareFollowup(order)?" y enviar seguimiento":"")+'</button>'
+        :nextStatus?'<button type="button" data-order="'+escapeText(order.id)+'" data-next="'+nextStatus+'">'+escapeText(nextNames[nextStatus])+' →</button>':'')+
+      (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)&&canShareFollowup(order)
+        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">💬 Reenviar enlace de seguimiento</button>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -495,7 +545,7 @@ async function operation(fn) {
   if (busy) return;
   busy = true; clearError();
   $("availabilityButton").disabled = true; $("refreshButton").disabled = true;
-  document.querySelectorAll("[data-order]").forEach(button => { button.disabled = true; });
+  document.querySelectorAll("[data-order],[data-accept],[data-share]").forEach(button => { button.disabled = true; });
   try {
     await fn();
     await fetchOrders();
@@ -683,6 +733,24 @@ document.addEventListener("visibilitychange",()=>{if(document.hidden&&gpsWatchId
 window.addEventListener("pagehide",()=>{if(gpsWatchId!==null)void stopGps();});
 $("toggleHistory").addEventListener("click",()=>{showHistory=!showHistory;draw();});
 $("acknowledgeAlert").addEventListener("click",acknowledgeNewOrders);
+$("orders").addEventListener("click",event=>{
+ const action=event.target.closest("button[data-accept],button[data-share]");
+ if(!action||busy||!rider)return;
+ const order=orders.find(o=>o.id===(action.dataset.accept||action.dataset.share));
+ const resend=Boolean(action.dataset.share);
+ if(!order||!rider.online||!["asignado","recogido","en_ruta"].includes(order.status))return;
+ if(!resend&&order.accepted_at)return;
+ if(resend&&!window.confirm("Generar otro enlace privado para el cliente. Los enlaces anteriores seguirán funcionando. ¿Continuar?"))return;
+ // A direct click reserves WhatsApp before asynchronous RPC (mobile popup protection).
+ let tab=null;
+ if(canShareFollowup(order)){
+  try{tab=window.open("about:blank","_blank");if(tab)tab.opener=null;}catch{}
+ }
+ void operation(async()=>{
+  try{await riderAcceptance(order,resend,tab);}
+  catch(err){if(tab&&!tab.closed)tab.close();throw err;}
+ });
+});
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;

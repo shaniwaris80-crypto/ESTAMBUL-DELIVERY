@@ -211,7 +211,7 @@ document.addEventListener("click",event=>{
  if(!order||!order.notifications_consent||order.notification_channel!=="whatsapp")return;
  const phone=whatsappNumber(order.customer_phone);
  if(!phone){message(new Error("Revisa el teléfono del cliente en Editar"));return;}
- if(!window.confirm("Preparar un nuevo enlace privado de seguimiento para este cliente. Si compartiste otro antes, dejará de funcionar. WhatsApp se abrirá para que pulses Enviar. ¿Continuar?"))return;
+ if(!window.confirm("Preparar un nuevo enlace privado de seguimiento para este cliente. Los enlaces anteriores seguirán funcionando. WhatsApp se abrirá para que pulses Enviar. ¿Continuar?"))return;
  const tab=reserveWhatsAppTab();
  void operation(async()=>{
   try{
@@ -351,7 +351,7 @@ document.addEventListener("click",event=>{
  if(!b||!member||member.role==="rider")return;
  const id=b.dataset.track;
  if(!orders.some(o=>o.id===id))return;
- if(!window.confirm("Crear un enlace privado de seguimiento para este pedido. Si ya existe uno, dejará de funcionar el anterior. ¿Continuar?"))return;
+ if(!window.confirm("Crear un enlace privado de seguimiento para este pedido. Los enlaces anteriores seguirán funcionando. ¿Continuar?"))return;
  void operation(async()=>{
   const token=await query("/rest/v1/rpc/ed_issue_tracking_token",{method:"POST",body:JSON.stringify({p_order_id:id})});
   if(typeof token!=="string"||!/^[a-f0-9]{64}$/.test(token))throw Error("Enlace no generado");
@@ -435,21 +435,12 @@ document.addEventListener("change",e=>{
  const sel=e.target;if(!sel.dataset.assign)return;
  const o=orders.find(x=>x.id===sel.dataset.assign);if(!o||busy)return;
  const rid=sel.value||null;
- const firstAssignment=Boolean(rid&&!o.rider_id&&o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone));
- // A WhatsApp window is opened by the admin's own action; it never sends a message by itself.
- const tab=firstAssignment?reserveWhatsAppTab():null;
  void operation(async()=>{
-  try{
-   const params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
-   const rows=await query("/rest/v1/ed_orders"+params,{
-    method:"PATCH",headers:{"Prefer":"return=representation"},
-    body:JSON.stringify({rider_id:rid,status:rid?"asignado":"pendiente"})});
-   if(!Array.isArray(rows)||rows.length!==1)throw Error("No se pudo asignar el pedido");
-   if(firstAssignment){
-    const link=await createTrackingLink({...o,rider_id:rid});
-    showTrackingWhatsApp(tab,o,link);
-   }
-  }catch(err){if(tab&&!tab.closed)tab.close();throw err;}
+  const params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
+  const rows=await query("/rest/v1/ed_orders"+params,{
+   method:"PATCH",headers:{"Prefer":"return=representation"},
+   body:JSON.stringify({rider_id:rid,status:rid?"asignado":"pendiente"})});
+  if(!Array.isArray(rows)||rows.length!==1)throw Error("No se pudo asignar el pedido");
  });
 });
 document.addEventListener("click",e=>{
