@@ -636,8 +636,7 @@ function renderOrder(order,isPriority=false) {
           (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
-      (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Compartir seguimiento (sin SMS)</button>':'');
+      "";
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
