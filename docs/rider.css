@@ -114,3 +114,72 @@ body{background:linear-gradient(180deg,#e9eef5 0,#f6f8fb 220px,#f6f8fb 100%)}
 .rider-track-fallback{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:0 0 16px;padding:12px;background:#eef5ff;border:1px solid #bed3ef;border-radius:11px}
 .rider-track-fallback a,.rider-track-fallback button{border:1px solid #b4cce8;background:#fff;border-radius:8px;padding:10px 13px;font-size:12px;font-weight:850;color:#205a87;text-decoration:none}
 .rider-track-fallback button{cursor:pointer}
+
+
+/* V18 · Estambul Delivery / contemporary courier-first interface */
+:root{
+ --navy:#151917;--blue:#263730;--orange:#151917;--green:#12845e;
+ --muted:#78827e;--light:#f5f7f5;--line:#e1e6e2;--dark:#1b2520
+}
+body{background:var(--light);color:var(--dark);font-family:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.topbar{position:sticky;top:0;z-index:11;background:#141816;box-shadow:0 6px 24px #00000016}
+.topbar-inner{min-height:76px;max-width:640px}
+.mark{background:#fff;color:#131816;border-radius:14px}
+.mark span{color:#12845e}
+.brand small{color:#c2cec8}
+.mode-tag{background:#2a322e;color:#c3e9d5}
+.app{max-width:640px}
+.panel,.metric,.order-card{border:1px solid #e4eae5;box-shadow:0 12px 34px #1c30230a}
+.welcome{margin:6px 0 24px}
+.welcome h1{font-size:clamp(24px,5vw,34px);font-weight:900;line-height:1.1;letter-spacing:-.045em}
+.welcome .eyebrow{color:#12845e}
+.icon-button{color:#1b2921;border-radius:50%;width:48px;height:48px}
+.availability{padding:19px 20px;border-radius:18px;background:#fff}
+.availability-left strong{font-size:16px}
+.summary{gap:10px;margin:20px 0 28px}
+.metric{padding:17px 14px;border-radius:19px}
+.metric strong{font-weight:950;font-size:34px;line-height:1.15;margin-top:8px}
+.metric small{color:#64756b;font-weight:750;font-size:11px}
+.metric:first-child{background:#171d19;color:#fff;border-color:#171d19}
+.metric:first-child strong,.metric:first-child small{color:#fff}
+.metric:first-child small{opacity:.7}
+.work-header h2{font-weight:950;color:#131816;font-size:25px;letter-spacing:-.05em}
+.live-indicator{background:#e3f6e9}
+.group-title{margin:17px 0 11px;color:#40554a}
+.group-dot{background:#101812}
+.group-dot.route{background:#12946a}
+.order-card{border-radius:22px;padding:20px;margin-bottom:1px}
+.priority-order{border-left:5px solid #119b67;background:#fff}
+.order-number{font-size:15px;font-weight:950;color:#18211b}
+.order-card .destination-head{font-size:23px;color:#15201b;font-weight:900}
+.order-card .status{border-radius:100px}
+.priority-tag{border-radius:100px}
+.order-card .actions{gap:10px}
+.order-card .actions a,.order-card .actions button{border-radius:13px;min-height:49px}
+.order-card .actions button:not(.guest-share-action):not(.share-action):not(.chat-action):not(.swipe-handle):not(.finish-accessible){background:#171c19;color:#fff}
+.order-card .actions a.maps-action{background:#181d1a;color:#fff;border-color:#181d1a}
+.order-card .actions a.phone-action{background:#eff5f1;color:#14583e;border-color:#d8e9dc}
+.payment-panel{background:#f5f7f5!important;border:1px solid #e8ece9!important}
+.payment-panel strong{font-weight:950;font-size:22px;color:#171c18}
+.payment-title{color:#476052}
+.day-close-card{border-radius:22px}
+.day-close-review{background:#181d1a;border-radius:13px;min-height:51px}
+.day-close-final{background:#0f875d;border-radius:13px;min-height:53px}
+.day-close-newshift{border-radius:13px}
+.history-section{border-radius:22px}
+.gps-panel{border-radius:20px}
+.gps-toggle{border-radius:12px;background:#151b17;min-height:45px}
+.gps-privacy{color:#53695b}
+.swipe-finish{position:relative;order:-3;flex:1 0 100%;width:100%;height:62px;overflow:hidden;border-radius:15px;background:#161d18;color:white;touch-action:pan-y;user-select:none}
+.swipe-progress{position:absolute;inset:0 auto 0 0;width:calc(60px + var(--swipe-distance,0px));max-width:100%;background:#11855f;pointer-events:none;transition:width .17s}
+.swipe-finish.dragging .swipe-progress{transition:none}
+.swipe-prompt{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:900;letter-spacing:.01em;padding-left:50px;pointer-events:none}
+.order-card .actions .swipe-finish .swipe-handle{position:absolute;left:5px;top:5px;min-width:0;width:52px;height:52px;min-height:52px;margin:0;padding:0;display:grid;place-items:center;border:0;background:#fff;color:#123726;border-radius:12px;font-size:25px;box-shadow:0 3px 10px #00000020;transform:translateX(var(--swipe-distance,0px));touch-action:none;user-select:none;z-index:2;cursor:grab}
+.swipe-finish.dragging .swipe-handle{cursor:grabbing}
+.order-card .actions button.finish-accessible{order:-2;flex-basis:100%;background:#e8f0e9;color:#1e573a;border:1px solid #cddfd1;min-height:42px;font-size:12px}
+.order-card .actions button.guest-share-action{order:9;flex-basis:100%;background:#ecf3ef;color:#254d37;border:1px solid #ccded1;font-size:13px}
+.order-card .actions button.guest-share-action.on{background:#dbf6e7;color:#096b41;border-color:#9cd9b2}
+.order-card .actions button.share-action{background:#f3f7f4;color:#274e39;border-color:#d6e5d9}
+.history-empty{line-height:1.6}
+@media(max-width:385px){.swipe-prompt{font-size:12px;padding-left:45px}.metric{padding:14px 9px}}
+@media(prefers-reduced-motion:reduce){.swipe-progress{transition:none}.swipe-handle{transition:none!important}}
