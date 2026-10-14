@@ -54,9 +54,9 @@
 </div><button type="submit" class="btn full-width" style="max-width:250px">Guardar cambios</button>
 </form>
 </section>
-<section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Usuarios vinculados a esta organización.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
-<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Seguimiento / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
-<section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>💬 WhatsApp normal · envío manual</h2><p>Prepara un mensaje y ábrelo en WhatsApp normal para enviarlo tú. Twilio automatizará los avisos más adelante.</p></div></div><p class="small-note">Para usar el botón WhatsApp de cada pedido, indica el teléfono y marca el canal WhatsApp y la autorización del cliente en Editar. El botón nunca envía solo: abre el mensaje para que lo revises y pulses Enviar.</p></section>
+<section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Configura el número de trabajo del rider y autoriza que los clientes puedan llamarlo desde su seguimiento.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
+<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Asignar aquí modifica el mismo pedido que verá el móvil del rider.</p></div><span id="orderCount" class="tag"></span></div><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Enlace / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>🔗 Seguimiento por WhatsApp</h2><p>Al asignar un pedido nuevo, WhatsApp se abrirá con el enlace privado de seguimiento preparado (si tiene teléfono y permiso). No enviará mensajes de estado.</p></div></div><p class="small-note">El botón «Enviar seguimiento» genera un enlace privado y lo coloca en WhatsApp normal para que pulses Enviar. Si generas otro, el anterior deja de funcionar. Desde Riders puedes configurar un número de trabajo para que el cliente también llame al repartidor.</p></section>
 <section class="card" id="gpsAdminCard"><div class="section-head"><div><h2>📍 GPS de los repartidores</h2><p>Ubicación voluntaria del rider durante un pedido en curso. Solo visible para el equipo autorizado; posiciones de más de 2 minutos se ocultan.</p></div><span class="tag" id="gpsAdminCount">0 compartiendo</span></div>
 <div id="gpsRiderList" class="gps-admin-list"></div></section>
 <section class="card" id="brandCard">
@@ -80,4 +80,4 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=15"></script></body></html>
+</main><script src="docs/live-config.js"></script><script defer src="docs/live.js?v=16"></script></body></html>

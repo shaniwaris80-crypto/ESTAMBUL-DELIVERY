@@ -35,3 +35,8 @@
 .share-actions{display:flex;gap:5px;flex-wrap:wrap}.share-actions .outline{white-space:nowrap;font-size:11px;padding:7px 8px}
 .share-actions .whatsapp-action{border-color:#9dc9ae;background:#ebf8f0;color:#19774a}
 .share-actions .whatsapp-action:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(1)}
+
+.rider-meta{display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.rider-call-config{padding:9px 11px;font-size:11px;white-space:nowrap}
+.share-actions .whatsapp-action{min-width:120px}
+@media(max-width:600px){.rider-call-config{white-space:normal;max-width:130px}}

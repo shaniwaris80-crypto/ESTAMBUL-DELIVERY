@@ -71,6 +71,11 @@ function draw(data){
  });
  el("updatedAt").textContent="Último cambio: "+prettyTime(data.updated_at);
  el("customerChatPanel").hidden=!(["asignado","recogido","en_ruta"].includes(data.status));
+ const telephone=typeof data.rider_call_phone==="string"&&/^\+[1-9]\d{7,14}$/.test(data.rider_call_phone)
+   ?data.rider_call_phone:null;
+ el("riderCallPanel").hidden=!telephone;
+ if(telephone)el("callRiderLink").href="tel:"+telephone;
+ else el("callRiderLink").removeAttribute("href");
  const delivered=data.status==="entregado";
  el("feedbackPanel").hidden=!delivered||!!data.feedback_sent;
  el("feedbackDone").hidden=!delivered||!data.feedback_sent;

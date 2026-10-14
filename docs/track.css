@@ -23,3 +23,8 @@ fieldset{padding:0;border:0;margin:0}legend{font-size:12px;font-weight:800;color
 .guest-chat{padding:20px}.guest-chat h2{font-size:20px}.guest-chat p{font-size:12px}.chat-messages{background:#f6f9fb;border-radius:11px;min-height:80px;max-height:280px;overflow:auto;display:grid;align-content:start;gap:9px;padding:12px;margin:16px 0}
 .chat-bubble{padding:10px 12px;max-width:90%;justify-self:start;background:#fff;border:1px solid #dce4ed;border-radius:10px;overflow-wrap:anywhere}.chat-bubble.mine{justify-self:end;background:#e5f4e8;border-color:#badbc3}
 .chat-bubble small{display:block;color:#657c92;font-size:10px}.chat-bubble p{margin:5px 0 0;color:#203d55;font-size:13px}.chat-form{display:flex;gap:8px}.chat-form input{flex:1;min-width:0;padding:13px;border:1px solid #d0dee8;border-radius:9px;font-size:16px}.chat-form button{border:0;background:var(--brand);color:white;padding:12px;border-radius:9px;font-weight:850}
+
+.call-rider{border-color:#d3e9db;background:#f6fcf8}
+.call-rider-top{display:flex;align-items:center;gap:12px}.call-rider-icon{height:46px;min-width:46px;border-radius:13px;background:#e0f5e7;color:#16825b;display:grid;place-items:center;font-size:23px}
+.call-rider h2{font-size:17px;margin:0 0 3px}.call-rider p{font-size:12px;margin:0}
+.call-rider-action{display:block;background:#187d57;color:#fff;text-align:center;margin-top:14px;padding:14px;border-radius:12px;text-decoration:none;font-weight:850}

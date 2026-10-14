@@ -58,7 +58,7 @@ function logged(){
 async function reload(){
  const q=encodeURIComponent(member.account_id);
  const [rs,os]=await Promise.all([
-  query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active&account_id=eq."+q+"&order=display_name.asc"),
+  query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active,phone,customer_call_enabled&account_id=eq."+q+"&order=display_name.asc"),
   query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,notifications_consent,notification_channel,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
  ]);
  riders=rs||[];orders=os||[];
@@ -172,22 +172,73 @@ function whatsappNumber(value){
  if(/^[6789]\d{8}$/.test(digits))return "34"+digits;
  return "";
 }
-function whatsappUpdateText(order){
- const status=labels[order.status]||order.status;
- return "ESTAMBUL DELIVERY\nPedido #"+order.reference+"\nEstado: "+status+
-   ".\nSi necesitas ayuda, responde a este mensaje.";
+function trackingUrl(token){
+ const link=new URL("track.html",location.href);
+ link.hash="token="+token;
+ return link.href;
+}
+function trackingMessage(order,link){
+ const brand=brandDetails?.display_name||account?.name||"ESTAMBUL DELIVERY";
+ return "Hola, puedes seguir tu pedido #"+order.reference+
+   " de "+brand+" desde este enlace privado:\n"+
+   link+"\n\nPodrás consultar el seguimiento y escribir al repartidor. Gracias.";
+}
+async function createTrackingLink(order){
+ const token=await query("/rest/v1/rpc/ed_issue_tracking_token",{
+  method:"POST",body:JSON.stringify({p_order_id:order.id})});
+ if(typeof token!=="string"||!/^[a-f0-9]{64}$/.test(token))throw Error("No se pudo generar el enlace");
+ return trackingUrl(token);
+}
+function reserveWhatsAppTab(){
+ let tab=null;
+ try{tab=window.open("about:blank","_blank");if(tab)tab.opener=null;}catch{}
+ return tab;
+}
+function showTrackingWhatsApp(tab,order,link){
+ const phone=whatsappNumber(order.customer_phone);
+ if(!phone)throw Error("Indica el teléfono del cliente en el pedido");
+ const url="https://api.whatsapp.com/send?phone="+encodeURIComponent(phone)+
+   "&text="+encodeURIComponent(trackingMessage(order,link));
+ if(tab&&!tab.closed){tab.location.replace(url);}
+ else window.prompt("El navegador ha bloqueado WhatsApp. Copia el enlace para compartirlo:",link);
+ el("brandSaved").textContent="✓ Seguimiento preparado para WhatsApp. Revisa y pulsa Enviar dentro de WhatsApp; NO se envía automáticamente.";
+ el("brandSaved").hidden=false;
 }
 document.addEventListener("click",event=>{
  const button=event.target.closest("button[data-wa]");
- if(!button)return;
+ if(!button||busy)return;
  const order=orders.find(o=>o.id===button.dataset.wa);
  if(!order||!order.notifications_consent||order.notification_channel!=="whatsapp")return;
  const phone=whatsappNumber(order.customer_phone);
- if(!phone){message(new Error("Revisa el teléfono internacional del cliente en Editar"));return;}
- const url="https://api.whatsapp.com/send?phone="+encodeURIComponent(phone)+"&text="+encodeURIComponent(whatsappUpdateText(order));
- const tab=window.open(url,"_blank","noopener,noreferrer");
- if(!tab)window.location.assign(url);
+ if(!phone){message(new Error("Revisa el teléfono del cliente en Editar"));return;}
+ if(!window.confirm("Preparar un nuevo enlace privado de seguimiento para este cliente. Si compartiste otro antes, dejará de funcionar. WhatsApp se abrirá para que pulses Enviar. ¿Continuar?"))return;
+ const tab=reserveWhatsAppTab();
+ void operation(async()=>{
+  try{
+   const link=await createTrackingLink(order);
+   showTrackingWhatsApp(tab,order,link);
+  }catch(err){if(tab&&!tab.closed)tab.close();throw err;}
+ });
 });
+
+document.addEventListener("click",event=>{
+ const btn=event.target.closest("button[data-rider-phone]");
+ if(!btn||!member||member.role==="rider"||busy)return;
+ const r=riders.find(x=>x.id===btn.dataset.riderPhone);
+ if(!r)return;
+ const input=window.prompt("Número de TRABAJO del repartidor, con prefijo (ej. +34…). Deja vacío para desactivar llamadas:",r.phone||"");
+ if(input===null)return;
+ const phone=input.trim();
+ if(phone&&!/^\+[1-9]\d{7,14}$/.test(phone)){message(new Error("Utiliza un teléfono internacional con prefijo, por ejemplo +34…"));return;}
+ const publish=phone&&window.confirm("¿El repartidor ha autorizado mostrar este número de trabajo al cliente SOLO mientras tenga su pedido asignado y activo?");
+ void operation(async()=>{
+  const patch={phone:phone||null,customer_call_enabled:Boolean(publish)};
+  const path="/rest/v1/ed_riders?id=eq."+encodeURIComponent(r.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
+  const rows=await query(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(patch)});
+  if(!Array.isArray(rows)||rows.length!==1)throw Error("No se pudo configurar el número de llamadas");
+ });
+});
+
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
@@ -198,7 +249,8 @@ function render(){
   el("orderCount").textContent=orders.length+" pedidos";
   renderBrand();renderFeedback();renderGpsPositions();
   drawShiftHistory();
-  el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small></span></div>').join("")||"<p>Sin riders</p>";
+  el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span class="rider-meta"><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small><small>'+(r.customer_call_enabled&&r.phone?"☎ Clientes pueden llamar al número de trabajo":"Llamadas de clientes desactivadas")+'</small></span>'+
+ '<button type="button" class="outline rider-call-config" data-rider-phone="'+esc(r.id)+'">Configurar llamadas</button></div>').join("")||"<p>Sin riders</p>";
   el("ordersTable").innerHTML=orders.map(o=>{
     const options='<option value="">Sin asignar</option>'+riders.filter(r=>r.active).map(r=>'<option value="'+esc(r.id)+'" '+(o.rider_id===r.id?"selected":"")+'>'+esc(r.display_name)+'</option>').join("");
     const gmaps=mapsLink(o);
@@ -210,7 +262,7 @@ function render(){
       '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
       '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
       '<td><div class="share-actions"><button class="outline" type="button" data-track="'+esc(o.id)+'">🔗 Enlace</button>'+
-      '<button class="outline whatsapp-action" type="button" data-wa="'+esc(o.id)+'" '+((o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone))?"":'disabled title="Activa WhatsApp y permiso en Editar"')+'>💬 WhatsApp</button></div></td></tr>';
+      '<button class="outline whatsapp-action" type="button" data-wa="'+esc(o.id)+'" '+((o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone))?"":'disabled title="Indica teléfono y activa WhatsApp con consentimiento en Editar"')+'>💬 Enviar seguimiento</button></div></td></tr>';
   }).join("")||'<tr><td colspan="8">Sin pedidos.</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{
@@ -381,10 +433,23 @@ el("createForm").addEventListener("submit",e=>{
 });
 document.addEventListener("change",e=>{
  const sel=e.target;if(!sel.dataset.assign)return;
- const o=orders.find(x=>x.id===sel.dataset.assign);if(!o)return;
+ const o=orders.find(x=>x.id===sel.dataset.assign);if(!o||busy)return;
+ const rid=sel.value||null;
+ const firstAssignment=Boolean(rid&&!o.rider_id&&o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone));
+ // A WhatsApp window is opened by the admin's own action; it never sends a message by itself.
+ const tab=firstAssignment?reserveWhatsAppTab():null;
  void operation(async()=>{
-  const rid=sel.value||null,params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
-  await query("/rest/v1/ed_orders"+params,{method:"PATCH",headers:{"Prefer":"return=minimal"},body:JSON.stringify({rider_id:rid,status:rid?"asignado":"pendiente"})});
+  try{
+   const params="?id=eq."+encodeURIComponent(o.id)+"&account_id=eq."+encodeURIComponent(member.account_id);
+   const rows=await query("/rest/v1/ed_orders"+params,{
+    method:"PATCH",headers:{"Prefer":"return=representation"},
+    body:JSON.stringify({rider_id:rid,status:rid?"asignado":"pendiente"})});
+   if(!Array.isArray(rows)||rows.length!==1)throw Error("No se pudo asignar el pedido");
+   if(firstAssignment){
+    const link=await createTrackingLink({...o,rider_id:rid});
+    showTrackingWhatsApp(tab,o,link);
+   }
+  }catch(err){if(tab&&!tab.closed)tab.close();throw err;}
  });
 });
 document.addEventListener("click",e=>{
