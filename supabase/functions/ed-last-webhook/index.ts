@@ -37,14 +37,15 @@ Deno.serve(async(req:Request)=>{
     console.warn("[ED Last webhook] unauthorized_authorization_header_missing");
     return plain(401);
   }
-  const match=auth.match(/^Bearer[ \t]+([^\r\n]+)$/i);
-  if(!match){
-    console.warn("[ED Last webhook] unauthorized_authorization_header_malformed");
-    return plain(401);
-  }
-  if(!equalSecret(match[1].trim(),expected)){
+  // Last.app webhooks may present the integrator token directly in the
+  // Authorization header; REST clients typically use Bearer <token>.
+  // Require exact equality with the configured secret in either case.
+  const normalizedAuth=auth.trim();
+  const bearer=normalizedAuth.match(/^Bearer[ \t]+([^\r\n]+)$/i);
+  const supplied=bearer?bearer[1].trim():normalizedAuth;
+  if(!equalSecret(supplied,expected)){
     // Never log credentials, hashes, lengths, or Authorization header content.
-    console.warn("[ED Last webhook] unauthorized_bearer_token_mismatch");
+    console.warn("[ED Last webhook] unauthorized_integrator_token_mismatch");
     return plain(401);
   }
   const contentType=req.headers.get("content-type")||"";
