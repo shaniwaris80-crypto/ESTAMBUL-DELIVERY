@@ -33,6 +33,13 @@ function matchOperations(o){
  }
 }
 const storage="estambul-secure-test-session";
+// Keep live operations above training tools. This only rearranges existing DOM
+// cards; it never changes their IDs, security checks, handlers, or data sources.
+const proStaffView=el("staffView"),proTrainingCard=el("inviteCard");
+for(const id of ["ordersArea","riderDirectory","gpsAdminCard","shiftHistoryCard"]){
+ const section=el(id);
+ if(proStaffView&&proTrainingCard&&section)proStaffView.insertBefore(section,proTrainingCard);
+}
 function destinationCoords(prefix){
  const la=el(prefix+"Lat").value.trim().replace(",",".");
  const lo=el(prefix+"Lng").value.trim().replace(",",".");
