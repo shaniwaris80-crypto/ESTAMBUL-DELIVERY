@@ -11,6 +11,27 @@ let session=null,member=null,account=null,orders=[],riders=[],busy=false;
 let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),archivedOrderIds=new Set(),showArchivedOrders=false;
 let brandDetails=null,customerFeedback=[];
 let riderPositions=[];
+let opsQuery="",opsFocus="all",opsChannel="all";
+const normalizeOps=v=>String(v??"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLocaleLowerCase("es-ES").trim();
+function matchOperations(o){
+ if(opsChannel!=="all"&&o.channel!==opsChannel)return false;
+ if(opsQuery){
+  const text=[o.reference,o.customer_name,o.customer_phone,o.destination,o.notes,o.channel,chan[o.channel]]
+    .map(normalizeOps).join(" ");
+  if(!text.includes(opsQuery))return false;
+ }
+ const isActive=!["entregado","cancelado"].includes(o.status);
+ switch(opsFocus){
+  case "active":return isActive;
+  case "unassigned":return isActive&&!o.rider_id;
+  case "route":return o.status==="en_ruta";
+  case "delivered":return o.status==="entregado";
+  case "payment_missing":return o.status==="entregado"&&!["efectivo","tarjeta"].includes(o.payment_method);
+  case "sms_off":return Boolean(o.customer_phone)&&(!o.notifications_consent||o.notification_channel!=="sms");
+  case "gps_shared":return locationShares.get(o.id)===true;
+  default:return true;
+ }
+}
 const storage="estambul-secure-test-session";
 function destinationCoords(prefix){
  const la=el(prefix+"Lat").value.trim().replace(",",".");
@@ -69,7 +90,7 @@ function logged(){
  el("staffView").hidden=!staff;el("riderView").hidden=staff;el("inviteCard").hidden=member.role!=="admin";
  el("accountLabel").textContent=account.name+" · "+member.role.toUpperCase();
  el("viewTitle").textContent=staff?"Centro de reparto":"Mis entregas";
- el("viewSub").textContent="Sincronizado entre dispositivos · actualización cada 5 segundos · solo datos de prueba";
+ el("viewSub").textContent="Sincronizado con Last.app y Supabase · actualización cada 5 segundos";
  el("connection").textContent="Conectado";
 }
 async function reload(){
@@ -269,13 +290,23 @@ document.addEventListener("click",event=>{
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const archivedIds=archivedOrderIds;
- const visibleOrders=showArchivedOrders?orders:orders.filter(o=>!archivedIds.has(o.id));
+ const allVisibleOrders=showArchivedOrders?orders:orders.filter(o=>!archivedIds.has(o.id));
+ const visibleOrders=staff?allVisibleOrders.filter(matchOperations):allVisibleOrders;
  const stats=[["Pedidos visibles",staff?visibleOrders.length:orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
  el("lastSync").textContent="Actualizado a las "+new Date().toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)";
  if(staff){
   el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
-  el("orderCount").textContent=visibleOrders.length+" visibles · "+archivedIds.size+" archivados";
+  el("orderCount").textContent=visibleOrders.length+" de "+allVisibleOrders.length+" pedidos";
+  el("opsResultCount").textContent=visibleOrders.length+" resultados de "+allVisibleOrders.length+
+    (opsFocus!=="all"||opsQuery||opsChannel!=="all"?" · Filtros activos":"")+" · "+archivedIds.size+" en arqueos cerrados";
+  const openOrders=allVisibleOrders.filter(o=>!["entregado","cancelado"].includes(o.status));
+  el("opsUnassignedCount").textContent=openOrders.filter(o=>!o.rider_id).length;
+  el("opsRouteCount").textContent=openOrders.filter(o=>o.status==="en_ruta").length;
+  el("opsPaymentCount").textContent=allVisibleOrders.filter(o=>o.status==="entregado"&&!["efectivo","tarjeta"].includes(o.payment_method)).length;
+  document.querySelectorAll("[data-ops-focus]").forEach(b=>{
+    b.setAttribute("aria-pressed",String(b.dataset.opsFocus===opsFocus));
+  });
   renderBrand();renderFeedback();renderGpsPositions();
   drawShiftHistory();
   el("riders").innerHTML=riders.map(r=>'<div class="rider-item"><span class="avatar">'+esc(r.display_name.slice(0,2).toUpperCase())+'</span><span class="rider-meta"><strong>'+esc(r.display_name)+'</strong><small>'+(r.active?(r.online?"● Online":"○ Desconectado"):"Inactivo")+' · '+open.filter(o=>o.rider_id===r.id).length+' pedidos</small><small>'+(r.customer_call_enabled&&r.phone?"☎ Clientes pueden llamar al número de trabajo":"Llamadas de clientes desactivadas")+'</small></span>'+
@@ -286,9 +317,12 @@ function render(){
     return '<tr><td><strong>'+esc(o.reference)+'</strong><small>'+esc(Number(o.amount||0).toFixed(2))+' €</small></td>'+
       '<td><strong>'+esc(o.customer_name)+'</strong><small>'+esc(o.destination)+'</small>'+
       (o.customer_phone?'<small>☎ '+esc(o.customer_phone)+'</small>':'')+
+      (o.customer_phone?'<small class="ops-sms '+(o.notifications_consent&&o.notification_channel==="sms"?"ready":"off")+'">'+
+       (o.notifications_consent&&o.notification_channel==="sms"?"✉ SMS habilitado (entrega no confirmada)":"✉ SMS no habilitado")+'</small>':'')+
+      (locationShares.get(o.id)?'<small class="ops-map-status">📍 Enlace GPS compartido (posición no verificada)</small>':'')+
       (o.notes?'<small>📝 '+esc(o.notes)+'</small>':'')+
       (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
-      '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
+      '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status])+
       '</span></td><td>'+(o.channel!=="test"
        ?'<strong class="last-manual">Gestionar en Last.app</strong><small>Asignación manual desde LastPOS</small>'
        :'<select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select>')+'</td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
@@ -296,7 +330,7 @@ function render(){
       '<button class="outline whatsapp-action" type="button" data-wa="'+esc(o.id)+'" '+((o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone))?"":'disabled title="Indica teléfono y activa WhatsApp con consentimiento en Editar"')+'>💬 Enviar seguimiento</button>'+
       (locationShares.get(o.id)?'<button class="outline stop-public-gps" type="button" data-stop-public-gps="'+esc(o.id)+'">■ Ocultar GPS del cliente</button>':'')+
       '</div></td></tr>';
-  }).join("")||'<tr><td colspan="8">Sin pedidos.</td></tr>';
+  }).join("")||'<tr class="ops-empty"><td colspan="8">No hay pedidos con esos filtros. Modifica la búsqueda o pulsa «Limpiar filtros».</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{
     const n=next[o.status],map=mapsLink(o);
@@ -378,6 +412,21 @@ el("brandForm").addEventListener("submit",e=>{
    method:"POST",headers:{"Prefer":"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(body)});
   el("brandSaved").hidden=false;el("brandSaved").textContent="✓ Marca guardada para el seguimiento de pedidos.";
  });
+});
+el("opsSearch").addEventListener("input",event=>{opsQuery=normalizeOps(event.target.value);if(member)render();});
+el("opsFocus").addEventListener("change",event=>{opsFocus=event.target.value;if(member)render();});
+el("opsChannel").addEventListener("change",event=>{opsChannel=event.target.value;if(member)render();});
+el("opsOverview").addEventListener("click",event=>{
+ const button=event.target.closest("button[data-ops-focus]");
+ if(!button||!member)return;
+ opsFocus=opsFocus===button.dataset.opsFocus?"all":button.dataset.opsFocus;
+ el("opsFocus").value=opsFocus;
+ render();
+});
+el("opsReset").addEventListener("click",()=>{
+ opsQuery="";opsFocus="all";opsChannel="all";
+ el("opsSearch").value="";el("opsFocus").value="all";el("opsChannel").value="all";
+ if(member)render();
 });
 el("showArchivedOrders").addEventListener("change",event=>{
  showArchivedOrders=Boolean(event.target.checked);
