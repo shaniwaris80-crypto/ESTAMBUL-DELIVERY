@@ -125,6 +125,19 @@ function draw(data){
   el("riderMap").removeAttribute("src");
   el("riderMap").removeAttribute("data-position");
  }
+ // Show road-route details only when the backend returns validated, fresh route data.
+ const route=data.status==="en_ruta"&&hasGps&&data.road_route;
+ const routeKm=Number(route?.distance_km),routeEta=Number(route?.duration_minutes);
+ const routeTime=Date.parse(String(route?.calculated_at||""));
+ const routeValid=Boolean(route&&route.validated===true&&Number.isFinite(routeKm)&&routeKm>=0&&
+  Number.isFinite(routeEta)&&routeEta>=0&&Number.isFinite(routeTime)&&
+  Date.now()-routeTime>=0&&Date.now()-routeTime<120000);
+ el("routePanel").hidden=!routeValid;
+ if(routeValid){
+  el("routeDescription").textContent="Recorrido estimado por carretera, actualizado con el GPS autorizado.";
+  el("routeDistance").textContent=routeKm.toLocaleString("es-ES",{maximumFractionDigits:1})+
+   " km restantes · "+Math.ceil(routeEta)+" min aproximados.";
+ }
  el("customerChatPanel").hidden=!(["asignado","recogido","en_ruta"].includes(data.status));
  const telephone=typeof data.rider_call_phone==="string"&&/^\+[1-9]\d{7,14}$/.test(data.rider_call_phone)
    ?data.rider_call_phone:null;
@@ -149,6 +162,7 @@ async function refresh(){
    el("orderContent").hidden=true;
    el("notFound").hidden=false;
    el("liveMapPanel").hidden=true;
+   el("routePanel").hidden=true;
    el("riderMap").removeAttribute("src");
    el("riderMap").removeAttribute("data-position");
    el("connectionNotice").hidden=true;
