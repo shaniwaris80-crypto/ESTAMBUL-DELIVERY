@@ -35,3 +35,24 @@ Limitaciones: no existen webhooks de estado de entrega de Twilio ni reintentos a
 ## Fase temporal: WhatsApp normal, envío iniciado por la persona
 
 Mientras Twilio no está configurado, el administrador dispone del botón WhatsApp por pedido, que abre el teléfono y el texto de estado en WhatsApp normal. Solo se activa en pedidos con canal WhatsApp elegido, número válido y autorización registrada. El Rider también puede compartir el arqueo directamente por WhatsApp normal desde la app. En ambos casos es imprescindible revisar el mensaje y pulsar Enviar dentro de WhatsApp; **no se envía nada en segundo plano**. Los eventos SMS/WhatsApp automáticos permanecen en la cola de Supabase sin proveedor, como documentación del cambio de estado, sin envío real.
+
+## Enlace privado por SMS automático desde «Aceptar pedido» (octubre 2026)
+
+Se ha desplegado la **Edge Function `ed-rider-accept-sms`** con JWT verificado y CORS restringido al GitHub Pages del proyecto.
+
+1. Administrador crea el pedido con **teléfono del cliente**, casilla de **avisos de servicio autorizados**, canal **SMS** y lo asigna al Rider.
+2. Rider, online, pulsa **Aceptar pedido · SMS automático**. La función autentica al Rider, acepta la asignación sin cambiar el estado a Recogido, genera el token de seguimiento e intenta enviar SMS al teléfono del pedido **en esa misma solicitud** cuando el proveedor está habilitado.
+3. El enlace es `https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/track.html#token=<token>` con secreto aleatorio único; nunca se expone como ubicación pública ni se almacena en los logs del proveedor interno. El cliente puede hacer seguimiento, chatear y, si el teléfono profesional fue configurado y autorizado, llamar a su repartidor.
+4. Rider recibe `provider_accepted` si Twilio aceptó el mensaje; **esto NO demuestra entrega en el teléfono**. Si Twilio está inactivo, faltan credenciales o falla, la aceptación se conserva y Rider ve **NO se ha enviado SMS**, con botón **Copiar enlace**.
+5. Para reenviar desde Rider, usar **Reenviar seguimiento**. Los enlaces anteriores siguen funcionando; los reenvíos están limitados por el servidor.
+6. Si el pedido tiene el canal WhatsApp, se mantiene la preparación **manual** por WhatsApp normal, sin afirmar envío automático.
+
+### Activación de envío real (pendiente del propietario)
+- Crear y verificar **cuenta de Twilio**, configurar remitente SMS real y revisar tarifas/crédito y restricciones de destino España. En cuenta trial, los destinatarios pueden necesitar verificación.
+- Guardar **solo en Supabase Edge Function Secrets**, NUNCA en el navegador o en GitHub, los valores `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM` (formato internacional `+...`). El servidor utiliza también las variables Supabase preconfiguradas.
+- Tras verificar el número, las autorizaciones y realizar una prueba consentida, activar explícitamente `ESTAMBUL_MESSAGING_ENABLED=true`. **De momento está desactivado.**
+- Cada aceptación envía a Twilio automáticamente sin tarea programada, porque la Edge Function es invocada directamente por el Rider. La cola antigua de cambios de estado sigue sin programar y no es necesaria para esta función.
+- Los recibos se guardan en `private.ed_tracking_sms_receipts`, con hash del token, estado aceptado/rechazado y código del proveedor; no se guardan mensajes ni enlaces en texto claro.
+- Antes de usar con clientes reales: información de privacidad/retención, autorización de contacto, pruebas en móvil y facturación del proveedor. SMS pueden costar más de un segmento debido a la longitud de los enlaces.
+
+**Importante:** ningún SMS sale del sistema mientras Twilio no esté correctamente configurado y activado. No introducir secretos en un chat.
