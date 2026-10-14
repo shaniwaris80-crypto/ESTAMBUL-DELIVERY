@@ -30,7 +30,10 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 .toggle[aria-pressed=true]{background:#18825a}
 .summary{grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0 13px}
 .metric{min-width:0;padding:15px 13px;border-radius:19px;border-color:#deeadf;box-shadow:0 8px 22px rgba(20,60,32,.055)}
-.metric:first-child{background:#e6f5e9;border-color:#cce4d1}
+/* Light first summary card must override V18's inherited white text. */
+.metric:first-child{background:#e6f5e9;border-color:#cce4d1;color:#173b27}
+.metric:first-child strong{color:#173b27}
+.metric:first-child small{color:#315741;opacity:1}
 .metric-icon{font-size:18px;line-height:1}.metric strong{font-size:clamp(27px,6vw,36px);color:#132e21;letter-spacing:-.06em;margin:7px 0 1px}
 .metric small{font-size:11px;color:#506c58;font-weight:750}
 .v2-rider-nav{display:flex;gap:8px;margin:0 0 20px;overflow-x:auto;scrollbar-width:none;padding:3px 1px 5px}
