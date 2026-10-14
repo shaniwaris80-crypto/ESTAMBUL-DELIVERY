@@ -21,6 +21,8 @@ const cases = [
   ['Tracking verifies order in route', track.includes('data.status==="en_ruta"')],
   ['No stale rider marker retained', track.includes('removeAttribute("src")')],
   ['SMS integration only sends with customer authorization', sms.includes('order.notifications_consent') && sms.includes('order.notification_channel!=="sms"')],
+  ['Route panel is present and optional', customer.includes('id="routePanel"') && customer.includes('hidden')],
+  ['Route details require server validation and freshness', track.includes('route.validated===true') && track.includes('Date.now()-routeTime<120000')],
   ['Twilio network call has a bounded timeout', sms.includes('signal:AbortSignal.timeout(12000)')],
   ['Twilio remains controlled by server-side feature flag', sms.includes('ESTAMBUL_MESSAGING_ENABLED')],
   ['Revoked token clears previously rendered private map', track.includes('current=null;') && track.includes('el("orderContent").hidden=true;')],
@@ -33,4 +35,4 @@ for(const [description,ok] of cases){
   process.stdout.write((ok?'PASS':'FAIL')+' '+description+'\n');
 }
 assert.equal(cases.filter(([,ok])=>!ok).length,0,'Customer experience checks failed');
-console.log('17 structural customer-experience checks passed. These are not end-to-end integration tests.');
+console.log('19 structural customer-experience checks passed. These are not end-to-end integration tests.');
