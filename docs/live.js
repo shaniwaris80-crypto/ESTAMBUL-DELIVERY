@@ -23,7 +23,7 @@ function matchOperations(o){
  const isActive=!["entregado","cancelado"].includes(o.status);
  switch(opsFocus){
   case "active":return isActive;
-  case "unassigned":return isActive&&!o.rider_id;
+  case "unassigned":return isActive&&!o.rider_id&&o.channel!=="test";
   case "route":return o.status==="en_ruta";
   case "delivered":return o.status==="entregado";
   case "payment_missing":return o.status==="entregado"&&!["efectivo","tarjeta"].includes(o.payment_method);
@@ -308,7 +308,7 @@ function render(){
   el("opsResultCount").textContent=visibleOrders.length+" resultados de "+allVisibleOrders.length+
     (opsFocus!=="all"||opsQuery||opsChannel!=="all"?" · Filtros activos":"")+" · "+archivedIds.size+" en arqueos cerrados";
   const openOrders=allVisibleOrders.filter(o=>!["entregado","cancelado"].includes(o.status));
-  el("opsUnassignedCount").textContent=openOrders.filter(o=>!o.rider_id).length;
+  el("opsUnassignedCount").textContent=openOrders.filter(o=>!o.rider_id&&o.channel!=="test").length;
   el("opsRouteCount").textContent=openOrders.filter(o=>o.status==="en_ruta").length;
   el("opsPaymentCount").textContent=allVisibleOrders.filter(o=>o.status==="entregado"&&!["efectivo","tarjeta"].includes(o.payment_method)).length;
   document.querySelectorAll("[data-ops-focus]").forEach(b=>{
