@@ -261,7 +261,7 @@ function archeoText(data){
 
 
 // Reordering is a recommendation only: courier assignment stays in Last.app.
-const routeState={ids:[],coordsOptimized:false};
+const routeState={ids:[],coordsOptimized:false,manualOrder:false};
 function waitMinutes(order){
  const created=Date.parse(String(order.created_at||""));
  return Number.isFinite(created)?Math.max(0,Math.min(1440,Math.floor((Date.now()-created)/60000))):0;
@@ -279,7 +279,8 @@ function routeStopsOrdered(){
  const validIds=new Set(active.map(o=>o.id));
  routeState.ids=routeState.ids.filter(id=>validIds.has(id));
  const recent=active.slice().sort(agePriority);
- for(const o of recent)if(!routeState.ids.includes(o.id))routeState.ids.push(o.id);
+ if(!routeState.manualOrder)routeState.ids=recent.map(o=>o.id);
+ else for(const o of recent)if(!routeState.ids.includes(o.id))routeState.ids.push(o.id);
  return routeState.ids.map(id=>active.find(o=>o.id===id)).filter(Boolean);
 }
 function routeTarget(o){
@@ -477,7 +478,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
-  routeState.ids=[];routeState.coordsOptimized=false;
+  routeState.ids=[];routeState.coordsOptimized=false;routeState.manualOrder=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
   $("riderTrackingFallback").hidden=true;
@@ -707,20 +708,20 @@ $("routeStops").addEventListener("click",e=>{
  const index=Number(b.dataset.index),other=index+(b.dataset.route==="up"?-1:1);
  if(!Number.isInteger(index)||index<0||other<0||other>=routeState.ids.length)return;
  [routeState.ids[index],routeState.ids[other]]=[routeState.ids[other],routeState.ids[index]];
- routeState.coordsOptimized=false;renderRoute();
+ routeState.coordsOptimized=false;routeState.manualOrder=true;renderRoute();
 });
 $("optimizeRoute").addEventListener("click",()=>{
  const stops=routeStopsOrdered();if(stops.length<2)return;
  const allGps=stops.every(o=>o.lat!=null&&o.lng!=null&&Number.isFinite(Number(o.lat))&&Number.isFinite(Number(o.lng)));
  const ageOnly=()=>{
   routeState.ids=optimizeRouteByAge(stops).map(o=>o.id);
-  routeState.coordsOptimized=true;renderRoute();
+  routeState.coordsOptimized=true;routeState.manualOrder=true;renderRoute();
  };
  if(!allGps||!navigator.geolocation){ageOnly();return;}
  $("optimizeRoute").disabled=true;
  navigator.geolocation.getCurrentPosition(position=>{
   routeState.ids=recommendAgeAwareRoute(stops,{lat:position.coords.latitude,lng:position.coords.longitude}).map(o=>o.id);
-  routeState.coordsOptimized=true;renderRoute();
+  routeState.coordsOptimized=true;routeState.manualOrder=true;renderRoute();
  },()=>{
   ageOnly();
   $("routeHint").textContent="GPS no disponible: ruta por los pedidos que más llevan esperando.";
