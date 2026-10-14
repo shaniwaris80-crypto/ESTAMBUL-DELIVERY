@@ -1,19 +1,22 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#151917"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=18"></head>
+<meta name="theme-color" content="#151917"><title>Estambul Delivery · Conectado</title><link rel="stylesheet" href="docs/live.css?v=18"><link rel="stylesheet" href="docs/v2-live.css?v=1"></head>
 <body>
-<header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · PRUEBAS</small></span></div>
+<header class="bar"><div class="brand"><span class="brand-icon">E↗</span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES CONECTADAS · V2 DE PRUEBA</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
 <main class="wrap">
 <div id="noConfig" class="card center" hidden><h1>Conexión pendiente</h1><p>El modo con cuentas reales de prueba está preparado, pero todavía no se ha configurado un proyecto Supabase.</p><p>Lee <a href="https://github.com/shaniwaris80-crypto/ESTAMBUL-DELIVERY/blob/main/supabase/README.md" target="_blank" rel="noopener noreferrer">las instrucciones de activación</a>. Nunca pongas una clave secreta en GitHub.</p><a href="./" class="btn">Volver a la demostración pública</a></div>
 <section id="loginSection" class="auth-layout" hidden>
-<div class="auth-art"><div class="eyebrow">ESTAMBUL DELIVERY · VERSIÓN CONECTADA</div><h1>Un panel.<br>Todos los riders.</h1><p>Inicia sesión como responsable o repartidor para comprobar la asignación de pedidos en varios teléfonos, con cuentas independientes.</p><div class="graphic">🛵 <span>→</span> 📍 <span>→</span> 📦</div><p class="disclaimer">Solo para pedidos ficticios de pruebas. No integrado todavía con Last.app.</p></div>
+<div class="auth-art"><div class="eyebrow">ESTAMBUL DELIVERY · VERSIÓN CONECTADA</div><h1>Un panel.<br>Todos los riders.</h1><p>Inicia sesión como responsable o repartidor para comprobar la asignación de pedidos en varios teléfonos, con cuentas independientes.</p><div class="graphic">🛵 <span>→</span> 📍 <span>→</span> 📦</div><p class="disclaimer">Versión V2 de prueba visual. Las asignaciones de pedidos reales se mantienen exclusivamente en LastPOS.</p></div>
 <form id="loginForm" class="card login" autocomplete="on"><span class="eyebrow">ACCESO SEGURO</span><h2>Entrar en Estambul</h2><p>Usa uno de los usuarios de prueba configurados en Supabase.</p><label for="email">Correo electrónico</label><input id="email" type="email" required autocomplete="username" placeholder="rider@ejemplo.com">
 <label for="password">Contraseña</label><input id="password" type="password" required autocomplete="current-password" minlength="6" placeholder="••••••••">
 <button type="submit" class="btn" id="signInButton">Entrar</button><button type="button" class="outline" id="signUpButton" style="display:block;width:100%;margin-top:11px">Crear mi cuenta de administrador</button><p id="signUpInfo" role="status" style="margin-top:12px;color:#256f5d" hidden></p><div id="loginError" role="alert" class="error" hidden></div></form></section>
-<section id="appSection" hidden><div class="app-title"><div><span class="eyebrow" id="accountLabel">CUENTA</span><h1 id="viewTitle">Centro de reparto</h1><p id="viewSub">Pedidos de prueba sincronizados a través de Supabase.</p></div><button class="outline" id="refresh">↻ Actualizar</button></div>
+<section id="appSection" hidden><div class="app-title"><div><span class="eyebrow" id="accountLabel">CUENTA</span><h1 id="viewTitle">Centro de reparto</h1><p id="viewSub">Centro de control conectado con Supabase y Last.app.</p></div><button class="outline" id="refresh">↻ Actualizar</button></div>
 <div id="errorBox" class="error" role="alert" hidden></div>
 <div class="stats" id="stats"></div>
+<nav class="v2-admin-nav" aria-label="Secciones del centro de reparto">
+<a href="#ordersArea">📦 Pedidos</a><a href="#riderDirectory">🛵 Repartidores</a><a href="#gpsAdminCard">📍 GPS</a><a href="#shiftHistoryCard">💶 Arqueos</a><a href="#createCard">＋ Pruebas</a>
+</nav>
 <div id="staffView" hidden>
 <section class="card" id="inviteCard" hidden>
   <div class="section-head"><div><h2>Activar repartidores</h2><p>Crea las cuentas de Rider 1 y Rider 2 para pruebas sin depender de correo SMTP. Se generará una contraseña temporal diferente para cada uno y se mostrará solo una vez. Entrégalas de forma privada.</p></div></div>
@@ -22,7 +25,7 @@
 </section>
 <section class="card" id="createCard">
   <h2>Crear entrega de prueba</h2>
-  <p>Completa los datos para que el rider vea a quién entregar, su dirección, contacto y observaciones. Todavía no se importan pedidos de Last.app.</p>
+  <p>Formulario exclusivo para entregas de prueba. Los pedidos reales se importan automáticamente desde Last.app y se asignan únicamente desde LastPOS.</p>
   <form id="createForm" class="create-form">
     <label>Referencia del pedido<input id="newReference" required maxlength="80" placeholder="PRUEBA-003"></label>
     <label>Nombre del cliente<input id="newCustomer" required maxlength="120" placeholder="Cliente de prueba"></label>
@@ -39,7 +42,7 @@
     <div class="notification-settings full-width">
 <label>Canal de avisos de estado<select id="newNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS automático (requiere Twilio activo)</option><option value="whatsapp">WhatsApp normal (manual)</option></select></label>
 <label class="notification-consent"><input type="checkbox" id="newNoticeConsent"><span>El cliente ha autorizado los avisos de servicio al teléfono indicado (registrar solo si ha dado permiso).</span></label>
-<p>Los avisos quedarán preparados en la cola, pero **no se enviarán** hasta conectar un proveedor autorizado de SMS/WhatsApp.</p>
+<p>Los avisos se envían únicamente cuando corresponda y haya autorización; Twilio distingue aceptación del proveedor y entrega al teléfono.</p>
 </div><button type="submit" class="btn full-width" style="max-width:250px">+ Crear pedido</button>
   </form>
   <p class="small-note">Introduce una dirección completa: Google Maps podrá localizarla incluso cuando no haya coordenadas GPS.</p>
@@ -60,19 +63,19 @@
 </div>
 <label class="full-width">Notas / portal / piso<input id="editNotes" maxlength="1000"></label>
 <div class="notification-settings full-width">
-<label>Canal de avisos de estado<select id="editNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS (futuro con Twilio)</option><option value="whatsapp">WhatsApp normal (manual)</option></select></label>
+<label>Canal de avisos de estado<select id="editNoticeChannel"><option value="none">Sin avisos</option><option value="sms">SMS con Twilio</option><option value="whatsapp">WhatsApp normal (manual)</option></select></label>
 <label class="notification-consent"><input type="checkbox" id="editNoticeConsent"><span>El cliente ha autorizado los avisos de servicio al teléfono indicado (registrar solo si ha dado permiso).</span></label>
-<p>Los avisos quedarán preparados en la cola, pero **no se enviarán** hasta conectar un proveedor autorizado de SMS/WhatsApp.</p>
+<p>Los avisos se envían únicamente cuando corresponda y haya autorización; Twilio distingue aceptación del proveedor y entrega al teléfono.</p>
 </div><button type="submit" class="btn full-width" style="max-width:250px">Guardar cambios</button>
 </form>
 </section>
-<section class="card"><div class="section-head"><div><h2>Riders de la cuenta</h2><p>Configura el número de trabajo del rider y autoriza que los clientes puedan llamarlo desde su seguimiento.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
-<section class="card"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Pedidos de prueba: asignación manual de pruebas. Pedidos importados de Last.app: el repartidor se asigna y reasigna exclusivamente desde LastPOS; aquí solo se consulta.</p></div><span id="orderCount" class="tag"></span></div><label class="archive-control"><input id="showArchivedOrders" type="checkbox"> Mostrar también pedidos ya incluidos en arqueos cerrados</label><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Enlace / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
-<section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>🔗 Seguimiento por WhatsApp</h2><p>Cuando el Rider pulsa «Aceptar pedido», el sistema intenta enviar automáticamente el enlace por SMS (solo si hay autorización y Twilio está activado). WhatsApp normal queda como opción manual de respaldo.</p></div></div><p class="small-note">Para SMS automático, elige SMS, indica teléfono y autorización. Mientras Twilio esté sin configurar NO se enviará ningún SMS; Rider ofrecerá el enlace para compartir. «Enviar seguimiento» sigue como respaldo manual. Desde Riders puedes configurar un número de trabajo para que el cliente también llame al repartidor.</p></section>
+<section class="card" id="riderDirectory"><div class="section-head"><div><h2>Repartidores</h2><p>Configura el número de trabajo del rider y autoriza que los clientes puedan llamarlo desde su seguimiento.</p></div><span id="riderCount" class="tag"></span></div><div id="riders" class="riders"></div></section>
+<section class="card" id="ordersArea"><div class="section-head"><div><h2>Pedidos y asignaciones</h2><p>Pedidos de prueba: asignación manual de pruebas. Pedidos importados de Last.app: el repartidor se asigna y reasigna exclusivamente desde LastPOS; aquí solo se consulta.</p></div><span id="orderCount" class="tag"></span></div><label class="archive-control"><input id="showArchivedOrders" type="checkbox"> Mostrar también pedidos ya incluidos en arqueos cerrados</label><div class="table-scroll"><table><thead><tr><th>Pedido</th><th>Cliente / destino</th><th>Canal</th><th>Pago</th><th>Estado</th><th>Rider</th><th>Editar</th><th>Enlace / WhatsApp</th></tr></thead><tbody id="ordersTable"></tbody></table></div></section>
+<section class="card" id="notifyAdminCard"><div class="section-head"><div><h2>🔗 Seguimiento por WhatsApp</h2><p>Cuando el Rider pulsa «Aceptar pedido», el sistema intenta enviar automáticamente el enlace por SMS (solo si hay autorización y Twilio está activado). WhatsApp normal queda como opción manual de respaldo.</p></div></div><p class="small-note">Para SMS automático, elige SMS, indica teléfono y autorización. Si Twilio no está disponible, Rider mostrará un aviso y ofrecerá el enlace de seguimiento para compartir. «Enviar seguimiento» sigue como respaldo manual. Desde Riders puedes configurar un número de trabajo para que el cliente también llame al repartidor.</p></section>
 <section class="card" id="gpsAdminCard"><div class="section-head"><div><h2>📍 GPS de los repartidores</h2><p>GPS voluntario del rider: solo visible al cliente con enlace privado y autorización expresa para ese pedido. El administrador puede revocar la vista desde Pedidos.</p></div><span class="tag" id="gpsAdminCount">0 compartiendo</span></div>
 <div id="gpsRiderList" class="gps-admin-list"></div></section>
 <section class="card" id="brandCard">
-<div class="section-head"><div><h2>Marca y experiencia del cliente</h2><p>Personaliza la página privada de seguimiento de los pedidos. No se envían SMS desde el sistema todavía.</p></div></div>
+<div class="section-head"><div><h2>Marca y experiencia del cliente</h2><p>Personaliza la página privada de seguimiento de los pedidos. Los avisos SMS transaccionales se gestionan mediante Twilio cuando están autorizados.</p></div></div>
 <form id="brandForm" class="create-form">
 <label>Nombre visible del restaurante<input id="brandName" maxlength="80" required placeholder="ESTAMBUL DELIVERY"></label>
 <label>Color de marca<input id="brandColor" type="color" value="#14263b"></label>
