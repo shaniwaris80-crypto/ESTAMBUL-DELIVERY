@@ -1,5 +1,5 @@
-/* ESTAMBUL DELIVERY Rider · Aplicación web PWA: datos reales de backend de PRUEBAS.
- * Sin integración Last.app; autentica con Supabase y RLS.
+/* ESTAMBUL DELIVERY Rider · PWA conectada a Supabase y sincronizada con Last.app.
+ * La asignación de pedidos reales se realiza exclusivamente desde LastPOS.
  * No almacena datos de pedidos en el navegador entre sesiones. */
 (function () {
 "use strict";
@@ -17,6 +17,10 @@ const statusNames = { pendiente: "Pendiente", asignado: "Asignado", recogido: "R
 const channelNames = { test: "Prueba", lastapp: "Last.app", uber: "Uber Eats", justeat: "Just Eat" };
 const allowedNext = { asignado: "recogido", recogido: "en_ruta", en_ruta: "entregado" };
 const nextNames = { recogido: "Confirmar recogida", en_ruta: "Iniciar reparto", entregado: "Confirmar entrega" };
+function displayOrderCode(order){
+ const found=String(order?.notes||"").match(/(?:^|\s|\|)Last\.app\s*#\s*([A-Za-z0-9_-]{1,32})/i);
+ return found?found[1]:String(order?.reference||"");
+}
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
@@ -39,7 +43,7 @@ function getTrackLink(token){
 }
 function shareTrackingByWhatsApp(order,link,tab){
  const phone=followupPhone(order.customer_phone);
- const msg="Hola, sigue tu pedido #"+order.reference+
+ const msg="Hola, sigue tu pedido #"+displayOrderCode(order)+
    " de ESTAMBUL DELIVERY desde este enlace privado:\n"+
    link+"\nPuedes consultar su progreso, hablar o llamar al repartidor mientras esté disponible.";
  const wa="https://api.whatsapp.com/send?phone="+encodeURIComponent(phone)+
@@ -50,7 +54,7 @@ function shareTrackingByWhatsApp(order,link,tab){
  }else window.prompt("Copia el enlace de seguimiento:",link);
  $("riderShareNotice").hidden=false;
  $("riderShareNotice").textContent=tab?
-  "✓ Seguimiento preparado en WhatsApp para #"+order.reference+". Revisa el mensaje y pulsa ENVIAR en WhatsApp."
+  "✓ Seguimiento preparado en WhatsApp para #"+displayOrderCode(order)+". Revisa el mensaje y pulsa ENVIAR en WhatsApp."
   :"✓ Pedido aceptado. WhatsApp fue bloqueado: copia y comparte el enlace privado.";
 }
 async function riderAcceptance(order,resend,tab){
@@ -540,6 +544,9 @@ async function updateOrders() {
     $("connectionNotice").hidden = true;
   } catch (error) {
     setError("Sin conexión: " + (error.message || "Inténtalo de nuevo."), false);
+    const health=$("riderSyncHealth");
+    health.classList.add("stale");
+    health.textContent="● Sin conexión";
   } finally { inFlight = false; }
 }
 function draw(){
@@ -570,6 +577,10 @@ function draw(){
  $("historyOrders").innerHTML=showHistory?(done.length?done.map(renderHistoryOrder).join("")
    :'<div class="history-empty">Sin entregas pendientes de arqueo. Las jornadas cerradas siguen disponibles para administración.</div>'):"";
  $("syncStamp").textContent="Actualizado a las "+new Date(lastSync).toLocaleTimeString("es-ES");
+ const health=$("riderSyncHealth");
+ const recent=lastSync>0&&Date.now()-lastSync<20000;
+ health.classList.toggle("stale",!recent);
+ health.textContent=recent?"● Sincronizado":"● Sin conexión reciente";
  renderRoute();
 }
 function mapUrl(order) {
@@ -585,7 +596,7 @@ function renderHistoryOrder(order){
  const pay=order.payment_method==="efectivo"?"💶 Efectivo":order.payment_method==="tarjeta"?"💳 Tarjeta":"Pago sin indicar";
  return '<article class="history-row">'+
   '<span class="history-row-status" aria-label="Entregado">✓</span>'+
-  '<div class="history-row-main"><strong>#'+escapeText(order.reference)+'</strong><span>'+escapeText(order.customer_name)+'</span>'+
+  '<div class="history-row-main"><strong>#'+escapeText(displayOrderCode(order))+'</strong><span>'+escapeText(order.customer_name)+'</span>'+
   '<small>'+escapeText(pay)+'</small></div>'+
   '<div class="history-row-end"><strong>'+euros(order.amount)+'</strong><small>Entregado</small></div></article>';
 }
@@ -628,7 +639,7 @@ function renderOrder(order,isPriority=false) {
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
         ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
-    '<div class="order-top"><div><span class="order-number">#'+escapeText(order.reference)+
+    '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
     '</span></div><span class="status '+escapeText(order.status)+'">'+status+'</span></div>'+
     '<div class="order-wait '+(waitMinutes(order)>=30?"order-wait-urgent":waitMinutes(order)>=15?"order-wait-warning":"")+'">◷ '+escapeText(waitLabel(order))+(waitMinutes(order)>=30?" · ENTREGA PRIORITARIA":"")+'</div>'+
@@ -991,16 +1002,16 @@ $("orders").addEventListener("click", event => {
           });
           const notice=$("riderShareNotice");
           if(sms.accepted>0){
-            notice.textContent="✓ Twilio ha aceptado el aviso de estado #"+order.reference+". Entrega al móvil aún no confirmada.";
+            notice.textContent="✓ Twilio ha aceptado el aviso de estado #"+displayOrderCode(order)+". Entrega al móvil aún no confirmada.";
           }else if(sms.failed>0 || sms.enabled===false || sms.error){
-            notice.textContent="⚠ Estado actualizado, pero Twilio NO ha enviado el aviso de #"+order.reference+". "+(sms.error||sms.reason||"Revisa el proveedor SMS.");
+            notice.textContent="⚠ Estado actualizado, pero Twilio NO ha enviado el aviso de #"+displayOrderCode(order)+". "+(sms.error||sms.reason||"Revisa el proveedor SMS.");
           }else{
-            notice.textContent="Estado actualizado. Sin nuevo SMS pendiente para #"+order.reference+".";
+            notice.textContent="Estado actualizado. Sin nuevo SMS pendiente para #"+displayOrderCode(order)+".";
           }
           notice.hidden=false;
         }catch(error){
           $("riderShareNotice").hidden=false;
-          $("riderShareNotice").textContent="⚠ Estado actualizado, pero no se pudo enviar el SMS de #"+order.reference+": "+(error.message||"Error de envío");
+          $("riderShareNotice").textContent="⚠ Estado actualizado, pero no se pudo enviar el SMS de #"+displayOrderCode(order)+": "+(error.message||"Error de envío");
         }
       }
       if (mapsDestination) {
