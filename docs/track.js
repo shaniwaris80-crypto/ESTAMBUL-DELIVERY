@@ -70,6 +70,28 @@ function draw(data){
   heading.textContent=item.title;hint.textContent=item.info;copy.append(heading,hint);li.append(num,copy);el("steps").append(li);
  });
  el("updatedAt").textContent="Último cambio: "+prettyTime(data.updated_at);
+ // Never draw historical or staff-only GPS: the server releases coordinates only with
+ // a valid private tracking token, an active rider opt-in and a very recent position.
+ const pos=data.status==="en_ruta"&&data.live_location&&typeof data.live_location==="object"?data.live_location:null;
+ const lat=Number(pos?.lat),lng=Number(pos?.lng);
+ const hasGps=Boolean(pos&&Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180);
+ el("liveMapPanel").hidden=!hasGps;
+ if(hasGps){
+  const delta=0.004;
+  const bbox=[lng-delta,lat-delta,lng+delta,lat+delta].join(",");
+  const mapSrc="https://www.openstreetmap.org/export/embed.html?bbox="+encodeURIComponent(bbox)+
+   "&layer=mapnik&marker="+encodeURIComponent(lat+","+lng);
+  if(el("riderMap").dataset.position!==lat+","+lng){
+   el("riderMap").src=mapSrc;
+   el("riderMap").dataset.position=lat+","+lng;
+  }
+  el("openRiderMap").href="https://www.openstreetmap.org/?mlat="+encodeURIComponent(lat)+
+   "&mlon="+encodeURIComponent(lng)+"#map=16/"+encodeURIComponent(lat)+"/"+encodeURIComponent(lng);
+  el("riderMapTime").textContent="GPS actualizado: "+prettyTime(pos.updated_at);
+ }else if(el("riderMap").getAttribute("src")){
+  el("riderMap").removeAttribute("src");
+  el("riderMap").removeAttribute("data-position");
+ }
  el("customerChatPanel").hidden=!(["asignado","recogido","en_ruta"].includes(data.status));
  const telephone=typeof data.rider_call_phone==="string"&&/^\+[1-9]\d{7,14}$/.test(data.rider_call_phone)
    ?data.rider_call_phone:null;
