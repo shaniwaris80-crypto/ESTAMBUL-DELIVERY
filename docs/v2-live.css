@@ -1,0 +1,100 @@
+/* ESTAMBUL DELIVERY 2.0 - dispatcher visual layer.
+   No JS / database / LastPOS assignment behavior is changed. */
+:root{
+ --navy:#14251c;--text:#1c3025;--muted:#718578;
+ --line:#e0e9e0;--blue:#1a7952;--orange:#d5eea6;--green:#167e50;
+ --v2-surface:#fff;--v2-shadow:0 13px 35px rgba(22,57,33,.055)
+}
+html{scroll-behavior:smooth;scroll-padding-top:110px}
+body{background:linear-gradient(180deg,#eaf1ea 0,#f5f7f4 340px,#f8f9f7 100%);color:#203326;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif}
+.bar{background:#132219;border-bottom:1px solid #294433;box-shadow:0 10px 30px rgba(15,37,22,.13);min-height:76px;position:sticky;top:0;z-index:40}
+.brand{font-weight:900;letter-spacing:.075em;color:#f5faf3}
+.brand-icon{background:#d7f2ae;color:#244329;border-radius:14px;width:44px;height:44px;letter-spacing:0}
+.brand b{color:#d6eec5;font-weight:650}
+.brand small{color:#a5c4ab;letter-spacing:.13em;font-size:9px}
+.bar .tag{background:#244330;border:1px solid #3b6146;color:#d6eddb;border-radius:999px}
+.header-right .outline{background:#ffffff13;color:#f4fff4;border-color:#56715d}
+.wrap{max-width:1440px;padding:27px 26px 60px}
+.app-title{background:radial-gradient(circle at 91% 20%,rgba(181,232,169,.2),transparent 32%),linear-gradient(125deg,#182e22,#294936);border-radius:25px;padding:26px 29px;margin:3px 0 16px;color:#fff;box-shadow:0 20px 39px rgba(25,60,39,.14)}
+.app-title .eyebrow{color:#aad7ad}.app-title h1{color:#fff;font-size:clamp(26px,4vw,38px);letter-spacing:-.055em;margin:6px 0 5px}
+.app-title p{color:#c8dfcb;font-size:12px;line-height:1.6}
+.app-title .outline{background:#ffffff12;color:#fff;border:1px solid #ffffff42;min-height:43px;padding:10px 17px;border-radius:12px}
+.v2-admin-nav{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;align-items:center;white-space:nowrap;padding:2px 1px 7px;margin:0 0 17px}
+.v2-admin-nav::-webkit-scrollbar{display:none}
+.v2-admin-nav a{background:#fff;border:1px solid #d9e7d8;border-radius:999px;color:#355a40;font-size:12px;font-weight:850;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:10px 16px;text-decoration:none}
+.v2-admin-nav a:first-child{background:#183a28;color:#fff;border-color:#183a28}
+.v2-admin-nav a:hover{border-color:#7ba88a}
+.stats{grid-template-columns:repeat(4,minmax(0,1fr));gap:13px;margin-bottom:20px}
+.stat{background:#fff;border:1px solid #dfeadf;border-radius:20px;padding:18px 20px;box-shadow:var(--v2-shadow)}
+.stat:first-child{background:#e6f4e5;color:#1d512f;border-color:#c8e6c9}
+.stat:first-child b,.stat:first-child small{color:#245b35}
+.stat small{color:#698170;font-size:11px}.stat b{font-size:clamp(24px,3vw,37px);letter-spacing:-.06em;margin:7px 0}
+.card{background:#fff;border:1px solid #e0e9e0;border-radius:23px;padding:22px 24px;margin-bottom:17px;box-shadow:var(--v2-shadow)}
+.card h2{color:#1b3123;font-size:21px;letter-spacing:-.045em}
+.card p{color:#77887c;font-size:12px;line-height:1.62}
+.section-head{align-items:start;margin-bottom:16px}
+.section-head h2{margin:0 0 5px}
+.tag{border-radius:999px;background:#e8f4e7;color:#246f41;font-weight:800;padding:8px 12px}
+.btn{background:#183b2b;color:#fff;border-radius:13px;min-height:45px;padding:12px 19px}
+.outline{border-radius:12px;border:1px solid #d5e4d6;background:#fff;color:#315943;min-height:43px}
+input,select,textarea{border:1px solid #d9e5d8;border-radius:11px;background:#fff;color:#213b2a;min-height:44px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible,a:focus-visible{outline:3px solid #71cba1;outline-offset:3px}
+.create-form{gap:13px;grid-template-columns:repeat(2,minmax(0,1fr))}
+.create-form label{font-size:12px;font-weight:800;color:#486a52}
+.create-form input,.create-form select{margin-top:6px}
+.coordinate-fields{background:#f4f9f2;border-color:#dcebd9;border-radius:16px}
+.notification-settings{background:#f5f8f4;border-color:#dbe9d9;border-radius:16px}
+.riders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.rider-item{background:#f9fbf8;border:1px solid #e0eae0;border-radius:17px;padding:15px}
+.avatar{height:43px;width:43px;border-radius:14px;background:#deefdb;color:#237442;font-size:14px}
+.rider-item strong{font-size:14px;color:#22382a}
+.rider-item small{font-size:11px;color:#698270}
+#ordersArea{border-color:#d5e4d5}
+#ordersArea .section-head{gap:18px}
+.archive-control{border-radius:13px;background:#f3f8f1;color:#40644b}
+.table-scroll{border:1px solid #e4ece2;border-radius:15px;max-width:100%;overflow:auto}
+table{min-width:900px;border-collapse:separate;border-spacing:0}
+th{position:sticky;top:0;z-index:2;background:#f2f7f1;font-size:11px;color:#617966;letter-spacing:.04em;padding:14px}
+td{background:#fff;font-size:12px;padding:15px 14px;border-top:1px solid #ebf0ea;vertical-align:middle}
+tbody tr:hover td{background:#fbfdfb}
+td strong{font-size:13px;color:#273e2b}
+td small{color:#728674}
+.pill{background:#ecf5e7;color:#267044;border-radius:999px;padding:7px 11px}
+.last-manual{border-radius:11px;background:#e9f5ea;border-color:#d2e6d6;color:#2b6943}
+.share-actions .outline{border-radius:10px}
+.feedback-card{background:#f9fbf8;border-color:#dfe9de;border-radius:16px}
+.gps-admin-row{border-radius:14px;border-color:#dde8dd;background:#fafcf9}
+.shift-admin-report{border-radius:17px;border-color:#deeadc}
+.shift-admin-report summary{background:#f4f8f2}
+#riderDirectory,#ordersArea,#gpsAdminCard,#shiftHistoryCard,#createCard{scroll-margin-top:112px}
+.footer{margin:30px 0 8px;color:#8b9b8f}
+.login,.auth-art{border-radius:23px}.auth-art h1{color:#193929}.auth-layout{gap:24px}
+@media(min-width:1000px){
+ #staffView{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 17px;align-items:start}
+ #staffView>#riderDirectory,#staffView>#gpsAdminCard{grid-column:auto}
+ #staffView>#ordersArea,#staffView>#createCard,#staffView>#editCard,
+ #staffView>#notifyAdminCard,#staffView>#brandCard,#staffView>#feedbackAdmin,
+ #staffView>#shiftHistoryCard,#staffView>#inviteCard{grid-column:1/-1}
+ #staffView>#riderDirectory{grid-column:1/-1}
+ #staffView>.card{min-width:0}
+}
+@media(max-width:900px){
+ .wrap{padding:19px 17px 45px}
+ .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .riders{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:610px){
+ .bar{min-height:68px;padding:11px 12px}
+ .brand{font-size:13px}.brand small{font-size:8px}
+ .brand-icon{height:39px;width:39px}
+ .header-right{gap:5px}.header-right .outline{padding:7px 10px;font-size:11px}
+ .wrap{padding:13px 12px 40px}
+ .app-title{border-radius:20px;padding:20px 18px;align-items:start;gap:12px}
+ .app-title h1{font-size:27px}.app-title .outline{font-size:11px;padding:8px 10px}
+ .stat{padding:15px}.stat b{font-size:29px}
+ .card{padding:17px;border-radius:19px}
+ .create-form,.riders{grid-template-columns:1fr}
+ .section-head{align-items:start}
+ .v2-admin-nav a{padding:9px 12px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
