@@ -591,6 +591,17 @@ function renderHistoryOrder(order){
 }
 function renderOrder(order,isPriority=false) {
   const nextStatus=allowedNext[order.status];
+  const paymentConfirmation=nextStatus==="entregado"
+    ?'<label class="payment-confirmation" for="payment-'+escapeText(order.id)+'">'+
+      '<span>CONFIRMA EL COBRO ANTES DE ENTREGAR</span>'+
+      '<select id="payment-'+escapeText(order.id)+'" data-payment-for="'+escapeText(order.id)+'" required>'+
+       '<option value="">Seleccionar método de pago</option>'+
+       '<option value="efectivo" '+(order.payment_method==="efectivo"?"selected":"")+
+       '>💶 Efectivo cobrado</option>'+
+       '<option value="tarjeta" '+(order.payment_method==="tarjeta"?"selected":"")+
+       '>💳 Tarjeta / pago digital confirmado</option></select>'+
+      '<small>Verifica lo cobrado de verdad, aunque Last.app haya indicado una preferencia.</small>'+
+     '</label>':"";
   const url=mapUrl(order);
   const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");
   const tel=(phone.length>=6&&phone.length<=16)?"tel:"+phone:"";
@@ -630,6 +641,7 @@ function renderOrder(order,isPriority=false) {
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
     '<strong>'+euros(order.amount)+'</strong></div>'+
+    paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
 
@@ -940,6 +952,18 @@ $("orders").addEventListener("click", event => {
   if (!order || allowedNext[order.status] !== status) return;
   // Reserve a tab during the user gesture: mobile browsers may block it after await.
   // Navigate to Maps only after the status PATCH succeeds.
+  // Cash-up requires the Rider to confirm how money was actually collected.
+  // The Last.app bill preference is only an initial suggestion.
+  let confirmedPayment=null;
+  if(status==="entregado"){
+    const selector=button.closest(".order-card")?.querySelector("select[data-payment-for]");
+    confirmedPayment=selector?.value||"";
+    if(!["efectivo","tarjeta"].includes(confirmedPayment)){
+      setError("Selecciona y confirma si cobraste en efectivo o por tarjeta antes de entregar.",false);
+      selector?.focus();
+      return;
+    }
+  }
   const mapsDestination = status === "en_ruta" ? mapUrl(order) : "";
   let mapsTab = null;
   if (mapsDestination) {
@@ -953,10 +977,31 @@ $("orders").addEventListener("click", event => {
         "&rider_id=eq." + encodeURIComponent(rider.id) +
         "&status=eq." + encodeURIComponent(order.status);
       const rows = await withAuth("/rest/v1/ed_orders" + filter, {
-        method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ status })
+        method: "PATCH", headers: { "Prefer": "return=representation" },
+        body: JSON.stringify(status==="entregado"?{status,payment_method:confirmedPayment}:{status})
       });
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
+      }
+      // Status is committed independently of SMS; report any dispatch failure.
+      if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
+        try{
+          const sms=await withAuth("/functions/v1/ed-send-notifications",{
+            method:"POST",body:JSON.stringify({order_id:order.id})
+          });
+          const notice=$("riderShareNotice");
+          if(sms.accepted>0){
+            notice.textContent="✓ Twilio ha aceptado el aviso de estado #"+order.reference+". Entrega al móvil aún no confirmada.";
+          }else if(sms.failed>0 || sms.enabled===false || sms.error){
+            notice.textContent="⚠ Estado actualizado, pero Twilio NO ha enviado el aviso de #"+order.reference+". "+(sms.error||sms.reason||"Revisa el proveedor SMS.");
+          }else{
+            notice.textContent="Estado actualizado. Sin nuevo SMS pendiente para #"+order.reference+".";
+          }
+          notice.hidden=false;
+        }catch(error){
+          $("riderShareNotice").hidden=false;
+          $("riderShareNotice").textContent="⚠ Estado actualizado, pero no se pudo enviar el SMS de #"+order.reference+": "+(error.message||"Error de envío");
+        }
       }
       if (mapsDestination) {
         if (mapsTab && !mapsTab.closed) mapsTab.location.replace(mapsDestination);
