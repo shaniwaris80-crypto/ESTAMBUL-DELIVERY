@@ -4,6 +4,15 @@ import { createClient } from "npm:@supabase/supabase-js@2.57.0";
 // Last.app v2 -> ESTAMBUL DELIVERY. Authentic webhook inbox, then private auto-sync.
 // No external order is imported until its location is explicitly approved.
 const env=(name:string)=>Deno.env.get(name)?.trim()||"";
+// Normalize copied secret values without bypassing Last.app's Bearer authentication.
+function normalizeSavedBearer(raw:string):string {
+ let token=raw.trim();
+ for(let i=0;i<2;i++) {
+  if((token.startsWith('"')&&token.endsWith('"'))||(token.startsWith("'")&&token.endsWith("'")))
+   token=token.slice(1,-1).trim();
+ }
+ return token.replace(/^Bearer[ \t]+/i,"").trim();
+}
 const enc=new TextEncoder();
 function equalSecret(a:string,b:string):boolean{
   const x=enc.encode(a),y=enc.encode(b);
@@ -17,11 +26,22 @@ Deno.serve(async(req:Request)=>{
   if(req.method==="GET"||req.method==="HEAD")
     return plain(200); // health check, does not confirm subscription
   if(req.method!=="POST")return plain(405);
-  const expected=env("LAST_APP_INTEGRATOR_TOKEN");
-  if(!expected)return plain(503); // no token: deliberately do not accept events
+  const expected=normalizeSavedBearer(env("LAST_APP_INTEGRATOR_TOKEN"));
+  if(!expected){
+    console.error("[ED Last webhook] credential_unconfigured");
+    return plain(503);
+  }
   const auth=req.headers.get("authorization")||"";
-  const match=auth.match(/^Bearer\s+(.+)$/i);
-  if(!match||!equalSecret(match[1].trim(),expected))return plain(401);
+  const match=auth.match(/^Bearer[ \t]+([^\r\n]+)$/i);
+  if(!match){
+    console.warn("[ED Last webhook] unauthorized_missing_or_malformed_bearer");
+    return plain(401);
+  }
+  if(!equalSecret(match[1].trim(),expected)){
+    // Never log credentials, hashes, lengths, or Authorization header content.
+    console.warn("[ED Last webhook] unauthorized_bearer_token_mismatch");
+    return plain(401);
+  }
   const contentType=req.headers.get("content-type")||"";
   if(!contentType.toLowerCase().includes("application/json"))return plain(415);
   let payload:Record<string,unknown>;
@@ -59,7 +79,11 @@ Deno.serve(async(req:Request)=>{
         ?payload.created.slice(0,60):null,
       p_data:payload
     });
-    if(error)return plain(503);
+    if(error){
+      console.error("[ED Last webhook] event_inbox_store_failed");
+      return plain(503);
+    }
+    console.info("[ED Last webhook] event_accepted",eventType);
     // Acknowledge Last immediately; process the order in the private worker.
     // If Last.app retries, SQL deduplication by webhook event ID and tab ID is safe.
     const work=fetch(url+"/functions/v1/ed-last-auto-sync",{
