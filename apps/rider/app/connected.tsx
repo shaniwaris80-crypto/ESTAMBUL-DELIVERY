@@ -31,7 +31,7 @@ export default function Connected(){
  <Pressable disabled={busy} style={s.button} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Entrando...":"Entrar"}</Text></Pressable></View>
  :<><View style={s.card}><Text style={s.eyebrow}>MI CUENTA</Text><Text style={s.title}>{data?.rider.display_name||"Cargando..."}</Text><Text style={s.help}>{orders.length} entregas pendientes · sincronización cada 5 s</Text>
  <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Disponible · Desconectar":"○ Conectarme"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Salir</Text></Pressable></View></View>
- {orders.length===0?<View style={s.card}><Text style={s.help}>No hay pedidos asignados. Espera a que el supervisor te asigne uno desde el back office.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={status=>void operate(async()=>{
+ {orders.length===0?<View style={s.card}><Text style={s.help}>Todavía no tienes entregas. Cuando Last.app esté vinculado, los pedidos se asignarán aquí automáticamente, sin pasar por el panel.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={status=>void operate(async()=>{
   await advanceDelivery(o,status);
   if(status==="en_ruta"){
     const target=String(o.destination||"").trim();
