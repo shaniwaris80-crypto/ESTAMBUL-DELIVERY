@@ -143,7 +143,17 @@ async function refresh(){
  if(polling)return;polling=true;
  try{
   const data=await rpc("ed_public_track",{p_token:token});
-  if(!data){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;return;}
+  if(!data){
+   current=null;
+   el("loading").hidden=true;
+   el("orderContent").hidden=true;
+   el("notFound").hidden=false;
+   el("liveMapPanel").hidden=true;
+   el("riderMap").removeAttribute("src");
+   el("riderMap").removeAttribute("data-position");
+   el("connectionNotice").hidden=true;
+   return;
+  }
   draw(data);
   void refreshCustomerChat();
  }catch{
