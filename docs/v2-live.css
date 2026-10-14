@@ -101,3 +101,74 @@ td small{color:#728674}
 
 /* Admin shortcuts are visible only when the dispatcher staff view is active. */
 #staffView>.v2-admin-nav{grid-column:1/-1;margin-top:1px}
+
+
+/* PRO dispatch tools: compact at desk, touch friendly on mobile. */
+.ops-overview{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:15px 0}
+.ops-insight{display:grid;align-content:start;gap:5px;text-align:left;min-height:117px;padding:16px;border:1px solid #dfeade;border-radius:17px;background:#f9fcf8;color:#315b3d;cursor:pointer}
+.ops-insight span{font-weight:850;font-size:12px;letter-spacing:.005em}
+.ops-insight strong{font-size:31px;letter-spacing:-.06em;color:#193b29;line-height:1.1}
+.ops-insight small{font-size:10px;color:#728874;line-height:1.45}
+.ops-insight:hover{border-color:#87bf98;background:#f1f8ef}
+.ops-insight[aria-pressed="true"]{background:#193e2b;border-color:#193e2b;box-shadow:0 8px 22px #215c3222}
+.ops-insight[aria-pressed="true"] span,.ops-insight[aria-pressed="true"] strong,.ops-insight[aria-pressed="true"] small{color:white}
+.ops-toolbar{display:grid;grid-template-columns:minmax(220px,2fr) minmax(175px,1fr) minmax(165px,1fr) auto;gap:10px;align-items:end;padding:15px;background:#f6f9f4;border-radius:17px;border:1px solid #e1ebe0}
+.ops-field{display:grid;gap:6px;min-width:0}
+.ops-field span{font-size:10px;color:#56725d;font-weight:850;letter-spacing:.07em}
+.ops-field input,.ops-field select{width:100%;min-width:0;min-height:46px;margin:0;padding:11px 12px;background:#fff;color:#1b3526;font-size:13px;border:1px solid #cfded0;border-radius:11px}
+.ops-search-field input{padding-left:14px}
+.ops-field select{cursor:pointer}
+.ops-reset{min-height:46px;background:#fff;color:#315941;border:1px solid #d0e1d3;border-radius:11px;font-weight:800;font-size:12px;padding:9px 14px;white-space:nowrap}
+.ops-reset:hover{background:#e9f4e9}
+.ops-filter-footer{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin:12px 0}
+.ops-filter-footer #opsResultCount{font-size:11px;font-weight:750;color:#6c826f}
+.ops-filter-footer .archive-control{margin:0;min-height:42px;font-weight:700}
+#ordersArea table td{overflow-wrap:anywhere}
+#ordersArea .ops-sms,#ordersArea .ops-map-status{font-weight:750;margin-top:5px}
+#ordersArea .ops-sms.ready{color:#217449}
+#ordersArea .ops-sms.off{color:#8e6846}
+#ordersArea .ops-map-status{color:#416f66}
+#ordersArea .pill.state-en_ruta{color:#13613f;background:#e0f1e5}
+#ordersArea .pill.state-asignado{color:#31659c;background:#e6f0fb}
+#ordersArea .pill.state-pendiente{color:#875f23;background:#fff2d6}
+#ordersArea .pill.state-entregado{color:#1c7440;background:#e3f2e8}
+#ordersArea .pill.state-cancelado{color:#9f4752;background:#ffebed}
+#ordersArea .ops-empty td{padding:32px;text-align:center;color:#5f7662;font-weight:700;background:#f8fbf7}
+@media(max-width:1130px){
+ .ops-toolbar{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .ops-search-field{grid-column:1/-1}
+ .ops-reset{justify-self:start}
+}
+@media(max-width:650px){
+ .ops-overview{gap:7px;margin:12px 0}
+ .ops-insight{padding:11px 10px;min-height:112px;border-radius:13px}
+ .ops-insight strong{font-size:27px}
+ .ops-insight small{font-size:9px}
+ .ops-toolbar{padding:12px;grid-template-columns:1fr;gap:10px}
+ .ops-search-field{grid-column:auto}
+ .ops-reset{justify-self:stretch}
+ .ops-filter-footer{align-items:flex-start}
+ #ordersArea .table-scroll{overflow:visible;border:none;background:transparent}
+ #ordersArea table,#ordersArea tbody{width:100%;min-width:0;display:block}
+ #ordersArea thead{display:none}
+ #ordersArea tbody tr:not(.ops-empty){display:block;border:1px solid #e0e9df;border-radius:15px;padding:11px 14px;margin:0 0 12px;background:#fff;box-shadow:0 5px 17px #1b3d2208}
+ #ordersArea tbody tr:not(.ops-empty) td{display:block;border-top:1px solid #edf2ec;min-width:0;width:100%;padding:10px 0;background:transparent}
+ #ordersArea tbody tr:not(.ops-empty) td:first-child{border-top:none}
+ #ordersArea tbody tr:not(.ops-empty) td::before{display:block;color:#7c8d7d;font-size:10px;font-weight:850;letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(1)::before{content:"PEDIDO / IMPORTE"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(2)::before{content:"CLIENTE Y DIRECCIÓN"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(3)::before{content:"ORIGEN"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(4)::before{content:"FORMA DE PAGO"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(5)::before{content:"ESTADO"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(6)::before{content:"ASIGNACIÓN EN LASTPOS"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(7)::before{content:"EDITAR"}
+ #ordersArea tbody tr:not(.ops-empty) td:nth-child(8)::before{content:"SEGUIMIENTO"}
+ #ordersArea tbody tr:not(.ops-empty) td strong{font-size:14px}
+ #ordersArea tbody tr:not(.ops-empty) td:first-child strong{font-size:16px}
+ #ordersArea tbody tr:not(.ops-empty) td .outline{min-height:42px}
+ #ordersArea .ops-empty{display:block}
+ #ordersArea .ops-empty td{display:block;padding:20px 15px;border-radius:14px}
+}
+@media(max-width:360px){
+ .ops-insight span{font-size:10px}.ops-insight strong{font-size:25px}.ops-insight small{font-size:8px}
+}
