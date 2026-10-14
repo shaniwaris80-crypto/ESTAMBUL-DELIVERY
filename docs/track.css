@@ -28,3 +28,18 @@ fieldset{padding:0;border:0;margin:0}legend{font-size:12px;font-weight:800;color
 .call-rider-top{display:flex;align-items:center;gap:12px}.call-rider-icon{height:46px;min-width:46px;border-radius:13px;background:#e0f5e7;color:#16825b;display:grid;place-items:center;font-size:23px}
 .call-rider h2{font-size:17px;margin:0 0 3px}.call-rider p{font-size:12px;margin:0}
 .call-rider-action{display:block;background:#187d57;color:#fff;text-align:center;margin-top:14px;padding:14px;border-radius:12px;text-decoration:none;font-weight:850}
+
+
+/* V4 · Private live rider map: only loaded when a recent opt-in coordinate exists */
+:root{--brand:#181c19;--paper:#f6f8f6;--ink:#15241b;--muted:#6c8072;--outline:#e0e8e1}
+.panel{border-radius:21px;box-shadow:0 15px 36px #24362a0a}
+.brand-header{background:#171d19}
+.location-head{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:9px}
+.location-head h2{margin:7px 0 0;font-size:21px}
+.location-pulse{background:#e5f7e9;color:#136740;white-space:nowrap;font-weight:850;font-size:11px;border-radius:30px;padding:8px 10px}
+.location-panel>p{margin:9px 0 15px}
+.location-panel iframe{border:1px solid #dde7df;border-radius:15px;width:100%;height:315px;background:#e7ece7;display:block}
+.location-footer{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:13px;color:#526659;font-size:12px}
+.location-footer a{color:#0f7c50;text-decoration:none;font-weight:900}
+.location-panel .location-privacy{font-size:11px;color:#758778;margin-top:14px}
+@media(max-width:480px){.location-panel iframe{height:265px}.location-head{flex-wrap:wrap}}
