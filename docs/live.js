@@ -165,6 +165,29 @@ function renderGpsPositions(){
  }).join("")||'<p class="small-note">Todavía no hay repartidores vinculados.</p>';
 }
 
+function whatsappNumber(value){
+ const original=String(value||"").trim(),digits=original.replace(/\D/g,"");
+ if(original.startsWith("+")&&/^[1-9]\d{7,14}$/.test(digits))return digits;
+ if(/^00[1-9]\d{7,14}$/.test(digits))return digits.slice(2);
+ if(/^[6789]\d{8}$/.test(digits))return "34"+digits;
+ return "";
+}
+function whatsappUpdateText(order){
+ const status=labels[order.status]||order.status;
+ return "ESTAMBUL DELIVERY\nPedido #"+order.reference+"\nEstado: "+status+
+   ".\nSi necesitas ayuda, responde a este mensaje.";
+}
+document.addEventListener("click",event=>{
+ const button=event.target.closest("button[data-wa]");
+ if(!button)return;
+ const order=orders.find(o=>o.id===button.dataset.wa);
+ if(!order||!order.notifications_consent||order.notification_channel!=="whatsapp")return;
+ const phone=whatsappNumber(order.customer_phone);
+ if(!phone){message(new Error("Revisa el teléfono internacional del cliente en Editar"));return;}
+ const url="https://api.whatsapp.com/send?phone="+encodeURIComponent(phone)+"&text="+encodeURIComponent(whatsappUpdateText(order));
+ const tab=window.open(url,"_blank","noopener,noreferrer");
+ if(!tab)window.location.assign(url);
+});
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
  const stats=[["Pedidos",orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
@@ -186,7 +209,8 @@ function render(){
       (gmaps?'<small><a href="'+gmaps+'" target="_blank" rel="noopener noreferrer">📍 Google Maps ↗</a></small>':'')+
       '</td><td>'+esc(chan[o.channel]||o.channel)+'</td><td><strong>'+esc(o.payment_method==='efectivo'?'💶 Efectivo':o.payment_method==='tarjeta'?'💳 Tarjeta':'Por indicar')+'</strong></td><td><span class="pill">'+esc(labels[o.status])+
       '</span></td><td><select data-assign="'+esc(o.id)+'" '+(["entregado","cancelado"].includes(o.status)?"disabled":"")+'>'+options+'</select></td><td><button class="outline" type="button" data-edit="'+esc(o.id)+'">Editar</button></td>'+
-      '<td><button class="outline" type="button" data-track="'+esc(o.id)+'">🔗 Enlace</button></td></tr>';
+      '<td><div class="share-actions"><button class="outline" type="button" data-track="'+esc(o.id)+'">🔗 Enlace</button>'+
+      '<button class="outline whatsapp-action" type="button" data-wa="'+esc(o.id)+'" '+((o.notifications_consent&&o.notification_channel==="whatsapp"&&whatsappNumber(o.customer_phone))?"":'disabled title="Activa WhatsApp y permiso en Editar"')+'>💬 WhatsApp</button></div></td></tr>';
   }).join("")||'<tr><td colspan="8">Sin pedidos.</td></tr>';
  }else{
   el("myOrders").innerHTML=orders.map(o=>{

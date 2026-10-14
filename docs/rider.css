@@ -102,3 +102,6 @@ body{background:linear-gradient(180deg,#e9eef5 0,#f6f8fb 220px,#f6f8fb 100%)}
 .chat-bubble.mine{background:#e3f5e9;justify-self:end;border-color:#bedec8}.chat-bubble small,.chat-bubble time{font-size:9px;color:#688099}.chat-bubble p{font-size:12px;color:#234055;margin:4px 0}.chat-blank{font-size:11px}
 .chat-form{display:flex;gap:8px;margin-top:10px}.chat-form input{flex:1;min-width:0;border:1px solid #ccdae6;border-radius:8px;padding:12px}.chat-form button,.chat-action{background:#1e5d87!important;color:#fff!important;border:0;border-radius:8px;padding:10px 12px;font-weight:800}
 .chat-error{color:#9b2d29;font-size:11px;margin-top:10px}
+
+.day-close-newshift{display:block;width:100%;padding:14px;border:0;border-radius:11px;margin-top:12px;background:#16815f;color:#fff;font-weight:900;font-size:13px}
+.day-close-newshift:hover{filter:brightness(.95)}

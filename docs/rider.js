@@ -130,21 +130,23 @@ function drawCashClose(data){
  if(Number(data.pending_count)>0)warnings.push(data.pending_count+" entregas sin terminar");
  if(Number(data.unknown_count)>0)warnings.push(data.unknown_count+" pedidos ("+cashLabel(data.unknown_total)+") sin forma de pago: puedes cerrar provisionalmente con explicación y confirmación, dejando esos importes pendientes de conciliación.");
  if(Number(data.legacy_count)>0)warnings.push(data.legacy_count+" entregas antiguas con fecha estimada (última modificación)");
+ if(!data.closed&&Number(data.completed_count)===0)warnings.push("No hay entregas nuevas desde el último arqueo.");
  $("shiftWarning").textContent=warnings.join(". ");
  $("shiftWarning").hidden=!warnings.length;
  const provisional=Number(data.unknown_count)>0;
  $("provisionalAcknowledgement").hidden=!provisional||!!data.closed;
  $("finalizeDay").textContent=provisional?"Terminar día provisional y ponerme offline ✓":"Terminar día y ponerme offline ✓";
- $("finalizeDay").disabled=!!data.closed||Number(data.pending_count)>0;
+ $("finalizeDay").disabled=!!data.closed||Number(data.pending_count)>0||Number(data.completed_count)===0;
+ $("startNewShift").hidden=!data.closed;
  $("dayCloseInputs").hidden=Boolean(data.closed);
  $("dayCloseDone").hidden=!data.closed;
  if(data.closed){
-  $("dayCloseDone").textContent=(data.is_provisional?"⚠ Jornada cerrada provisionalmente. Los pagos sin clasificar requieren conciliación. ":"✓ Jornada cerrada. ")+"Rider offline. Efectivo contado: "+cashLabel(data.cash_declared)+
+  $("dayCloseDone").textContent=(data.is_provisional?"⚠ Arqueo provisional guardado. Pagos pendientes de conciliar. ":"✓ Arqueo guardado. ")+"Puedes iniciar otro turno hoy poniéndote ONLINE. Efectivo contado: "+cashLabel(data.cash_declared)+
     " · Diferencia: "+cashLabel(data.cash_difference)+".";
   rider.online=false;
   $("onlineLabel").textContent="Jornada cerrada";
   $("onlineLight").classList.toggle("active",false);
-  $("availabilityButton").disabled=true;
+  $("availabilityButton").disabled=false;
  }
  cashDifference();
 }
@@ -611,7 +613,7 @@ $("finalizeDay").addEventListener("click",async()=>{
  }
  const confirmation=provisional
   ?"¿Terminar jornada provisionalmente dejando "+shiftReport.unknown_count+" pedidos ("+cashLabel(shiftReport.unknown_total)+") pendientes de conciliar? Quedarán registrados como sin clasificar."
-  :"¿Terminar la jornada y dejar el rider fuera de servicio hasta mañana?";
+  :"¿Cerrar este turno y ponerme offline? Podrás comenzar otro turno hoy.";
  if(!window.confirm(confirmation))return;
  busy=true;$("finalizeDay").disabled=true;$("dayCloseError").hidden=true;
  try{
@@ -627,16 +629,36 @@ $("finalizeDay").addEventListener("click",async()=>{
  }finally{busy=false;}
 });
 
-$("availabilityButton").addEventListener("click", () => {
-  if (!rider) return;
-  const newOnline = !rider.online;
-  void operation(async () => {
-    const rows = await withAuth("/rest/v1/ed_riders?id=eq." + encodeURIComponent(rider.id), {
-      method: "PATCH", headers: { "Prefer": "return=representation" }, body: JSON.stringify({ online: newOnline })
-    });
-    if (!Array.isArray(rows) || rows.length !== 1) throw new Error("La disponibilidad no pudo actualizarse.");
-    rider.online = Boolean(rows[0].online);
-  });
+async function setAvailability(nextOnline){
+ if(!rider)return;
+ const rows=await withAuth("/rest/v1/ed_riders?id=eq."+encodeURIComponent(rider.id),{
+  method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({online:nextOnline})
+ });
+ if(!Array.isArray(rows)||rows.length!==1)throw Error("No se pudo cambiar la disponibilidad");
+ rider.online=Boolean(rows[0].online);
+ if(nextOnline){
+  shiftReport=null;
+  $("dayClosePanel").hidden=true;
+  $("startNewShift").hidden=true;
+  $("declaredCash").value="";
+  $("shiftNotes").value="";
+  $("acknowledgeUnclassified").checked=false;
+ }
+}
+$("availabilityButton").addEventListener("click",()=>{
+ if(!rider)return;
+ void operation(async()=>{await setAvailability(!rider.online);});
+});
+$("startNewShift").addEventListener("click",()=>{
+ if(!rider||rider.online)return;
+ void operation(async()=>{await setAvailability(true);});
+});
+$("shareReconciliationWhatsApp").addEventListener("click",()=>{
+ if(!shiftReport)return;
+ const report=archeoText(shiftReport)+(shiftReport.closed?"":"\n*BORRADOR · NO CERRADO*");
+ const url="https://api.whatsapp.com/send?text="+encodeURIComponent(report);
+ const w=window.open(url,"_blank","noopener,noreferrer");
+ if(!w)window.location.assign(url);
 });
 $("refreshButton").addEventListener("click", () => void operation(async () => {}));
 $("toggleGps").addEventListener("click",()=>void toggleGps());

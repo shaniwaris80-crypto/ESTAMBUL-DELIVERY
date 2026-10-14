@@ -31,3 +31,7 @@
 .gps-admin-row strong,.gps-admin-row small{display:block}.gps-admin-row strong{font-size:13px}.gps-admin-row small{font-size:11px;color:#6d8193;line-height:1.6}
 .gps-admin-row a{font-size:11px;font-weight:850;color:#176ca6;white-space:nowrap}
 @media(max-width:540px){.gps-admin-row{align-items:start;flex-direction:column}}
+
+.share-actions{display:flex;gap:5px;flex-wrap:wrap}.share-actions .outline{white-space:nowrap;font-size:11px;padding:7px 8px}
+.share-actions .whatsapp-action{border-color:#9dc9ae;background:#ebf8f0;color:#19774a}
+.share-actions .whatsapp-action:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(1)}
