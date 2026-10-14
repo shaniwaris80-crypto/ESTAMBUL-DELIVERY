@@ -314,9 +314,9 @@ function render(){
   el("ordersTable").innerHTML=visibleOrders.map(o=>{
     const options='<option value="">Sin asignar</option>'+riders.filter(r=>r.active).map(r=>'<option value="'+esc(r.id)+'" '+(o.rider_id===r.id?"selected":"")+'>'+esc(r.display_name)+'</option>').join("");
     const gmaps=mapsLink(o);
-    const foundCode=String(o.notes||"").match(/(?:^|\\s|\\|)Last\\.app\\s*#\\s*([A-Za-z0-9_-]{1,32})/i);
+    const foundCode=String(o.notes||"").match(/(?:^|\s|\|)Last\.app\s*#\s*([A-Za-z0-9_-]{1,32})/i);
     const visibleRef=foundCode?foundCode[1]:o.reference;
-    return '<tr><td><strong>'+esc(visibleRef)+(foundCode?'<small class="ops-full-ref">Last.app: '+esc(o.reference)+'</small>':'')+'</strong><small>'+esc(Number(o.amount||0).toFixed(2))+' €</small></td>'+
+    return '<tr><td><strong>'+esc(visibleRef)+'</strong>'+(foundCode?'<small class="ops-full-ref">Last.app: '+esc(o.reference)+'</small>':'')+'<small>'+esc(Number(o.amount||0).toFixed(2))+' €</small></td>'+
       '<td><strong>'+esc(o.customer_name)+'</strong><small>'+esc(o.destination)+'</small>'+
       (o.customer_phone?'<small>☎ '+esc(o.customer_phone)+'</small>':'')+
       (o.customer_phone?'<small class="ops-sms '+(o.notifications_consent&&o.notification_channel==="sms"?"ready":"off")+'">'+
