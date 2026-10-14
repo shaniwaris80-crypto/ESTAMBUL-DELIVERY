@@ -8,7 +8,7 @@ const labels={pendiente:"Pendiente",asignado:"Asignado",recogido:"Recogido",en_r
 const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
-let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),showArchivedOrders=false;
+let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),archivedOrderIds=new Set(),showArchivedOrders=false;
 let brandDetails=null,customerFeedback=[];
 let riderPositions=[];
 const storage="estambul-secure-test-session";
@@ -82,6 +82,12 @@ async function reload(){
    const ids=(shiftClosures||[]).map(c=>c.id);
    shiftClosureItems=ids.length?await query("/rest/v1/ed_shift_closure_items?select=close_id,order_id,reference,customer_name,payment_method,amount,legacy_timestamp&close_id=in.("+ids.join(",")+")"):[];
   }catch(error){shiftClosures=[];shiftClosureItems=[];message(error);}
+  try{
+   const ids=await query("/rest/v1/rpc/ed_staff_archived_order_ids",{
+    method:"POST",body:JSON.stringify({p_order_ids:orders.map(o=>o.id)})
+   });
+   archivedOrderIds=new Set(Array.isArray(ids)?ids:[]);
+  }catch{archivedOrderIds=new Set(shiftClosureItems.map(li=>li.order_id).filter(Boolean));}
   try{
    const rows=await query("/rest/v1/ed_order_location_shares?select=order_id,enabled");
    locationShares=new Map((Array.isArray(rows)?rows:[]).map(x=>[x.order_id,Boolean(x.enabled)]));
@@ -245,7 +251,7 @@ document.addEventListener("click",event=>{
 
 function render(){
  const staff=member.role!=="rider",open=orders.filter(o=>!["entregado","cancelado"].includes(o.status));
- const archivedIds=new Set(shiftClosureItems.map(li=>li.order_id).filter(Boolean));
+ const archivedIds=archivedOrderIds;
  const visibleOrders=showArchivedOrders?orders:orders.filter(o=>!archivedIds.has(o.id));
  const stats=[["Pedidos visibles",staff?visibleOrders.length:orders.length],["Sin asignar",open.filter(o=>!o.rider_id).length],["En ruta",open.filter(o=>o.status==="en_ruta").length],[staff?"Riders":"Mis pendientes",staff?riders.filter(r=>r.active).length:open.length]];
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
