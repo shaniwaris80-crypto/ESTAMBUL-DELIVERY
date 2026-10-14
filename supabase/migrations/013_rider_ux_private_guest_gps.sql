@@ -101,9 +101,22 @@ begin
  );
 end $function$;
 
+-- Dispatcher visibility mirrors closed financial snapshots even after hundreds of shifts.
+create or replace function public.ed_staff_archived_order_ids(p_order_ids uuid[])
+returns uuid[] language sql stable security definer set search_path to ''
+as $function$
+ select coalesce(array_agg(distinct i.order_id),'{}'::uuid[])
+ from public.ed_shift_closure_items i
+ join public.ed_shift_closures c on c.id=i.close_id
+ join public.ed_orders o on o.id=i.order_id and o.account_id=c.account_id
+ where i.order_id=any(coalesce(p_order_ids,'{}'::uuid[]))
+   and private.ed_is_staff(c.account_id);
+$function$;
+
 revoke all on function public.ed_set_customer_location_share(uuid,boolean),
- public.ed_rider_unclosed_completed_ids(),public.ed_public_track(text) from public,anon;
+ public.ed_rider_unclosed_completed_ids(),public.ed_staff_archived_order_ids(uuid[]),
+ public.ed_public_track(text) from public,anon;
 grant execute on function public.ed_set_customer_location_share(uuid,boolean),
- public.ed_rider_unclosed_completed_ids() to authenticated;
+ public.ed_rider_unclosed_completed_ids(),public.ed_staff_archived_order_ids(uuid[]) to authenticated;
 grant execute on function public.ed_public_track(text) to anon,authenticated;
 commit;
