@@ -148,7 +148,17 @@ async function refresh(){
   void refreshCustomerChat();
  }catch{
   if(!current){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;}
-  else {el("updatedAt").textContent="Sin conexión · prueba a actualizar";el("connectionNotice").hidden=false;}
+  else {
+   el("updatedAt").textContent="Sin conexión · prueba a actualizar";
+   el("connectionNotice").hidden=false;
+   // A failed poll must not leave an old GPS marker or ETA looking live.
+   el("liveMapPanel").hidden=true;
+   el("riderMap").removeAttribute("src");
+   el("riderMap").removeAttribute("data-position");
+   el("arrivalTitle").textContent="Estimación no disponible";
+   el("arrivalDescription").textContent="Sin conexión con el reparto. Consulta la última actualización arriba o vuelve a intentar."; 
+   el("arrivalDetails").hidden=true;
+  }
  }finally{polling=false;}
 }
 el("refreshButton").addEventListener("click",()=>void refresh());
