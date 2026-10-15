@@ -75,6 +75,14 @@ Deno.serve(async(req:Request)=>{
  const jobs=Array.isArray(queued)?queued:[];
  const outcome={claimed:jobs.length,accepted:0,failed:0};
  for(const item of jobs){
+   // Mark secondary SMS notifications as handled without contacting Twilio or retrying.
+   if(item.channel==="sms"){
+     const {error:finishError}=await db.rpc("ed_finish_notification",{
+       p_id:item.id,p_ok:true,p_provider_id:null,p_error:null
+     });
+     if(finishError)outcome.failed++;
+     continue;
+   }
    let sent=false,providerId="",errorMessage="";
    try{
      const id=String(item.id||"");
