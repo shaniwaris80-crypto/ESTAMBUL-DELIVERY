@@ -75,6 +75,12 @@ Deno.serve(async(req:Request)=>{
  const jobs=Array.isArray(queued)?queued:[];
  const outcome={claimed:jobs.length,accepted:0,failed:0};
  for(const item of jobs){
+   if(item.channel==="sms"){
+     // A suppressed SMS is not a delivered SMS. Requires migration 016.
+     const {data:skipped,error:skipError}=await db.rpc("ed_skip_secondary_sms",{p_id:item.id});
+     if(skipError||skipped!==true)return json({error:"SMS suppression migration missing or queue update failed",claimed:jobs.length},503);
+     continue;
+   }
    let sent=false,providerId="",errorMessage="";
    try{
      const id=String(item.id||"");
