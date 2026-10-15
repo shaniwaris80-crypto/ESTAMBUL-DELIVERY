@@ -4,7 +4,7 @@
 <meta name="referrer" content="strict-origin-when-cross-origin"><meta name="theme-color" content="#121416">
 <meta name="robots" content="noindex,nofollow,noarchive">
 <title>Seguimiento de pedido · ESTAMBUL DELIVERY</title>
-<link rel="stylesheet" href="docs/track.css?v=5">
+<link rel="stylesheet" href="docs/track.css?v=6">
 </head><body>
 <header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon">E<span>↗</span></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>SEGUIMIENTO DE TU PEDIDO</small></div></div></header>
 <main class="container">
@@ -17,7 +17,8 @@
 <p id="orderDescription" class="subtitle">Puedes consultar el progreso de tu entrega aquí.</p>
 <div class="progress"><div id="progressBar"></div></div>
 <div id="steps" class="steps"></div>
-<div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
+<div class="sync"><span id="updatedAt" role="status" aria-live="polite">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
+<p id="connectionNotice" class="connection-notice" role="status" aria-live="polite" hidden>Sin conexión. Mostramos la última información disponible; vuelve a intentar actualizar.</p>
 </section>
 <section id="arrivalPanel" class="panel arrival-panel" aria-live="polite">
 <div class="arrival-heading"><div class="arrival-mark">◷</div><div><span class="eyebrow">TIEMPO ESTIMADO</span><h2 id="arrivalTitle">Preparando entrega</h2></div></div>
@@ -31,6 +32,7 @@
 <div class="location-footer"><span id="riderMapTime">Actualizando posición…</span><a id="openRiderMap" href="#" target="_blank" rel="noopener noreferrer">Abrir mapa ↗</a></div>
 <p class="location-privacy">Mapa de OpenStreetMap: al visualizarlo se envían las coordenadas visibles al proveedor de mapas. El seguimiento termina al entregar, cerrar la app o retirar el permiso.</p>
 </section>
+<section id="routePanel" class="panel" hidden><h2>Recorrido</h2><p id="routeDescription"></p><p id="routeDistance"></p></section>
 <section class="panel restaurant-call"><div class="call-rider-top">
 <div class="call-rider-icon">☎</div><div><h2>¿Necesitas ayuda?</h2><p>Contacta directamente con el restaurante.</p></div></div>
 <a class="call-rider-action" href="tel:+34947009319">Llamar al restaurante · 947 009 319</a></section>
@@ -68,5 +70,5 @@
 <p class="privacy-note">Este enlace es privado: compártelo únicamente con personas de confianza. Muestra la ubicación GPS solo si el repartidor lo autoriza para este pedido. Los mensajes promocionales no están activados.</p>
 </div>
 </main>
-<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=5"></script>
+<script src="docs/live-config.js"></script><script defer src="docs/track.js?v=6"></script>
 </body></html>

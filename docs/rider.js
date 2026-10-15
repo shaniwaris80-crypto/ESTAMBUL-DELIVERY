@@ -69,7 +69,7 @@ async function riderAcceptance(order,resend,tab){
  if(output.already_accepted){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
-  $("riderShareNotice").textContent="Pedido ya aceptado. Usa «Reenviar seguimiento» si el cliente necesita otro enlace.";
+  $("riderShareNotice").textContent="Pedido ya aceptado. El enlace enviado inicialmente permite consultar todos los cambios del reparto.";
   return output;
  }
  if(!link){
@@ -636,8 +636,7 @@ function renderOrder(order,isPriority=false) {
           (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
-      (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
+      "";
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -881,7 +880,7 @@ $("orders").addEventListener("click",event=>{
  const resend=Boolean(action.dataset.share);
  if(!order||!rider.online||!["asignado","recogido","en_ruta"].includes(order.status))return;
  if(!resend&&order.accepted_at)return;
- if(resend&&!window.confirm("Generar otro enlace privado para el cliente. Los enlaces anteriores seguirán funcionando. ¿Continuar?"))return;
+ if(resend&&!window.confirm("Abrir la opción de compartir manualmente. No se enviará otro SMS. ¿Continuar?"))return;
  // A direct click reserves WhatsApp before asynchronous RPC (mobile popup protection).
  let tab=null;
  if(canShareFollowup(order)){
