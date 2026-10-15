@@ -8,7 +8,7 @@ begin
   raise exception 'Access denied';
  end if;
  update private.ed_notification_queue
- set delivery_status='skipped_policy',
+ set delivery_status='skipped',
      sent_at=null,
      provider_message_id=null,
      last_error='Secondary SMS intentionally disabled: tracking link sent at acceptance'
