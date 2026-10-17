@@ -1,0 +1,32 @@
+name: Rider Last payment and GPS regression checks
+on:
+  push:
+    branches:
+      - fix/last-payment-rider-refresh-gps-audit-20261018
+  pull_request:
+    paths:
+      - docs/rider.js
+      - docs/live.js
+      - docs/last-finance-diagnostic.mjs
+      - docs/staging/ed_last_import_tab_review.sql
+      - scripts/test-last-rider-regressions.mjs
+      - .github/workflows/rider-last-payment-regressions.yml
+permissions:
+  contents: read
+jobs:
+  regression-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check docs/rider.js
+          node --check docs/live.js
+          node --check docs/last-finance-diagnostic.mjs
+          node --check scripts/test-last-rider-regressions.mjs
+      - name: Last payment + Rider polling + GPS safety
+        run: node --test scripts/test-last-rider-regressions.mjs

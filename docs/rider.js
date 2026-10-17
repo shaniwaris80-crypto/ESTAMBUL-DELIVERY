@@ -24,6 +24,13 @@ function displayOrderCode(order){
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
+const paymentDrafts=new Map(); // Short-lived choices, never persisted.
+function capturePaymentDrafts(){
+ document.querySelectorAll('select[data-payment-for]').forEach(select=>{
+  if(select.dataset.paymentFor&&["efectivo","tarjeta"].includes(select.value))
+   paymentDrafts.set(select.dataset.paymentFor,select.value);
+ });
+}
 // Only unclosed deliveries belong to the current rider workday; the server keeps all settled orders.
 let unsettledIds=null, locationShares=new Map(), locationSharingAvailable=false;
 let deferredInstall = null;
@@ -531,6 +538,7 @@ async function fetchOrders() {
   locationShares=new Map(locationSharingAvailable?shareRows.map(row=>[row.order_id,Boolean(row.enabled)]):[]);
   detectAssigned(updated);
   orders=updated.filter(o=>o.status!=="entregado"||unsettledIds===null||unsettledIds.has(o.id));
+  for(const id of paymentDrafts.keys())if(!orders.some(o=>o.id===id&&o.status==="en_ruta"))paymentDrafts.delete(id);
   if(gpsWatchId!==null&&(!rider?.online||!hasInProgressOrder()))void stopGps();
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
@@ -567,7 +575,9 @@ function draw(){
  $("doneCount").textContent=done.length;
  $("listCount").textContent=active.length;
  $("historyCount").textContent=done.length;
- $("orders").innerHTML=active.length
+ capturePaymentDrafts();
+  // Polling continues; do not destroy a focused payment dropdown or active swipe.
+  if(!document.activeElement?.matches('select[data-payment-for]')&&activeSwipe===null)$("orders").innerHTML=active.length
   ? (inRoute.length?'<div class="group-title"><span class="group-dot route"></span>EN REPARTO <small>'+inRoute.length+'</small></div>'+inRoute.map(o=>renderOrder(o,true)).join(""):"")+
     (toCollect.length?'<div class="group-title"><span class="group-dot"></span>POR RECOGER / PREPARAR <small>'+toCollect.length+'</small></div>'+toCollect.map(o=>renderOrder(o,false)).join(""):"")
   :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos activos. Las entregas sin arqueo aparecen en el historial.</p></div>';
@@ -602,14 +612,15 @@ function renderHistoryOrder(order){
 }
 function renderOrder(order,isPriority=false) {
   const nextStatus=allowedNext[order.status];
+  const draftPayment=paymentDrafts.get(order.id)??order.payment_method??"";
   const paymentConfirmation=nextStatus==="entregado"
     ?'<label class="payment-confirmation" for="payment-'+escapeText(order.id)+'">'+
       '<span>CONFIRMA EL COBRO ANTES DE ENTREGAR</span>'+
       '<select id="payment-'+escapeText(order.id)+'" data-payment-for="'+escapeText(order.id)+'" required>'+
        '<option value="">Seleccionar método de pago</option>'+
-       '<option value="efectivo" '+(order.payment_method==="efectivo"?"selected":"")+
+       '<option value="efectivo" '+(draftPayment==="efectivo"?"selected":"")+
        '>💶 Efectivo cobrado</option>'+
-       '<option value="tarjeta" '+(order.payment_method==="tarjeta"?"selected":"")+
+       '<option value="tarjeta" '+(draftPayment==="tarjeta"?"selected":"")+
        '>💳 Tarjeta / pago digital confirmado</option></select>'+
       '<small>Verifica lo cobrado de verdad, aunque Last.app haya indicado una preferencia.</small>'+
      '</label>':"";
@@ -651,7 +662,8 @@ function renderOrder(order,isPriority=false) {
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
-    '<strong>'+euros(order.amount)+'</strong></div>'+
+    '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0
+       ?"0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
@@ -959,6 +971,7 @@ $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;
   const order = orders.find(row => row.id === button.dataset.order);
+  capturePaymentDrafts();
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
   // Reserve a tab during the user gesture: mobile browsers may block it after await.
@@ -994,6 +1007,7 @@ $("orders").addEventListener("click", event => {
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
       }
+      if(status==="entregado")paymentDrafts.delete(order.id);
       // Status is committed independently of SMS; report any dispatch failure.
       if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
         try{
