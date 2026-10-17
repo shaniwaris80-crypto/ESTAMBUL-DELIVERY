@@ -71,3 +71,21 @@ test("labs implementation has no secrets, remote integrations or writes",()=>{
   assert.doesNotMatch(text,/fetch\s*\(|XMLHttpRequest|WebSocket|sendBeacon|localStorage|sessionStorage|service_role|TWILIO_AUTH_TOKEN/);
  }
 });
+
+test("all laboratory UI references exist in the standalone HTML",()=>{
+ const page=readFileSync(new URL("../labs.html",import.meta.url),"utf8");
+ const script=readFileSync(new URL("../docs/labs.js",import.meta.url),"utf8");
+ const ids=new Set([...page.matchAll(/\bid="([^"]+)"/g)].map(m=>m[1]));
+ const uses=[...script.matchAll(/byId\("([^"]+)"\)/g)].map(m=>m[1]);
+ assert.ok(uses.length>10);
+ assert.deepEqual([...new Set(uses)].filter(id=>!ids.has(id)),[]);
+ assert.equal(ids.size,[...page.matchAll(/\bid="([^"]+)"/g)].length);
+});
+test("the lab page only loads local resources and is not indexable",()=>{
+ const page=readFileSync(new URL("../labs.html",import.meta.url),"utf8");
+ assert.match(page,/noindex,nofollow/);
+ assert.match(page,/src="docs\/labs.js"/);
+ assert.match(page,/href="docs\/labs.css"/);
+ assert.doesNotMatch(page,/<script[^>]*src="https?:/);
+ assert.doesNotMatch(page,/<iframe/i);
+});
