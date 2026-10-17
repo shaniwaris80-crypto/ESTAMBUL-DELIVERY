@@ -28,6 +28,45 @@ let orders = [], busy = false, inFlight = false, showHistory = false, lastSync =
 let unsettledIds=null, locationShares=new Map(), locationSharingAvailable=false;
 let deferredInstall = null;
 let mustChangePassword=false;
+let selectedRiderSlot=null;
+const riderProfiles=window.ESTAMBUL_RIDER_PROFILES;
+function setRiderSlot(slot){
+ if(!riderProfiles||!Number.isInteger(slot)||slot<1||slot>5)return;
+ selectedRiderSlot=slot;
+ const remembered=riderProfiles.readEmail(slot);
+ $("email").value=remembered;
+ $("riderEmailGroup").hidden=Boolean(remembered);
+ $("email").required=!remembered;
+ $("password").disabled=false;
+ $("forgetRiderDevice").hidden=!remembered;
+ $("riderProfileHint").textContent=remembered
+  ?"RIDER "+String(slot).padStart(2,"0")+" · Introduce tu contraseña para acceder."
+  :"RIDER "+String(slot).padStart(2,"0")+" · Primer acceso: introduce el correo autorizado y tu contraseña.";
+ document.querySelectorAll("[data-rider-slot]").forEach(button=>{
+  const chosen=Number(button.dataset.riderSlot)===slot;
+  button.setAttribute("aria-pressed",String(chosen));
+  button.classList.toggle("selected",chosen);
+ });
+ (remembered?$("password"):$("email")).focus();
+}
+function updateRiderProfileTiles(){
+ if(!riderProfiles)return;
+ document.querySelectorAll("[data-rider-slot]").forEach(button=>{
+  const slot=Number(button.dataset.riderSlot);
+  const small=button.querySelector("small");
+  if(small)small.textContent=riderProfiles.readEmail(slot)?"Acceso recordado":"Primer acceso";
+ });
+}
+if(riderProfiles){
+ $("riderProfiles").addEventListener("click",event=>{
+  const button=event.target.closest("[data-rider-slot]");
+  if(button&&!busy){setRiderSlot(Number(button.dataset.riderSlot));clearError();}
+ });
+ $("forgetRiderDevice").addEventListener("click",()=>{
+  if(selectedRiderSlot){riderProfiles.forgetEmail(selectedRiderSlot);updateRiderProfileTiles();setRiderSlot(selectedRiderSlot);}
+ });
+ updateRiderProfileTiles();
+}
 const followupPhone=(raw)=>{
  const s=String(raw||"").trim(),d=s.replace(/\D/g,"");
  if(s.startsWith("+")&&/^[1-9]\d{7,14}$/.test(d))return d;
@@ -511,6 +550,10 @@ async function authenticate() {
   ]);
   const current = myRiders.find(row => row.user_id === user.id && row.active);
   if (!current) throw new Error("Tu rider todavía no está activo en el sistema.");
+  // The profile button is a UX shortcut, not an authentication bypass.
+  // Reject a password that belongs to any different Rider identity.
+  if(selectedRiderSlot!==null&&riderProfiles?.slotForName(current.display_name)!==selectedRiderSlot)
+   throw new Error("Esta cuenta no corresponde a RIDER "+String(selectedRiderSlot).padStart(2,"0")+". Solicita al responsable la vinculación correcta.");
   identity = { userId: user.id, accountId: assignment.account_id };
   rider = current;
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
@@ -679,12 +722,17 @@ async function signIn(email, password) {
   setSaved({ access: response.access_token, refresh: response.refresh_token, expiry: Date.now() + response.expires_in * 1000 });
   await authenticate();
   await fetchOrders();
+  if(selectedRiderSlot!==null&&riderProfiles){
+   riderProfiles.rememberEmail(selectedRiderSlot,email);
+   updateRiderProfileTiles();
+  }
   clearError(); setVisible(mustChangePassword ? "setPassword" : "dashboard"); $("password").value = "";
 }
 $("registerButton").addEventListener("click", async () => {
   if (busy) return;
   const email = $("email").value.trim(), password = $("password").value;
   clearError();
+  if(selectedRiderSlot===null){setError("Selecciona tu perfil Rider 01–05.",true);return;}
   if (!email || password.length < 8) {
     setError("Escribe tu correo autorizado y una contraseña nueva de al menos 8 caracteres.", true);
     return;
@@ -706,6 +754,7 @@ $("registerButton").addEventListener("click", async () => {
 });
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy) return;
+  if(selectedRiderSlot===null){setError("Primero elige tu RIDER 01–05.",true);return;}
   busy = true; clearError(); $("loginButton").disabled = true;
   try { await signIn($("email").value.trim(), $("password").value); }
   catch (error) {
