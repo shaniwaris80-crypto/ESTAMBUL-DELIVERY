@@ -209,7 +209,11 @@ function renderFeedback(){
 
 function renderGpsPositions(){
  const now=Date.now();
- const active=riderPositions.filter(p=>Date.now()-Date.parse(p.updated_at)<=120000);
+ // Never present an old or future position as live. Same 45s bound as public tracking.
+  const active=riderPositions.filter(p=>{
+   const age=now-Date.parse(p.updated_at);
+   return Number.isFinite(age)&&age>=0&&age<=45000;
+  });
  el("gpsAdminCount").textContent=active.length+" compartiendo";
  el("gpsRiderList").innerHTML=riders.map(r=>{
   const p=active.find(x=>x.rider_id===r.id);
