@@ -1,0 +1,38 @@
+name: Estambul Labs isolated checks
+on:
+  push:
+    branches:
+      - feature/estambul-labs-safe-*
+    paths:
+      - labs.html
+      - docs/labs.js
+      - docs/labs.css
+      - docs/labs-core.mjs
+      - scripts/test-labs.mjs
+      - .github/workflows/estambul-labs.yml
+  pull_request:
+    paths:
+      - labs.html
+      - docs/labs.js
+      - docs/labs.css
+      - docs/labs-core.mjs
+      - scripts/test-labs.mjs
+      - .github/workflows/estambul-labs.yml
+permissions:
+  contents: read
+jobs:
+  isolated-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: JavaScript syntax checks
+        run: |
+          node --check docs/labs.js
+          node --check docs/labs-core.mjs
+          node --check scripts/test-labs.mjs
+      - name: Simulated operations, customer, financial and rider checks
+        run: node --test scripts/test-labs.mjs
