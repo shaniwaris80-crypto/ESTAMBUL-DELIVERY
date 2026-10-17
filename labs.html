@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive"><meta name="theme-color" content="#101d2b">
+<meta name="description" content="Estambul Labs: centro de simulaciones y auditoría sin datos reales">
+<title>Estambul Labs · Centro de mejoras PRO (simulación)</title>
+<link rel="stylesheet" href="docs/labs.css">
+<script type="module" src="docs/labs.js"></script>
+</head>
+<body>
+<a href="#content" class="skip">Saltar al contenido</a>
+<header class="top">
+ <div class="brand"><div class="mark" aria-hidden="true">E↗</div><div><strong>ESTAMBUL <span>DELIVERY</span></strong><small>LABS · CENTRO DE MEJORAS PRO</small></div></div>
+ <div class="safety" role="status">● SIMULACIÓN · SIN CONEXIÓN REAL</div>
+</header>
+<main id="content" class="wrap">
+ <section class="hero">
+  <div><div class="eyebrow">ENTORNO AISLADO · SIN PEDIDOS REALES</div>
+  <h1>Más control, sin poner en riesgo el reparto</h1>
+  <p>Prueba la experiencia del cliente, alertas, caja y productividad en un panel autónomo. Todos los datos son inventados; no se envían SMS, no se accede a GPS ni se modifica Supabase.</p></div>
+  <div class="hero-shield"><strong>5</strong><span>áreas de mejora<br>en modo seguro</span></div>
+ </section>
+ <section class="panel setup" aria-labelledby="setup-title">
+  <div class="section-head"><div><div class="eyebrow">SIMULADOR</div><h2 id="setup-title">Configura un turno ficticio</h2></div><span class="tag neutral">Solo cálculos locales</span></div>
+  <div class="controls">
+   <label>Pedidos simulados <output id="orderOutput" for="orderCount">18</output><input id="orderCount" type="range" min="6" max="60" step="1" value="18"></label>
+   <label>Repartidores <output id="riderOutput" for="riderCount">4</output><input id="riderCount" type="range" min="1" max="12" step="1" value="4"></label>
+   <label>Aviso por espera sin asignar <output id="waitingOutput" for="waiting">20 min</output><input id="waiting" type="range" min="5" max="60" step="5" value="20"></label>
+   <label>Escenario<select id="scenario"><option value="normal">Turno habitual</option><option value="peak">Hora punta</option><option value="gps">GPS sin señal</option><option value="payment">Pagos pendientes</option></select></label>
+  </div>
+ </section>
+ <nav class="quicknav" aria-label="Áreas del laboratorio">
+  <a href="#operations">Operaciones</a><a href="#finance">Economía</a><a href="#riders">Riders</a><a href="#customer">Cliente</a><a href="#safety">Seguridad</a>
+ </nav>
+ <div class="stats" aria-live="polite">
+  <article class="stat"><small>Pedidos</small><strong id="total">—</strong><span>simulados</span></article>
+  <article class="stat"><small>Activos</small><strong id="active">—</strong><span>en proceso</span></article>
+  <article class="stat"><small>Entregados</small><strong id="delivered">—</strong><span>ficticios</span></article>
+  <article class="stat"><small>Avisos</small><strong id="alertsCount">—</strong><span>requieren revisión</span></article>
+ </div>
+ <div class="twocol">
+  <section id="operations" class="panel" aria-labelledby="ops-title">
+   <div class="section-head"><div><div class="eyebrow">CENTRO DE OPERACIONES</div><h2 id="ops-title">Alertas inteligentes</h2></div><span class="tag" id="alertBadge">Simulación</span></div>
+   <p class="muted">Detecta esperas, retrasos, GPS desactualizado, importes sin clasificar y posibles duplicados por origen. No cambia asignaciones.</p>
+   <div id="alerts" class="alerts" aria-live="polite"></div>
+  </section>
+  <section id="finance" class="panel" aria-labelledby="finance-title">
+   <div class="section-head"><div><div class="eyebrow">CONTROL ECONÓMICO</div><h2 id="finance-title">Resumen de entregas</h2></div><span class="tag neutral">Sin afectar arqueos</span></div>
+   <div class="finance-grid">
+    <div><small>Total entregado</small><strong id="totalSales">—</strong></div>
+    <div><small>Efectivo esperado</small><strong id="cash">—</strong></div>
+    <div><small>Tarjeta</small><strong id="card">—</strong></div>
+    <div><small>Sin clasificar</small><strong id="unknown">—</strong></div>
+   </div>
+   <label class="cash-input">Efectivo contado de ejemplo (€)<input type="number" id="cashCounted" min="0" step="0.01" placeholder="Opcional, por ejemplo 40.00"></label>
+   <div class="difference" id="difference" role="status">Sin importe contado</div>
+   <p class="muted small">Únicamente simulación: importes entregados en céntimos, sin modificar el arqueo real ni determinar obligaciones fiscales.</p>
+  </section>
+ </div>
+ <div class="twocol">
+  <section id="riders" class="panel" aria-labelledby="rider-title">
+   <div class="section-head"><div><div class="eyebrow">APP RIDER AVANZADA</div><h2 id="rider-title">Carga de repartidores</h2></div><span class="tag neutral">Solo recomendaciones</span></div>
+   <p class="muted">Vista de trabajo por rider con entregas y carga, sin realizar asignaciones automáticas.</p>
+   <div class="tablewrap"><table><thead><tr><th>Repartidor</th><th>Activos</th><th>Entregados</th><th>Media</th></tr></thead><tbody id="riderRows"></tbody></table></div>
+  </section>
+  <section id="customer" class="panel" aria-labelledby="customer-title">
+   <div class="section-head"><div><div class="eyebrow">EXPERIENCIA DEL CLIENTE</div><h2 id="customer-title">Seguimiento seguro</h2></div><span class="tag neutral">Pedido ficticio</span></div>
+   <div class="customer-box">
+    <div class="customer-top"><strong id="customerRef">DEMO</strong><span id="customerStatus">—</span></div>
+    <div class="progress" aria-label="Progreso del pedido"><span id="customerProgress"></span></div>
+    <ol id="customerSteps" class="steps"></ol>
+    <div class="customer-eta" id="customerEta">La ruta solo aparecerá con GPS autorizado y datos viales validados.</div>
+   </div>
+   <p class="muted small">Nunca se crea un enlace real, se consulta una ubicación ni se envía ningún mensaje desde Labs.</p>
+  </section>
+ </div>
+ <section id="safety" class="panel" aria-labelledby="safety-title">
+  <div class="section-head"><div><div class="eyebrow">ESTAMBUL LABS</div><h2 id="safety-title">Protección de producción</h2></div><span class="tag good">Modo aislado</span></div>
+  <p class="muted">Las capacidades sensibles están desactivadas por diseño. Este entorno no contiene credenciales, conexiones de red ni acceso a pedidos reales.</p>
+  <div id="safetyFlags" class="flags"></div>
+ </section>
+ <footer>ESTAMBUL DELIVERY PRO · LABS <span>Sin datos personales · Sin sincronización · Sin SMS · Sin efectos sobre caja o riders</span></footer>
+</main>
+</body></html>
