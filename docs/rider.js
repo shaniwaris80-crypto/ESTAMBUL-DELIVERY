@@ -662,7 +662,8 @@ function renderOrder(order,isPriority=false) {
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
-    '<strong>'+euros(order.amount)+'</strong></div>'+
+    '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0
+       ?"0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
