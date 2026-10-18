@@ -5,6 +5,15 @@ const base=(process.env.EXPO_PUBLIC_SUPABASE_URL||"").replace(/\/+$/,"");
 const apikey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY||"";
 export const isConnectedConfigured=base.startsWith("https://")&&apikey.length>20;
 export const connectedItemFeature=process.env.EXPO_PUBLIC_RIDER_ITEMS_ENABLED==="true";
+export const connectedPaymentConfirmation=process.env.EXPO_PUBLIC_RIDER_PAYMENT_CONFIRM_ENABLED==="true";
+export type DeliveryCollection="efectivo"|"tarjeta"|"online";
+export function collectionUpdate(next:DeliveryStatus,method?:DeliveryCollection):{status:DeliveryStatus;payment_method?:"efectivo"|"tarjeta"|null}{
+ if(next!=="entregado"||!connectedPaymentConfirmation)return {status:next};
+ if(!["efectivo","tarjeta","online"].includes(method||""))throw new Error("Confirma cómo se cobró antes de completar.");
+ // Online orders are *not* a cash/card collection by the Rider. Until finance
+ // has a dedicated prepaid status, leave them unclassified for manager review.
+ return {status:next,payment_method:method==="online"?null:method as "efectivo"|"tarjeta"};
+}
 export type ProductSnapshot={revision:string;items:{name:string;quantity:number;comments?:string;modifiers?:{name:string;quantity:number}[];children?:{name:string;quantity:number}[]}[]};
 const storageKey="estambul-connected-session";
 type Session={access_token:string;refresh_token:string;expires:number};
@@ -75,10 +84,10 @@ export async function loadConnected():Promise<ConnectedState>{
  }
  return {rider,orders,account:membership.account_id};
 }
-export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus){
+export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus,collection?:DeliveryCollection){
  const old=order.status;if(!({asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"} as Record<string,string>)[old]||({asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"} as Record<string,string>)[old]!==next)throw new Error("Transición inválida.");
  const path="/rest/v1/ed_orders?id=eq."+order.id+"&rider_id=eq."+order.rider_id+"&status=eq."+old;
- const rows=await request(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({status:next})});
+ const rows=await request(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(collectionUpdate(next,collection))});
  if(!Array.isArray(rows)||rows.length!==1)throw new Error("El pedido fue reasignado o modificado. Actualiza.");
 }
 export async function setRiderOnline(id:string,online:boolean){
