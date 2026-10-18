@@ -10,7 +10,7 @@
 
 <link rel="icon" href="../docs/icon.svg?v=5" type="image/svg+xml">
 <link rel="apple-touch-icon" href="../docs/rider-icon.png">
-<link rel="stylesheet" href="../docs/rider.css?v=22"><link rel="stylesheet" href="../docs/v2-rider.css?v=3"><link rel="stylesheet" href="../docs/rider-pro-v3.css?v=1"><link rel="stylesheet" href="../docs/rider-packing.css?v=1"><link rel="stylesheet" href="../docs/rider-pro-v4.css?v=1"><link rel="stylesheet" href="../docs/visual-rider-v5.css?v=1">
+<link rel="stylesheet" href="../docs/rider.css?v=22"><link rel="stylesheet" href="../docs/v2-rider.css?v=3"><link rel="stylesheet" href="../docs/rider-pro-v3.css?v=1"><link rel="stylesheet" href="../docs/rider-packing.css?v=1"><link rel="stylesheet" href="../docs/rider-pro-v4.css?v=1"><link rel="stylesheet" href="../docs/visual-rider-v5.css?v=2">
 <title>Estambul Rider PRO · App de reparto</title>
 <meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="demo.css?v=1"></head>
 <body class="ed-visual-v5" data-demo-screen="rider">
@@ -55,6 +55,10 @@
 <div class="welcome"><div><span class="eyebrow">🛵 ESTAMBUL RIDER · EN DIRECTO</span><h1>Listo para repartir, <span id="riderName">Rider</span><span class="wave"> 👋</span></h1><p id="accountName">ESTAMBUL DELIVERY</p></div><button class="icon-button" id="refreshButton" aria-label="Actualizar mis pedidos" title="Actualizar">↻</button></div>
 <div class="notice" id="connectionNotice" hidden></div>
 <div class="availability panel"><div class="availability-left"><div class="online-indicator" id="onlineLight"></div><div><strong id="onlineLabel">Desconectado</strong><p>Mi disponibilidad para reparto</p></div></div><button id="availabilityButton" class="toggle" aria-label="Cambiar disponibilidad" aria-pressed="false"><span></span></button></div>
+<section id="smsHealthPanel" class="panel sms-health-panel" aria-live="polite">
+ <div><strong>✉ SMS de seguimiento</strong><p id="smsHealthStatus">Comprobando si el envío automático está preparado…</p></div>
+ <button type="button" id="checkSmsHealth" class="sms-health-check">Verificar SMS</button>
+</section>
 <section class="panel gps-panel" id="gpsSection">
 <div class="gps-heading"><div><strong>📍 Ubicación GPS para seguimiento del cliente</strong><p id="gpsStatus">Desactivado. Comparte tu ubicación solo cuando tengas un pedido recogido o en ruta.</p></div><button id="toggleGps" type="button" class="gps-toggle">Activar GPS</button></div>
 <p class="gps-privacy">GPS voluntario y solo con la app visible. El administrador puede ver la posición durante el reparto. Puedes compartirla con un cliente pulsando «Compartir GPS con este cliente» en su pedido; se oculta al entregar o al dejar de recibir posiciones recientes.</p>
