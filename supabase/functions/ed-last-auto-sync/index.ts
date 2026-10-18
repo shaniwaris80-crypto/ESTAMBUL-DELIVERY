@@ -74,7 +74,16 @@ Deno.serve(async req=>{
       if(!response.ok)throw Error("Last.app tab fetch failed: HTTP "+response.status);
       const tab=dict(await response.json());
       if(!Object.keys(tab).length)throw Error("Last.app returned an empty tab");
-      await rpc("ed_last_import_tab",{p_location_id:location,p_tab_id:tabId,p_tab:tab});
+      const imported=await rpc<Dict>("ed_last_import_tab",{p_location_id:location,p_tab_id:tabId,p_tab:tab});
+      // Feature gated until schema, RLS, and menu completeness are validated.
+      // Do not fail order reception if the optional snapshot import fails.
+      if(env("ED_RIDER_ITEMS_INGEST_ENABLED")==="true"&&!imported?.ignored){
+       try{
+        await rpc("ed_last_upsert_item_snapshot",{p_location_id:location,p_tab_id:tabId,p_tab:tab});
+       }catch{
+        console.warn("Order item snapshot unavailable; original Last.app order was preserved");
+       }
+      }
     }
    }
    await rpc("ed_last_mark_event",{p_event_id:id,p_error:null});
