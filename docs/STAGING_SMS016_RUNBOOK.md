@@ -53,7 +53,7 @@ supabase migration list --linked
 supabase db push --dry-run --linked
 ```
 
-Detectar versiones duplicadas localmente antes de ejecutar el dry-run:
+Antes del dry-run, detectar versiones duplicadas localmente:
 
 ```sh
 python3 - <<'PY'
@@ -98,7 +98,39 @@ where conrelid = 'private.ed_notification_queue'::regclass
 
 ## 2. Preparar fixture y probar claims sin proveedor
 
-Crear en staging dos pedidos de prueba con referencias `STG-SMS016-A` y `STG-SMS016-B`, usuario Rider de prueba y consentimiento de avisos habilitado; generar una notificación secundaria SMS por pedido a partir de un cambio de estado sintético. Teléfonos ficticios o números reservados de prueba; no números de clientes.
+En el SQL Editor del staging confirmado, ejecutar este fixture una sola vez. Crea datos de base sintéticos y dos filas de cola; no llama a Last.app, GloriaFood ni Twilio. Antes de repetir, borrar únicamente la cuenta de prueba indicada (y confirmar que es staging):
+
+```sql
+delete from public.ed_accounts where name = 'STG-SMS016-RUN-001';
+
+with account as (
+  insert into public.ed_accounts(name)
+  values ('STG-SMS016-RUN-001')
+  returning id
+), rider as (
+  insert into public.ed_riders(account_id, display_name, active, online)
+  select id, 'Rider sintético SMS016', true, false from account
+  returning id, account_id
+), orders as (
+  insert into public.ed_orders(
+    account_id, reference, channel, customer_name, customer_phone, destination,
+    amount, status, rider_id, notifications_consent, notification_channel
+  )
+  select r.account_id, v.reference, 'test', 'Cliente sintético', '+00000000000',
+         'Dirección ficticia staging', 10.00, 'asignado', r.id, true, 'sms'
+  from rider r
+  cross join (values ('STG-SMS016-A'), ('STG-SMS016-B')) as v(reference)
+  returning id, account_id, reference, customer_phone
+)
+insert into private.ed_notification_queue(
+  order_id, account_id, channel, destination, event_status, body, delivery_status
+)
+select id, account_id, 'sms', customer_phone, 'asignado',
+       'Fixture sintético; no enviar', 'awaiting_provider'
+from orders;
+```
+
+El número `+00000000000` es intencionalmente inválido y solo sirve como dato de cola; el worker debe omitir SMS antes de validar o llamar al proveedor. Las referencias deben ser exactamente `STG-SMS016-A` y `STG-SMS016-B`.
 
 Antes de probar, verificar que las dos filas cumplen: `channel='sms'`, `delivery_status='awaiting_provider'`, pedido de test correcto, consentimiento vigente y canal SMS. Confirmar también que no hay filas WhatsApp en la cola. No usar Twilio real ni credenciales reales.
 
@@ -124,7 +156,7 @@ where o.reference in ('STG-SMS016-A', 'STG-SMS016-B')
 order by o.reference, q.queued_at;
 ```
 
-Éxito: cada fila termina en `skipped`; `sent_at` y `provider_message_id` son NULL; `last_error` identifica que el SMS secundario se omitió intencionalmente. No debe haber tráfico de salida al proveedor. La omisión no es una entrega y nunca debe quedar marcada como `sent`.
+Éxito: cada fila termina en `skipped`; `sent_at` y `provider_message_id` son NULL; `last_error` identifica que el SMS secundario se omitió intencionalmente. No debe haber tráfico de salida al proveedor. La omisión no es una entrega y nunca debe quedar marcada como `sent`. Después de guardar la evidencia, limpiar únicamente el fixture con `delete from public.ed_accounts where name = 'STG-SMS016-RUN-001';`.
 
 ### Comprobar fallo seguro si falta 016
 
@@ -187,7 +219,7 @@ No editar a mano `supabase_migrations.schema_migrations`. La migración 016 no i
 
 - [ ] Ref separado y confirmado para staging; acceso a un proyecto descartable.
 - [ ] Resolver la colisión de versión: renombrar la migración nueva de 016 a 024 en la rama del PR y confirmar que no hay versiones locales duplicadas.
-- [ ] Fixtures sintéticos y script de creación/limpieza para dos pedidos SMS y un pedido efectivo.
+- [ ] Fixture para pedido efectivo y cierre de caja; el fixture SQL de las dos filas SMS está incluido arriba.
 - [ ] Transporte mock de Twilio con bloqueo de red externa; ninguna credencial real.
 - [ ] Recuperación segura y alertas para filas `sending` atascadas; política explícita de reintentos.
 - [ ] Test concurrente automatizado de claims y test de permisos/RPC en el esquema real.
