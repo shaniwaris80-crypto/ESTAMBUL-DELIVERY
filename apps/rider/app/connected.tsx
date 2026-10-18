@@ -160,7 +160,7 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  const hasItems=connectedItemFeature&&list.length>0;
  const ready=hasItems?list.every((_,i)=>checked[i]):manual;
  const checkAndAdvance=(nextStatus:DeliveryStatus)=>{
-  if(connectedItemFeature&&nextStatus==="en_ruta"&&!ready){
+  if(connectedItemFeature&&["recogido","en_ruta"].includes(nextStatus)&&!ready){
    Alert.alert("Revisión antes de salir",hasItems?
     "Comprueba cada pizza, bebida y complemento antes de salir.":
     "Confirma que has revisado el ticket y las bolsas con cocina.");
