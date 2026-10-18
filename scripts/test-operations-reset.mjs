@@ -71,6 +71,12 @@ test("LastPOS assignment rules are unchanged",()=>{
  assert.match(staff,/o\.channel!=="test"[\s\S]*?Gestionar en Last\.app/);
  assert.match(staff,/rider_id:rid,status:rid\?"asignado":"pendiente"/);
 });
+test("an old order newly assigned by LastPOS remains visible after reset",()=>{
+ for(const src of [back,pwa,native]){
+  assert.match(src,/or=\(created_at\.gte\./);
+  assert.match(src,/and\(rider_id\.not\.is\.null,status\.in\.\(asignado,recogido,en_ruta\)\)\)/);
+ }
+});
 test("no unexpected SMS sender is introduced by reset",()=>{
  for(const p of ["docs/live.js","docs/rider.js","apps/rider/lib/connected.ts"]){
   assert.doesNotMatch(read(p),/ed_send_status_sms|autoDispatchByLocation/);
