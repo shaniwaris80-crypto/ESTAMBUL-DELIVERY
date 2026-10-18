@@ -72,3 +72,17 @@ test("no generated rider passwords, fake active assignments or production databa
  const files=["docs/rider-profiles.js","docs/rider-pro-v3.css","apps/rider/lib/rider-profiles.ts"];
  for(const path of files)assert.doesNotMatch(read(path),/TWILIO_AUTH_TOKEN|SUPABASE_SERVICE_ROLE_KEY|INSERT INTO|UPDATE public\.ed_riders/i);
 });
+
+test("back office shows true five-slot capacity and never invents active accounts",()=>{
+ const html=read("live.html"),staff=read("docs/live.js");
+ assert.match(html,/id="riderCapacity"/);
+ assert.match(staff,/Array\.from\(\{length:5\}/);
+ assert.match(staff,/ready:Boolean\(rider\?\.active&&rider\?\.user_id\)/);
+ assert.match(staff,/Sin cuenta creada/);
+ assert.match(staff,/Pendiente de activación/);
+ assert.match(html,/docs\/live-pro-v3\.css/);
+});
+test("Native saved email is optional and cannot prevent a valid login",()=>{
+ const app=read("apps/rider/app/connected.tsx");
+ assert.match(app,/try\{await saveRiderEmail\(slot,email\.trim\(\)\);setRemembered\(true\);\}catch\{setRemembered\(false\);\}/);
+});
