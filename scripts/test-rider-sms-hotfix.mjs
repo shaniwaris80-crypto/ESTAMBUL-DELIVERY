@@ -21,7 +21,7 @@ test("article rows are dark with explicitly readable product name and options",(
 });
 test("new Rider orders show honest SMS outcome; never assert delivery from mere acceptance",()=>{
  assert.match(rider,/const smsOutcomes=new Map/);
- assert.match(rider,/smsOutcomes\.set\(order\.id,\{ok:false,message:"SMS NO ENVIADO:/);
+ assert.match(rider,/smsOutcomes\.set\(order\.id,\{ok:false,message:via\+" NO CONFIRMADO:/);
  assert.match(rider,/Twilio ha aceptado el SMS de seguimiento\. Aún no se ha confirmado su recepción/);
  assert.match(rider,/SMS no verificado · sin mensajes adicionales por estados/);
  assert.doesNotMatch(rider,/Enlace inicial enviado · sin SMS por estados/);
@@ -44,9 +44,9 @@ test("visible Rider SMS readiness and forced new PWA shell",()=>{
  assert.match(html,/id="smsHealthPanel"/);
  assert.match(html,/id="smsHealthStatus"/);
  assert.match(html,/id="checkSmsHealth"/);
- assert.match(html,/docs\/rider\.js\?v=26/);
+ assert.match(html,/docs\/rider\.js\?v=27/);
  assert.match(html,/visual-rider-v5\.css\?v=2/);
- assert.match(read("rider-sw.js"),/const CACHE="estambul-rider-shell-v26"/);
+ assert.match(read("rider-sw.js"),/const CACHE="estambul-rider-shell-v27"/);
  assert.match(rider,/withAuth\("\/functions\/v1\/ed-rider-accept-sms",\{method:"GET"\}\)/);
 });
 test("manual LastPOS, no resend, no status-change texts and optional packing preserved",()=>{
