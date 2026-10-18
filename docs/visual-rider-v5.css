@@ -206,3 +206,18 @@ body.ed-visual-v5 #dashboard .rider-share-notice{
  background:#3e2e1a!important;border:1px solid #9c7849!important;color:#ffebcb!important;
  padding:15px;border-radius:13px;font-weight:850;line-height:1.6;
 }
+
+
+/* Health indicator: configuration only; never claims phone delivery. */
+body.ed-visual-v5 #dashboard .sms-health-panel{
+ display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px;
+ margin:0 0 14px;border:1px solid #926a40;background:#372717;color:#ffe6b7;
+}
+body.ed-visual-v5 #dashboard .sms-health-panel strong{color:#ffe0a8;font-size:14px}
+body.ed-visual-v5 #dashboard .sms-health-panel p{color:#ffe8c8;font-size:12px;line-height:1.55;margin:5px 0 0}
+body.ed-visual-v5 #dashboard .sms-health-panel.sms-ready{background:#14362f;border-color:#388768}
+body.ed-visual-v5 #dashboard .sms-health-panel.sms-ready strong{color:#b7ffe0}
+body.ed-visual-v5 #dashboard .sms-health-panel.sms-ready p{color:#cbf4e1}
+body.ed-visual-v5 #dashboard .sms-health-panel.sms-unavailable{border-color:#d18b49;background:#483019}
+body.ed-visual-v5 #dashboard .sms-health-check{min-height:42px;padding:10px 12px;border:1px solid #a77b49;border-radius:10px;background:#152c3f;color:#fff3d8;font-weight:850;font-size:12px;white-space:nowrap}
+@media(max-width:480px){body.ed-visual-v5 #dashboard .sms-health-panel{align-items:stretch;flex-direction:column}body.ed-visual-v5 #dashboard .sms-health-check{width:100%}}
