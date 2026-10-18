@@ -110,7 +110,7 @@ function shareTrackingByWhatsApp(order,link,tab){
 }
 async function riderAcceptance(order,resend,tab){
  const output=await withAuth("/functions/v1/ed-rider-accept-sms",{
-  method:"POST",body:JSON.stringify({order_id:order.id,resend:Boolean(resend)})
+  method:"POST",body:JSON.stringify({order_id:order.id,resend:false})
  });
  if(!output?.accepted)throw Error("El pedido no se pudo aceptar");
  const link=typeof output.link==="string"&&/^https:\/\/shaniwaris80-crypto\.github\.io\/ESTAMBUL-DELIVERY\/track\.html#token=[a-f0-9]{64}$/.test(output.link)
@@ -120,7 +120,7 @@ async function riderAcceptance(order,resend,tab){
  if(output.already_accepted){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
-  $("riderShareNotice").textContent="Pedido ya aceptado. Usa «Reenviar seguimiento» si el cliente necesita otro enlace.";
+  $("riderShareNotice").textContent="Pedido ya aceptado. El enlace inicial del cliente muestra los cambios sin SMS adicionales.";
   return output;
  }
  if(!link){
@@ -144,7 +144,9 @@ async function riderAcceptance(order,resend,tab){
    invalid_phone:"El teléfono del cliente no es válido para SMS.",
    sms_not_authorized:"El cliente no tiene SMS autorizado para este pedido.",
    permission_or_order_error:"No se ha podido verificar el destinatario del SMS.",
-   link_error:"No se pudo generar un enlace válido."
+   link_error:"No se pudo generar un enlace válido.",
+   dispatch_unavailable:"Control de SMS único no disponible. No se ha enviado SMS.",
+   already_sent_or_attempted:"Ya existe un intento para este pedido. No se enviará otro SMS."
   };
   $("riderShareNotice").hidden=false;
   $("riderShareNotice").textContent="✓ Pedido aceptado. NO se ha enviado ningún SMS. "+
@@ -700,7 +702,7 @@ function renderOrder(order,isPriority=false) {
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
+        ?'<span class="one-link-note">✓ Enlace inicial enviado · sin SMS por estados</span>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -952,7 +954,7 @@ $("orders").addEventListener("click",event=>{
  const resend=Boolean(action.dataset.share);
  if(!order||!rider.online||!["asignado","recogido","en_ruta"].includes(order.status))return;
  if(!resend&&order.accepted_at)return;
- if(resend&&!window.confirm("Generar otro enlace privado para el cliente. Los enlaces anteriores seguirán funcionando. ¿Continuar?"))return;
+ if(resend)return; // Rider cannot re-issue a tracking token.
  // A direct click reserves WhatsApp before asynchronous RPC (mobile popup protection).
  let tab=null;
  if(canShareFollowup(order)){
@@ -1076,26 +1078,7 @@ $("orders").addEventListener("click", event => {
       if(status==="entregado"){
        itemController?.completed(order.id);paymentDrafts.delete(order.id);paymentInteractionUntil=0;
       }
-      // Status is committed independently of SMS; report any dispatch failure.
-      if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
-        try{
-          const sms=await withAuth("/functions/v1/ed-send-notifications",{
-            method:"POST",body:JSON.stringify({order_id:order.id})
-          });
-          const notice=$("riderShareNotice");
-          if(sms.accepted>0){
-            notice.textContent="✓ Twilio ha aceptado el aviso de estado #"+displayOrderCode(order)+". Entrega al móvil aún no confirmada.";
-          }else if(sms.failed>0 || sms.enabled===false || sms.error){
-            notice.textContent="⚠ Estado actualizado, pero Twilio NO ha enviado el aviso de #"+displayOrderCode(order)+". "+(sms.error||sms.reason||"Revisa el proveedor SMS.");
-          }else{
-            notice.textContent="Estado actualizado. Sin nuevo SMS pendiente para #"+displayOrderCode(order)+".";
-          }
-          notice.hidden=false;
-        }catch(error){
-          $("riderShareNotice").hidden=false;
-          $("riderShareNotice").textContent="⚠ Estado actualizado, pero no se pudo enviar el SMS de #"+displayOrderCode(order)+": "+(error.message||"Error de envío");
-        }
-      }
+      // No status-change SMS: customer refreshes the original private link.
       if (mapsDestination) {
         if (mapsTab && !mapsTab.closed) mapsTab.location.replace(mapsDestination);
         else window.location.assign(mapsDestination);
