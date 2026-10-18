@@ -1,0 +1,33 @@
+name: Rider order packing checklist (isolated)
+on:
+  push:
+    branches:
+      - feature/rider-pro-order-checklist-20261018
+  pull_request:
+    paths:
+      - rider.html
+      - docs/rider.js
+      - docs/rider-items.js
+      - docs/rider-packing.css
+      - apps/rider/app/connected.tsx
+      - apps/rider/lib/connected.ts
+      - supabase/functions/ed-last-auto-sync/index.ts
+      - scripts/test-rider-order-items.mjs
+      - .github/workflows/rider-order-items.yml
+permissions:
+  contents: read
+jobs:
+  packing-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Browser module syntax and regression tests
+        run: |
+          node --check docs/rider.js
+          node --check docs/rider-items.js
+          node --check scripts/test-rider-order-items.mjs
+          node --test scripts/test-rider-order-items.mjs

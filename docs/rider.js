@@ -24,6 +24,8 @@ function displayOrderCode(order){
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
+const itemFeature=window.ESTAMBUL_RIDER_ITEMS_ENABLED===true&&Boolean(window.ESTAMBUL_ORDER_ITEMS);
+const itemController=window.ESTAMBUL_ORDER_ITEMS?.createController(escapeText,itemFeature);
 // Only unclosed deliveries belong to the current rider workday; the server keeps all settled orders.
 let unsettledIds=null, locationShares=new Map(), locationSharingAvailable=false;
 let deferredInstall = null;
@@ -521,6 +523,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
+  itemController?.clear();
   routeState.ids=[];routeState.coordsOptimized=false;routeState.manualOrder=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
@@ -578,6 +581,7 @@ async function fetchOrders() {
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
   draw();
+  if(itemFeature)void itemController.load(orders,withAuth,draw);
 }
 async function updateOrders() {
   if (inFlight || busy || !identity || document.visibilityState !== "visible") return;
@@ -692,6 +696,7 @@ function renderOrder(order,isPriority=false) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
     '<strong>'+euros(order.amount)+'</strong></div>'+
@@ -1004,12 +1009,14 @@ $("orders").addEventListener("keydown",event=>{
  }
 });
 
+$("orders").addEventListener("change",event=>itemController?.onChange(event));
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;
   const order = orders.find(row => row.id === button.dataset.order);
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
+  // Checking pizzas/drinks is an optional aide-mémoire, never a route gate.
   // Reserve a tab during the user gesture: mobile browsers may block it after await.
   // Navigate to Maps only after the status PATCH succeeds.
   // Cash-up requires the Rider to confirm how money was actually collected.
@@ -1043,6 +1050,7 @@ $("orders").addEventListener("click", event => {
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
       }
+      if(status==="entregado")itemController?.completed(order.id);
       // Status is committed independently of SMS; report any dispatch failure.
       if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
         try{
