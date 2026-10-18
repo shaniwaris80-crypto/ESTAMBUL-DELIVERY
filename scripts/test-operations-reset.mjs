@@ -49,20 +49,20 @@ test("admin reset control is disabled while backend migration is absent",()=>{
 });
 test("manager order query restricts current period, while historical shift closures remain",()=>{
  assert.match(back,/\/rest\/v1\/ed_operations_epoch\?select=started_at,previous_started_at,revision/);
- assert.match(back,/created_at=gte\./);
+ assert.match(back,/created_at\.gte\./);
  assert.match(back,/epochFilter\+"&order=created_at.desc&limit=100"/);
  assert.match(back,/\/rest\/v1\/ed_shift_closures/);
 });
 test("Rider PWA respects same cutoff without deleting remote orders",()=>{
  assert.match(pwa,/ed_operations_epoch\?select=started_at/);
  assert.match(pwa,/epochFilter/);
- assert.match(pwa,/created_at=gte\./);
+ assert.match(pwa,/created_at\.gte\./);
  assert.match(pwa,/catch\(\(\)=>null\)/);
  assert.doesNotMatch(pwa,/ed_reset_operations_view/);
 });
 test("native Expo Rider respects same cutoff without gaining admin rights",()=>{
  assert.match(native,/ed_operations_epoch\?select=started_at/);
- assert.match(native,/created_at=gte\./);
+ assert.match(native,/created_at\.gte\./);
  assert.match(native,/rider_id=eq\."\+rider\.id\+epochFilter/);
  assert.doesNotMatch(native,/ed_reset_operations_view/);
 });
