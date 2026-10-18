@@ -21,7 +21,7 @@ test("article rows are dark with explicitly readable product name and options",(
 });
 test("new Rider orders show honest SMS outcome; never assert delivery from mere acceptance",()=>{
  assert.match(rider,/const smsOutcomes=new Map/);
- assert.match(rider,/smsOutcomes\.set\(order\.id,\{ok:false,message:"SMS NO ENVIADO:/);
+ assert.match(rider,/smsOutcomes\.set\(order\.id,\{ok:false,message:via\+" NO CONFIRMADO:/);
  assert.match(rider,/Twilio ha aceptado el SMS de seguimiento\. Aún no se ha confirmado su recepción/);
  assert.match(rider,/SMS no verificado · sin mensajes adicionales por estados/);
  assert.doesNotMatch(rider,/Enlace inicial enviado · sin SMS por estados/);
