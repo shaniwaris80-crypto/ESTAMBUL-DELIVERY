@@ -575,8 +575,15 @@ async function authenticate() {
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
 }
 async function fetchOrders() {
+  // When an admin starts a new operational period, older orders remain in the
+  // database but disappear from the daily Rider workflow. If schema is absent,
+  // use the existing orders view unchanged until coordinated rollout.
+  const epochRows=await withAuth("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
+   encodeURIComponent(identity.accountId)+"&limit=1").catch(()=>null);
+  const epoch=Array.isArray(epochRows)&&epochRows[0]?.started_at?epochRows[0].started_at:null;
+  const epochFilter=epoch?"&created_at=gte."+encodeURIComponent(epoch):"";
   const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
-    encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
+    encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + epochFilter + "&order=created_at.desc&limit=100";
   // Refresh auth token once on the primary query, before ancillary calls run together.
   const response=await withAuth(endpoint);
   const [openDone,shareRows]=await Promise.all([
