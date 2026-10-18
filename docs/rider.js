@@ -563,7 +563,17 @@ async function checkSmsHealth(force=false){
    dispatch_unavailable:"El control de SMS único no está disponible en el servidor. Consulta con administración.",
    configured:"Configuración de envío preparada. La recepción de cada SMS debe confirmarse en Twilio."
   };
-  label.textContent=info.ready===true?reasons.configured:(reasons[info.reason]||"SMS no disponible. Consulta con administración.");
+  const wa=info.whatsapp;
+  const waReason={
+    template_missing:"falta Content SID",
+    disabled:"automático desactivado",
+    provider_not_configured:"falta remitente o configuración",
+    configuration_present_approval_not_verified:"configurado; aprobación comprobada al aceptar"
+  };
+  const whatsappLabel=wa?.configured?"WhatsApp preparado; aprobación verificada al aceptar":
+    "WhatsApp no activo ("+(waReason[wa?.reason]||"pendiente")+")";
+  label.textContent=(info.ready===true?reasons.configured:(reasons[info.reason]||"SMS no disponible."))+
+    " · "+whatsappLabel+".";
  }catch(e){
   panel.classList.remove("sms-ready");panel.classList.add("sms-unavailable");
   label.textContent="No se pudo comprobar la conexión del sistema SMS. No supone que el mensaje se haya enviado.";
