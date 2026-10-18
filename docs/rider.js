@@ -143,8 +143,26 @@ async function riderAcceptance(order,resend,tab){
   $("riderShareNotice").hidden=false;
   smsOutcomes.set(order.id,{ok:true,message:"Twilio ha aceptado el SMS de seguimiento. Aún no se ha confirmado su recepción en el teléfono."});
   $("riderShareNotice").textContent="✓ Pedido aceptado. El proveedor ha aceptado el SMS con el enlace para el cliente. La entrega del SMS aún no está confirmada.";
- }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)){
-  shareTrackingByWhatsApp(order,link,tab);
+ }else if(order.notification_channel==="whatsapp"){
+  const status=String(output.whatsapp_status||"");
+  const noAutomaticAttempt=["provider_disabled","provider_not_configured",
+    "template_not_found","wrong_template_account","template_not_approved",
+    "approval_unavailable","template_check_failed","sandbox_only",
+    "dispatch_unavailable"];
+  if(status==="provider_accepted"){
+   if(tab&&!tab.closed)tab.close();
+   smsOutcomes.set(order.id,{ok:true,message:"Twilio ha aceptado el WhatsApp de seguimiento. Su entrega al móvil aún no está confirmada."});
+   $("riderShareNotice").hidden=false;
+   $("riderShareNotice").textContent="✓ WhatsApp aceptado por el proveedor. El cliente no recibirá otro mensaje por cada cambio de estado.";
+  }else if(noAutomaticAttempt.includes(status)&&canShareFollowup(order)){
+   shareTrackingByWhatsApp(order,link,tab);
+   smsOutcomes.set(order.id,{ok:false,message:"WhatsApp AUTOMÁTICO NO ENVIADO ("+status+"). Se abrió WhatsApp para que revises y pulses Enviar manualmente."});
+  }else{
+   if(tab&&!tab.closed)tab.close();
+   smsOutcomes.set(order.id,{ok:false,message:"WhatsApp NO CONFIRMADO ("+(status||"estado_desconocido")+"). No reenvíes automáticamente: podría duplicarse el mensaje."});
+   $("riderShareNotice").hidden=false;
+   $("riderShareNotice").textContent="No se ha podido confirmar el WhatsApp. No se reintentará automáticamente; consulta con administración.";
+  }
  }else{
   if(tab&&!tab.closed)tab.close();
   const reasons={
@@ -548,7 +566,11 @@ async function checkSmsHealth(force=false){
    dispatch_unavailable:"El control de SMS único no está disponible en el servidor. Consulta con administración.",
    configured:"Configuración de envío preparada. La recepción de cada SMS debe confirmarse en Twilio."
   };
-  label.textContent=info.ready===true?reasons.configured:(reasons[info.reason]||"SMS no disponible. Consulta con administración.");
+  const smsText=info.ready===true?reasons.configured:(reasons[info.reason]||"SMS no disponible. Consulta con administración.");
+  const waText=info.whatsapp_configured===true
+   ?"WhatsApp: configuración cargada; plantilla y aprobación se verifican antes del primer intento."
+   :"WhatsApp automático todavía no habilitado; el envío manual sigue disponible con consentimiento.";
+  label.textContent=smsText+" "+waText;
  }catch(e){
   panel.classList.remove("sms-ready");panel.classList.add("sms-unavailable");
   label.textContent="No se pudo comprobar la conexión del sistema SMS. No supone que el mensaje se haya enviado.";
@@ -742,7 +764,7 @@ function renderOrder(order,isPriority=false) {
       (order.status==="asignado"&&!order.accepted_at
         ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+
           (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
-           canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
+           canShareFollowup(order)?" · WhatsApp autorizado":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
         ?'<span class="one-link-note">Pedido aceptado · SMS no verificado · sin mensajes adicionales por estados</span>':'');
