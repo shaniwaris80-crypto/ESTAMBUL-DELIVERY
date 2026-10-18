@@ -13,7 +13,8 @@
   const quantity=positive(x.quantity);
   if(!name||quantity===null)return null;
   const mods=Array.isArray(x.modifiers)?x.modifiers.slice(0,30):[];
-  const children=Array.isArray(x.comboProducts)?x.comboProducts:
+  const children=Array.isArray(x.children)?x.children:
+    Array.isArray(x.comboProducts)?x.comboProducts:
     Array.isArray(x.products)?x.products:[];
   return {name,quantity,
    comments:clean(x.comments,300),
