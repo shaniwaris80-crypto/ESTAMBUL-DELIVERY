@@ -55,6 +55,12 @@ BEGIN
    WHERE o.account_id=p_account_id AND o.rider_id IS NOT NULL
    AND o.status IN ('asignado','recogido','en_ruta'))
  THEN RAISE EXCEPTION 'Hay repartos asignados en curso. Finaliza primero las entregas';END IF;
+ -- Require all previous deliveries to be reconciled before starting a new period.
+ -- This preserves correct cash/card totals rather than silently starting at zero.
+ IF EXISTS(SELECT 1 FROM public.ed_orders o WHERE o.account_id=p_account_id
+   AND o.status='entregado' AND NOT EXISTS(
+     SELECT 1 FROM public.ed_shift_closure_items c WHERE c.order_id=o.id))
+ THEN RAISE EXCEPTION 'Hay entregas sin arqueo/cierre. Revisa y cierra la caja antes de reiniciar';END IF;
  SELECT e.started_at INTO prior_time FROM public.ed_operations_epoch e
  WHERE e.account_id=p_account_id;
  prior_time=coalesce(prior_time,'1970-01-01 00:00:00+00'::timestamptz);
