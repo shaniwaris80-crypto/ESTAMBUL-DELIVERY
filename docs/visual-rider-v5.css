@@ -141,3 +141,68 @@ body.ed-visual-v5{
  .ed-visual-v5 #dashboard .order-card .destination-head{font-size:20px}
 }
 @media(prefers-reduced-motion:reduce){.ed-visual-v5 *{animation-duration:0s!important;transition-duration:0s!important}}
+
+
+/* HOTFIX: legacy rider.css forces .payment-panel background:#f5f7f5!important,
+   while the V5 panel had white text. Override at equal importance and higher specificity. */
+body.ed-visual-v5 #dashboard .order-card .payment-panel,
+body.ed-visual-v5 #dashboard .order-card .payment-panel.unknown{
+ background:#33251e!important;border:1px solid #b3814e!important;color:#fff2de!important;
+}
+body.ed-visual-v5 #dashboard .order-card .payment-panel.cash{
+ background:#3e2d19!important;border-color:#d5a05a!important;color:#ffecd1!important;
+}
+body.ed-visual-v5 #dashboard .order-card .payment-panel.card{
+ background:#132e49!important;border-color:#4786ba!important;color:#eff8ff!important;
+}
+body.ed-visual-v5 #dashboard .order-card .payment-panel .payment-title{
+ color:#ffcd92!important;font-size:12px;font-weight:950;letter-spacing:.055em;
+}
+body.ed-visual-v5 #dashboard .order-card .payment-panel strong{
+ color:#fff!important;font-size:clamp(19px,5vw,23px);line-height:1.35;text-shadow:none;overflow-wrap:anywhere;
+}
+/* Real LastPOS article rows: do not render white text on legacy white cards. */
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-item{
+ background:#12334a!important;border:1px solid #426782!important;color:#f1f9ff!important;opacity:1!important;
+ box-shadow:none;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-item strong{
+ color:#fff!important;opacity:1!important;font-size:15px;font-weight:900;line-height:1.45;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-item small{
+ color:#c2d9eb!important;opacity:1!important;font-size:13px;line-height:1.5;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-optional:has(input:checked){
+ background:#134838!important;border-color:#4be4a9!important;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-optional:has(input:checked) strong{
+ color:#b8ffe1!important;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-progress{
+ background:#164236!important;border:1px solid #398c70;color:#d2ffe9!important;font-weight:850;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-missing{
+ background:#45321c!important;border:1px solid #ae7f44;color:#ffe2b0!important;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-heading strong{
+ color:#fff!important;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-heading span{
+ color:#6fe7b7!important;
+}
+body.ed-visual-v5 #dashboard .order-card .order-packing .packing-explanation{
+ color:#c7dce9!important;
+}
+/* Message state is clearly announced per order, without hiding failed SMS underneath actions. */
+body.ed-visual-v5 #dashboard .order-card .sms-delivery-notice{
+ display:block;padding:12px 14px;margin:13px 0 6px;border-radius:12px;
+ border:1px solid #a77a43;background:#3e2c18;color:#ffe5bb;font-size:13px;
+ line-height:1.55;font-weight:800;overflow-wrap:anywhere;
+}
+body.ed-visual-v5 #dashboard .order-card .sms-delivery-notice.ok{
+ border-color:#33896c;background:#123c34;color:#b9fbe1;
+}
+body.ed-visual-v5 #dashboard .rider-share-notice{
+ background:#3e2e1a!important;border:1px solid #9c7849!important;color:#ffebcb!important;
+ padding:15px;border-radius:13px;font-weight:850;line-height:1.6;
+}
