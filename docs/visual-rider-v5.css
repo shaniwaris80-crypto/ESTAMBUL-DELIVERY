@@ -1,0 +1,143 @@
+/* Estambul Rider V5 — actual production mobile UI, not a mockup. */
+body.ed-visual-v5{
+ --navy:#0a1b2a;--dark:#eaf2fa;--light:#081623;--muted:#9bb3c7;--line:#29455c;
+ --orange:#fca649;--green:#33de97;--v2-border:#31516b;
+ background:radial-gradient(ellipse at 50% -100px,#294363 0,#081522 520px,#07121e 100%);
+ color:#eaf5fd;
+}
+.ed-visual-v5 .topbar{background:#071320ed;border-bottom:1px solid #36526a;backdrop-filter:blur(18px);box-shadow:0 6px 24px #020b14c9}
+.ed-visual-v5 .topbar-inner{max-width:1080px;min-height:77px}
+.ed-visual-v5 .topbar .mark{width:51px;height:51px;background:none;box-shadow:none;border:0}
+.ed-visual-v5 .topbar .mark img{width:51px;height:51px;filter:drop-shadow(0 5px 12px #e9873580)}
+.ed-visual-v5 .topbar .brand strong{color:white;font-size:17px;font-weight:950;letter-spacing:-.03em}
+.ed-visual-v5 .topbar .brand small{color:#ffb966;font-size:10px;letter-spacing:.11em}
+.ed-visual-v5 .topbar .mode-tag{background:#fa9e3d;color:#0b1b2b;font-weight:950;border-radius:8px}
+.ed-visual-v5 .app{max-width:1050px;padding:18px clamp(11px,3vw,30px) max(90px,env(safe-area-inset-bottom))}
+.ed-visual-v5 .loading p{color:#d6e5ef}
+.ed-visual-v5 .panel{background:linear-gradient(145deg,#102639,#0b1c2d);border:1px solid #32526b;box-shadow:0 11px 26px #030c16a8;color:#e7f3ff}
+.ed-visual-v5 .eyebrow{color:#ffb968;font-weight:950}
+.ed-visual-v5 p{color:#a4bdd1}
+.ed-visual-v5 h1,.ed-visual-v5 h2,.ed-visual-v5 h3{color:#fff}
+.ed-visual-v5 #login .intro{
+ background:linear-gradient(110deg,#0b2036ef,#0d2540b7),url("visual-burgos-rider.svg") center/cover;
+ border:1px solid #3d5972;box-shadow:0 18px 40px #020c17a3;min-height:230px;border-radius:22px}
+.ed-visual-v5 #login .intro h1{color:#fff;font-size:clamp(30px,4vw,43px)}
+.ed-visual-v5 #login .intro p{color:#d4e3f0}
+.ed-visual-v5 #login .pro-access{background:#102335;border:1px solid #33546b;color:#fff;border-radius:22px}
+.ed-visual-v5 #login .pro-access h2{color:#fff}
+.ed-visual-v5 #login .pro-access p,.ed-visual-v5 #login .rider-email-note{color:#adc6d7}
+.ed-visual-v5 #login .rider-profile{background:#0b1b2d;border:1px solid #314c62;color:#e8f3fb;border-radius:14px}
+.ed-visual-v5 #login .rider-profile[aria-pressed=true]{background:#143c32;border-color:#36d89d;box-shadow:0 0 0 3px #35d89b24}
+.ed-visual-v5 #login .rider-avatar{background:#20405b;color:#fbb15f;border:1px solid #4f6474}
+.ed-visual-v5 #login .rider-profile[aria-pressed=true] .rider-avatar{background:#f6a446;color:#102537}
+.ed-visual-v5 #login input{background:#081827!important;border:1px solid #436079!important;color:#fff}
+.ed-visual-v5 #login label{color:#b8cfdf}
+.ed-visual-v5 #login .rider-profile-hint{background:#12362e;color:#9bf4c8;border-color:#315f4c}
+.ed-visual-v5 #login .pro-access .btn-main{background:linear-gradient(130deg,#ffc16c,#ff9632);border:0;color:#102334;box-shadow:0 10px 22px #ee943c59}
+.ed-visual-v5 #dashboard .welcome{background:linear-gradient(98deg,#091c2fef,#0c2237d6 64%,#132f47c2),url("visual-burgos-rider.svg") center 47%/cover;
+ border:1px solid #385b73;border-radius:21px;padding:clamp(23px,3vw,35px);min-height:190px;
+ box-shadow:0 14px 30px #010915bf}
+.ed-visual-v5 #dashboard .welcome:after{content:"🛵";position:absolute;font-size:38px;right:21%;top:28px;filter:drop-shadow(0 4px 14px #f59d4b8f);pointer-events:none}
+.ed-visual-v5 #dashboard .welcome h1{font-weight:950;color:#fff;font-size:clamp(24px,4vw,36px);letter-spacing:-.05em;text-shadow:0 3px 13px #0008}
+.ed-visual-v5 #dashboard .welcome .eyebrow{color:#ffbb6d}
+.ed-visual-v5 #dashboard .welcome p{color:#c0d8eb}
+.ed-visual-v5 #dashboard .welcome .icon-button{background:#143650df;color:#e6f6ff;border:1px solid #557d98}
+.ed-visual-v5 #dashboard .availability{background:linear-gradient(120deg,#102d3f,#103229);border:1px solid #36745e;border-left:5px solid #44e4a4}
+.ed-visual-v5 #dashboard .availability strong{color:#fff}
+.ed-visual-v5 #dashboard .availability p{color:#add0c6}
+.ed-visual-v5 #dashboard .availability .online-indicator.active{background:#54ffc1;box-shadow:0 0 0 5px #28db9a45,0 0 15px #40e7a1}
+.ed-visual-v5 #dashboard .gps-panel,.ed-visual-v5 #dashboard .sound-panel{background:#0c2032;border:1px solid #2e4e68;color:#d8ebfa}
+.ed-visual-v5 #dashboard .gps-panel strong,.ed-visual-v5 #dashboard .sound-panel strong{color:#fff}
+.ed-visual-v5 #dashboard .gps-panel p,.ed-visual-v5 #dashboard .sound-panel p{color:#9ebbd0}
+.ed-visual-v5 #dashboard .gps-toggle,.ed-visual-v5 #dashboard .sound-primary{background:#1a4762;color:#fff;border:1px solid #4f7895}
+.ed-visual-v5 #dashboard .sound-secondary{background:#18344b;color:#e4f2fc;border:1px solid #426581}
+.ed-visual-v5 #dashboard .summary{gap:9px}
+.ed-visual-v5 #dashboard .metric{background:linear-gradient(145deg,#112b41,#0b1c2f);border:1px solid #36516a;min-height:122px;border-radius:16px;box-shadow:0 10px 23px #010c169e}
+.ed-visual-v5 #dashboard .metric:first-child{background:linear-gradient(145deg,#352416,#172637);border-color:#795031}
+.ed-visual-v5 #dashboard .metric:nth-child(2){border-color:#285b78}
+.ed-visual-v5 #dashboard .metric:nth-child(3){border-color:#315f51}
+.ed-visual-v5 #dashboard .metric strong{color:#fff;font-size:clamp(28px,4vw,40px)}
+.ed-visual-v5 #dashboard .metric small{color:#adc8d9}
+.ed-visual-v5 #dashboard .metric-icon{font-size:22px}
+.ed-visual-v5 #dashboard .v2-rider-nav{background:#102336;border:1px solid #32536b;box-shadow:0 7px 16px #020d1a96}
+.ed-visual-v5 #dashboard .v2-rider-nav a{color:#b1d2e6;background:transparent}
+.ed-visual-v5 #dashboard .v2-rider-nav a:first-child{color:#ffb568;background:#362516;border:1px solid #7e522c}
+.ed-visual-v5 #dashboard .v2-rider-nav a:hover{background:#1c425e;color:#fff}
+.ed-visual-v5 #dashboard .work-header h2{color:#fff;font-size:clamp(22px,3vw,27px);font-weight:950}
+.ed-visual-v5 #dashboard .work-header .eyebrow{color:#ffb664}
+.ed-visual-v5 #dashboard .list-count{background:#ed9c44;color:#152a3d;font-weight:950}
+.ed-visual-v5 #dashboard .rider-help{color:#8fafc7}
+.ed-visual-v5 #dashboard .live-indicator{background:#15392f;color:#85ecc1;border:1px solid #296e54;box-shadow:0 0 15px #34dba51f}
+.ed-visual-v5 #dashboard .live-indicator.stale{background:#4b2b1b;color:#ffc07d;border-color:#a16439}
+.ed-visual-v5 #dashboard .group-title{color:#ffb568;font-weight:950;border-left:3px solid #f9a34a;padding:7px 11px;background:#251c1b}
+.ed-visual-v5 #dashboard .order-card{position:relative;background:linear-gradient(155deg,#10283c,#091c2d);border:1px solid #3a5670;
+ border-radius:21px;color:#deeeff;box-shadow:0 15px 33px #010b18bb;overflow:hidden;margin:14px 0}
+.ed-visual-v5 #dashboard .order-card.priority-order{border-left:5px solid #ffa746;border-color:#d59147;box-shadow:0 0 0 1px #92522270,0 14px 35px #010b17d6}
+.ed-visual-v5 #dashboard .order-card:before{content:"🥙";position:absolute;right:22px;top:91px;font-size:38px;opacity:.85;filter:drop-shadow(0 5px 10px #b05a2733);pointer-events:none}
+.ed-visual-v5 #dashboard .order-top{background:#0a2033;border-bottom:1px solid #2c4960;padding:18px 20px;gap:12px}
+.ed-visual-v5 #dashboard .order-number{color:#fff;font-size:21px;font-weight:950;letter-spacing:-.035em}
+.ed-visual-v5 #dashboard .order-card .channel{color:#8bacbf}
+.ed-visual-v5 #dashboard .order-card .status{border-radius:30px;background:#133c5b;color:#72d3ff;border:1px solid #2f7197;font-weight:950;letter-spacing:.03em}
+.ed-visual-v5 #dashboard .order-card .status.asignado{background:#553015;color:#ffd197;border-color:#ad6e35}
+.ed-visual-v5 #dashboard .order-card .status.entregado{background:#134237;color:#80f4b5;border-color:#26765c}
+.ed-visual-v5 #dashboard .order-wait{color:#9fc0d7}
+.ed-visual-v5 #dashboard .priority-tag{background:#203d33;color:#63f1ae;border:1px solid #3a8769}
+.ed-visual-v5 #dashboard .client-label{color:#ffb96b;font-size:10px;font-weight:950}
+.ed-visual-v5 #dashboard .order-card .destination-head{color:#fff;font-weight:950;font-size:23px;padding-right:55px}
+.ed-visual-v5 #dashboard .order-card .destination{color:#d2e5f6;font-size:14px;padding-right:42px}
+.ed-visual-v5 #dashboard .client-phone{color:#a4c4dd}
+.ed-visual-v5 #dashboard .delivery-notes{background:#0d3046;border:1px solid #3d5c76;border-left:3px solid #f6ad57;color:#dbe9f5;border-radius:11px}
+.ed-visual-v5 #dashboard .delivery-notes strong{color:#ffbc79}
+.ed-visual-v5 #dashboard .delivery-notes p{color:#bdd1e2}
+.ed-visual-v5 #dashboard .order-card .payment-panel{background:#092536;border:1px solid #2a5c63;padding:16px;margin-top:17px}
+.ed-visual-v5 #dashboard .order-card .payment-panel.cash{border-color:#a46d37;background:#382a1b}
+.ed-visual-v5 #dashboard .order-card .payment-panel.card{border-color:#3a7cb1;background:#112e4b}
+.ed-visual-v5 #dashboard .order-card .payment-panel.unknown{border-color:#8c5a48;background:#36231f}
+.ed-visual-v5 #dashboard .order-card .payment-title{color:#c7e5f7;font-size:11px}
+.ed-visual-v5 #dashboard .order-card .payment-panel strong{color:#fff;font-size:23px;white-space:normal}
+.ed-visual-v5 #dashboard .payment-confirmation{background:#0e283c;border:1px solid #355a77}
+.ed-visual-v5 #dashboard .payment-confirmation span{color:#b8d7eb}
+.ed-visual-v5 #dashboard .payment-confirmation small{color:#9bb6c8}
+.ed-visual-v5 #dashboard .payment-confirmation select{background:#081926;color:#fff;border:1px solid #47718a}
+.ed-visual-v5 #dashboard .order-packing{background:#0d2a3d!important;border-color:#315a6f!important;color:#e5f5ff}
+.ed-visual-v5 #dashboard .order-packing strong,.ed-visual-v5 #dashboard .order-packing label{color:#f5faff}
+.ed-visual-v5 #dashboard .packing-explanation,.ed-visual-v5 #dashboard .packing-note{color:#a8c5d7}
+.ed-visual-v5 #dashboard .packing-optional{border-left-color:#5debb6!important}
+.ed-visual-v5 #dashboard .order-card .actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.ed-visual-v5 #dashboard .order-card .actions button,.ed-visual-v5 #dashboard .order-card .actions a{min-height:49px;color:#dcf0ff;border:1px solid #335e82;background:#133450;border-radius:12px}
+.ed-visual-v5 #dashboard .order-card .actions .maps-action{color:#95d4ff;border-color:#397bae;background:#133956}
+.ed-visual-v5 #dashboard .order-card .actions button[data-next],.ed-visual-v5 #dashboard .order-card .actions .accept-action{
+ grid-column:1/-1;background:linear-gradient(125deg,#ffbb65,#fa9434);border:0;color:#092035;font-size:15px;font-weight:950;box-shadow:0 5px 18px #f8a04940;min-height:57px}
+.ed-visual-v5 #dashboard .order-card .actions .finish-accessible{grid-column:1/-1;background:linear-gradient(125deg,#3cef9e,#12bf73);color:#092b20;border:0;font-size:14px;font-weight:950}
+.ed-visual-v5 #dashboard .swipe-finish{grid-column:1/-1;background:#153a38;border:1px solid #32a17b;color:#b7f6d7}
+.ed-visual-v5 #dashboard .swipe-handle{background:#38dc98;color:#0c2b26}
+.ed-visual-v5 #dashboard .one-link-note{color:#75dbb4;grid-column:1/-1}
+.ed-visual-v5 #dashboard .multi-route-panel,.ed-visual-v5 #dashboard .history-section,.ed-visual-v5 #dashboard .day-close-card{background:#0e2335;border:1px solid #33566c;color:#eaf4fb}
+.ed-visual-v5 #dashboard .history-section strong,.ed-visual-v5 #dashboard .day-close-card h2,.ed-visual-v5 #dashboard .multi-route-panel h2{color:#fff}
+.ed-visual-v5 #dashboard .history-section small,.ed-visual-v5 #dashboard .day-close-card p,.ed-visual-v5 #dashboard .multi-route-panel p{color:#a6c1d4}
+.ed-visual-v5 #dashboard .day-close-review,.ed-visual-v5 #dashboard .route-optimize{background:#1d4462;color:#e8f5ff;border:1px solid #3e718f;border-radius:12px}
+.ed-visual-v5 #dashboard .day-close-final{background:linear-gradient(130deg,#49eda5,#1bc77d);color:#062b1f}
+.ed-visual-v5 #dashboard #declaredCash,.ed-visual-v5 #dashboard #shiftNotes{background:#071827;border:1px solid #45617b;color:#fff}
+.ed-visual-v5 #dashboard .history-row{background:#11293e;border:1px solid #304e69}
+.ed-visual-v5 #dashboard .history-row strong{color:#fff}
+.ed-visual-v5 .install{background:#0b2234;color:#daeaf6;border:1px solid #2d506a}
+.ed-visual-v5 .install strong{color:#fff}
+.ed-visual-v5 .logout{color:#c3d9e9;border-color:#47667d}
+.ed-visual-v5 .disclaimer{color:#6f9ab3}
+.ed-visual-v5 [hidden]{display:none!important}
+@media(max-width:700px){
+ .ed-visual-v5 .topbar-inner{padding:8px 13px;min-height:68px}
+ .ed-visual-v5 .app{padding:13px 11px 100px}
+ .ed-visual-v5 #dashboard .welcome{padding:21px;min-height:180px}
+ .ed-visual-v5 #dashboard .welcome h1{font-size:25px;max-width:300px}
+ .ed-visual-v5 #dashboard .welcome:after{right:19%;top:17px;font-size:28px}
+ .ed-visual-v5 #dashboard .summary{gap:7px}
+ .ed-visual-v5 #dashboard .metric{min-height:104px;padding:12px 9px}
+ .ed-visual-v5 #dashboard .metric strong{font-size:29px}
+ .ed-visual-v5 #dashboard .v2-rider-nav{top:69px;padding:7px}
+ .ed-visual-v5 #dashboard .order-card{border-radius:17px}
+ .ed-visual-v5 #dashboard .order-card .order-top{padding:14px 15px}
+ .ed-visual-v5 #dashboard .order-card:before{font-size:29px;right:15px}
+ .ed-visual-v5 #dashboard .order-card .destination-head{font-size:20px}
+}
+@media(prefers-reduced-motion:reduce){.ed-visual-v5 *{animation-duration:0s!important;transition-duration:0s!important}}
