@@ -1016,7 +1016,7 @@ $("orders").addEventListener("click", event => {
   const order = orders.find(row => row.id === button.dataset.order);
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
-  if(itemFeature&&status==="en_ruta"){
+  if(itemFeature&&["recogido","en_ruta"].includes(status)){
     const check=itemController.mayStartRoute(order);
     if(!check.ok){
       setError(check.reason,false);
