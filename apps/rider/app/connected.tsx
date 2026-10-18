@@ -1,8 +1,9 @@
-import { useCallback,useEffect,useState } from "react";
+import { useCallback,useEffect,useRef,useState } from "react";
 import { Alert, ActivityIndicator, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
+import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
 const palette={dark:"#14253b",orange:"#ee9848",green:"#199874",muted:"#7890a4",bg:"#f3f6fa"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
@@ -59,6 +60,16 @@ function routeLinks(orders:RiderOrder[]):string[]{
 }
 export default function Connected(){
  const [email,setEmail]=useState(""),[password,setPassword]=useState("");
+ const [slot,setSlot]=useState<number|null>(null),[remembered,setRemembered]=useState(false);
+ const slotRequest=useRef(0);
+ async function chooseSlot(value:number){
+  const request=++slotRequest.current;
+  setSlot(value);setPassword("");setError("");
+  const saved=await savedRiderEmail(value);
+  if(request!==slotRequest.current)return;
+  setEmail(saved);setRemembered(Boolean(saved));
+ }
+ async function forgetSlot(){if(slot===null)return;await clearRiderEmail(slot);setEmail("");setRemembered(false);setPassword("");}
  const [signed,setSigned]=useState(false),[data,setData]=useState<ConnectedState|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState("");
  const refresh=useCallback(async()=>{const d=await loadConnected();setData(d);setSigned(true);setError("");},[]);
@@ -67,19 +78,54 @@ export default function Connected(){
   const id=setInterval(()=>{if(active&&signed&&!busy)void refresh().catch(e=>setError(e instanceof Error?e.message:"Sin conexión"));},5000);
   return ()=>{active=false;clearInterval(id)};
  },[refresh,signed,busy]);
- async function doLogin(){if(busy)return;setBusy(true);try{await loginRider(email.trim(),password);setPassword("");await refresh();}catch(e){setError(e instanceof Error?e.message:"Error al entrar");}finally{setBusy(false)}}
+ async function doLogin(){
+  if(busy)return;
+  if(slot===null){setError("Selecciona tu RIDER 01–05.");return;}
+  if(!email.trim()){setError("Indica tu correo autorizado para el primer acceso.");return;}
+  setBusy(true);setError("");
+  try{
+   await loginRider(email.trim(),password);
+   const state=await loadConnected();
+   if(riderSlotFromName(state.rider.display_name)!==slot){
+    await logoutRider();
+    throw new Error("La cuenta no corresponde a RIDER "+String(slot).padStart(2,"0")+". Contacta al gerente.");
+   }
+   await saveRiderEmail(slot,email.trim());
+   setRemembered(true);setPassword("");setData(state);setSigned(true);
+  }catch(e){await logoutRider();setPassword("");setError(e instanceof Error?e.message:"Acceso denegado");}
+  finally{setBusy(false)}
+ }
  async function operate(fn:()=>Promise<void>){if(busy)return;setBusy(true);try{await fn();await refresh();}catch(e){Alert.alert("Operación no realizada",e instanceof Error?e.message:"Error");}finally{setBusy(false)}}
  async function logout(){await logoutRider();setSigned(false);setData(null);setPassword("");}
  const orders=suggestRoute(data?.orders.filter(o=>!["entregado","cancelado"].includes(o.status))||[]);
  const links=orders.length>=2?routeLinks(orders):[];
  return <SafeAreaView style={s.safe}>
- <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Demo</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
+ <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Inicio</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
  <ScrollView contentContainerStyle={s.body}>
  {!isConnectedConfigured?<View style={s.card}><Text style={s.title}>Pendiente de configurar</Text><Text style={s.help}>Debes configurar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY para activar las cuentas y pedidos compartidos.</Text></View>
- :!signed?<View style={s.card}><Text style={s.title}>Iniciar sesión</Text><Text style={s.help}>Usa tu cuenta individual de rider de pruebas.</Text>
- <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} placeholder="Correo del rider"/>
- <TextInput style={s.input} secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Contraseña"/>
- <Pressable disabled={busy} style={s.button} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Entrando...":"Entrar"}</Text></Pressable></View>
+
+ :!signed?<View>
+  <View style={s.loginIntro}><Text style={s.loginIntroEyebrow}>ESTAMBUL RIDER PRO</Text><Text style={s.loginIntroTitle}>Tu reparto.{"\n"}Tu ritmo.</Text><Text style={s.loginIntroDetail}>Acceso personal, entregas al día y una experiencia más rápida.</Text></View>
+  <View style={[s.card,s.loginCard]}>
+   <Text style={s.eyebrow}>01 · IDENTIFÍCATE</Text><Text style={s.title}>¿Qué Rider eres?</Text>
+   <View style={s.profileGrid}>{RIDER_SLOTS.map(n=><Pressable key={n} disabled={busy} accessibilityRole="button" accessibilityLabel={"Elegir Rider "+n} accessibilityState={{selected:slot===n}}
+    onPress={()=>void chooseSlot(n)} style={[s.profileChip,slot===n&&s.profileChipSelected]}>
+    <Text style={[s.profileNumber,slot===n&&s.profileNumberSelected]}>{String(n).padStart(2,"0")}</Text>
+    <Text style={[s.profileTitle,slot===n&&s.profileTitleSelected]}>RIDER {String(n).padStart(2,"0")}</Text>
+   </Pressable>)}</View>
+   <Text style={s.eyebrow}>02 · ACCESO SEGURO</Text>
+   {slot===null?<Text style={s.help}>Selecciona tu perfil. Solo entran las cuentas autorizadas.</Text>:<>
+    <Text style={s.profileSelectedLine}>● RIDER {String(slot).padStart(2,"0")} seleccionado</Text>
+    {!remembered?<><Text style={s.inputLabel}>CORREO AUTORIZADO · PRIMER ACCESO</Text>
+     <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" autoComplete="username" value={email} onChangeText={setEmail} placeholder="Correo de tu cuenta Rider"/></>:null}
+    <Text style={s.inputLabel}>CONTRASEÑA INDIVIDUAL</Text>
+    <TextInput style={s.input} secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Tu contraseña"/>
+    {remembered?<Pressable onPress={()=>void forgetSlot()}><Text style={s.forgetLink}>Usar otro correo en este perfil</Text></Pressable>:null}
+    <Pressable disabled={busy||!password} style={[s.button,s.loginButton]} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Comprobando…":"Entrar a mi turno →"}</Text></Pressable>
+    <Text style={s.loginSecurity}>La cuenta debe corresponder a RIDER {String(slot).padStart(2,"0")}. El dispositivo recuerda solo tu correo, nunca la contraseña.</Text>
+   </>}
+  </View>
+ </View>
  :<><View style={s.card}><Text style={s.eyebrow}>MI CUENTA</Text><Text style={s.title}>{data?.rider.display_name||"Cargando..."}</Text><Text style={s.help}>{orders.length} entregas pendientes · sincronización cada 5 s</Text>
  <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Disponible · Desconectar":"○ Conectarme"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Salir</Text></Pressable></View></View>
  {links.length>0?<View style={s.card}>
@@ -142,5 +188,22 @@ const s=StyleSheet.create({
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
  outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b4c9df",alignItems:"center",justifyContent:"center"},
  outlineText:{color:"#3474a9",fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
+ loginIntro:{backgroundColor:"#112840",borderRadius:23,padding:27,marginBottom:16},
+ loginIntroEyebrow:{color:"#f9ba77",fontWeight:"900",fontSize:10,letterSpacing:1.5,marginBottom:8},
+ loginIntroTitle:{color:"#fff",fontSize:34,fontWeight:"900",letterSpacing:-1.4,lineHeight:39,marginBottom:8},
+ loginIntroDetail:{color:"#cadceb",fontSize:13,lineHeight:21},
+ loginCard:{borderRadius:22,padding:23},
+ profileGrid:{flexDirection:"row",flexWrap:"wrap",gap:9,marginBottom:25},
+ profileChip:{width:"30%",minHeight:94,alignItems:"center",justifyContent:"center",backgroundColor:"#f5f8fc",borderColor:"#dce6ef",borderWidth:1.5,borderRadius:15,padding:8},
+ profileChipSelected:{borderColor:"#139b78",backgroundColor:"#eaf9f3"},
+ profileNumber:{fontSize:24,fontWeight:"900",color:"#204866",marginBottom:5},
+ profileNumberSelected:{color:"#137d61"},
+ profileTitle:{fontSize:10,fontWeight:"900",color:"#54748d"},
+ profileTitleSelected:{color:"#137d61"},
+ profileSelectedLine:{color:"#168567",fontWeight:"800",fontSize:12,marginBottom:12},
+ inputLabel:{fontSize:11,color:"#5c748a",fontWeight:"900",letterSpacing:.5},
+ forgetLink:{color:"#32699b",fontSize:12,textDecorationLine:"underline",marginVertical:9},
+ loginButton:{marginTop:10,minHeight:52,borderRadius:12},
+ loginSecurity:{fontSize:11,color:"#748a9f",lineHeight:18,marginTop:13},
  error:{backgroundColor:"#fde7e7",color:"#9b3838",padding:13,borderRadius:9},footer:{textAlign:"center",fontSize:10,color:"#94a3b3",marginTop:17}
 })
