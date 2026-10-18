@@ -92,3 +92,6 @@ body{background:linear-gradient(180deg,#e9f0f8,#f7f9fc 440px);color:var(--r-ink)
  #dashboard .metric .metric-icon{font-size:15px}
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:0s!important}}
+
+/* Security/UX: author layout rules must never override HTML hidden states. */
+[hidden]{display:none!important}
