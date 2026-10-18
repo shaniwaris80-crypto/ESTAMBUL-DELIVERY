@@ -1016,14 +1016,7 @@ $("orders").addEventListener("click", event => {
   const order = orders.find(row => row.id === button.dataset.order);
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
-  if(itemFeature&&["recogido","en_ruta"].includes(status)){
-    const check=itemController.mayStartRoute(order);
-    if(!check.ok){
-      setError(check.reason,false);
-      button.closest(".order-card")?.querySelector(".order-packing")?.scrollIntoView({behavior:"smooth",block:"center"});
-      return;
-    }
-  }
+  // Checking pizzas/drinks is an optional aide-mémoire, never a route gate.
   // Reserve a tab during the user gesture: mobile browsers may block it after await.
   // Navigate to Maps only after the status PATCH succeeds.
   // Cash-up requires the Rider to confirm how money was actually collected.
