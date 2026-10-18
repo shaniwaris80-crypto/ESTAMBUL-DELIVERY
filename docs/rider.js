@@ -1057,7 +1057,7 @@ $("orders").addEventListener("click", event => {
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
       }
-      if(["en_ruta","entregado"].includes(status))itemController?.completed(order.id);
+      if(status==="entregado")itemController?.completed(order.id);
       // Status is committed independently of SMS; report any dispatch failure.
       if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
         try{
