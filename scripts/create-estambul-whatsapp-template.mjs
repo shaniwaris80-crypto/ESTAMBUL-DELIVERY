@@ -14,6 +14,7 @@
  * "create" only creates a template; "approve" submits it for Meta review.
  * Neither action sends a message or affects current customers.
  */
+import {pathToFileURL} from "node:url";
 const operation=process.argv[2]||"help";
 const contentSid=process.argv[3]||"";
 const sid=process.env.TWILIO_ACCOUNT_SID?.trim()||"";
@@ -78,6 +79,6 @@ async function main(){
  }
  throw new Error("Acción no admitida. Utiliza create, verify o approve");
 }
-if(process.argv[1]&&import.meta.url===new URL("file://"+process.argv[1]).href){
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
  main().catch(err=>{console.error(String(err.message));process.exitCode=1;});
 }
