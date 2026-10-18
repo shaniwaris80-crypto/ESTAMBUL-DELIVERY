@@ -2,7 +2,7 @@ import { useCallback,useEffect,useRef,useState } from "react";
 import { Alert, ActivityIndicator, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
-import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
+import { advanceDelivery, isConnectedConfigured, connectedItemFeature, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
 import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
 const palette={dark:"#10243a",orange:"#ed9944",green:"#139b78",muted:"#6d8195",bg:"#f2f5fa"};
@@ -153,6 +153,21 @@ export default function Connected(){
  </ScrollView></SafeAreaView>
 }
 function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvance:(status:DeliveryStatus)=>void}){
+ const [checked,setChecked]=useState<Record<number,boolean>>({});
+ const [manual,setManual]=useState(false);
+ useEffect(()=>{setChecked({});setManual(false);},[order.id,order.items_snapshot?.revision]);
+ const list=Array.isArray(order.items_snapshot?.items)?order.items_snapshot.items.slice(0,80):[];
+ const hasItems=connectedItemFeature&&list.length>0;
+ const ready=hasItems?list.every((_,i)=>checked[i]):manual;
+ const checkAndAdvance=(nextStatus:DeliveryStatus)=>{
+  if(connectedItemFeature&&nextStatus==="en_ruta"&&!ready){
+   Alert.alert("Revisión antes de salir",hasItems?
+    "Comprueba cada pizza, bebida y complemento antes de salir.":
+    "Confirma que has revisado el ticket y las bolsas con cocina.");
+   return;
+  }
+  onAdvance(nextStatus);
+ };
  const status=next[order.status];
  const nav=()=>{
   const text=String(order.destination||"").trim();
@@ -170,12 +185,37 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  <Text style={s.help}>{order.destination}</Text>
  <Text style={s.help}>{order.customer_phone?"☎ "+order.customer_phone:"Sin teléfono de cliente registrado"}</Text>
  {order.notes?<View style={{backgroundColor:"#fff6e8",padding:12,borderRadius:9,marginBottom:12}}><Text style={s.help}>📝 {order.notes}</Text></View>:null}
+ {connectedItemFeature&&["asignado","recogido","en_ruta"].includes(order.status)?
+  <View style={{backgroundColor:"#f0f7fc",padding:14,borderColor:"#cbdce8",borderWidth:1,borderRadius:14,marginBottom:14}}>
+   <Text style={{fontSize:12,fontWeight:"900",color:"#173c58",marginBottom:10}}>🍕 ARTÍCULOS DEL PEDIDO</Text>
+   {hasItems?<>
+    {list.map((line,i)=><Pressable key={i} accessibilityRole="checkbox" accessibilityState={{checked:Boolean(checked[i]),disabled:order.status==="en_ruta"}}
+      disabled={order.status==="en_ruta"} onPress={()=>setChecked(old=>({...old,[i]:!old[i]}))}
+      style={{backgroundColor:checked[i]?"#e4f6ed":"#fff",borderColor:checked[i]?"#a1d7ba":"#dce7f1",borderWidth:1,borderRadius:11,padding:12,marginBottom:8,flexDirection:"row",gap:12}}>
+      <Text style={{fontSize:22,color:checked[i]?"#14856a":"#6e8195"}}>{checked[i]?"☑":"□"}</Text>
+      <View style={{flex:1}}>
+       <Text style={{fontSize:14,fontWeight:"800",color:"#162e45"}}>{line.quantity}× {line.name}</Text>
+       {!!line.comments&&<Text style={{fontSize:12,color:"#5b738a"}}>📝 {line.comments}</Text>}
+       {(line.modifiers||[]).map((m,j)=><Text key={"m"+j} style={{fontSize:12,color:"#527087"}}>+ {m.quantity||1}× {m.name}</Text>)}
+       {(line.children||[]).map((child,j)=><Text key={"c"+j} style={{fontSize:12,color:"#527087"}}>↳ {child.quantity||1}× {child.name}</Text>)}
+      </View>
+     </Pressable>)}
+    <Text style={{fontSize:12,fontWeight:"800",color:"#137a61"}}>{list.filter((_,i)=>checked[i]).length} de {list.length} comprobados</Text>
+   </>:<>
+    <Text style={{fontSize:12,fontWeight:"700",color:"#98631d",marginBottom:11}}>⚠ No hay desglose fiable. Comprueba ticket y bolsas con cocina.</Text>
+    <Pressable disabled={order.status==="en_ruta"} accessibilityRole="checkbox" accessibilityState={{checked:manual}}
+      onPress={()=>setManual(v=>!v)} style={{flexDirection:"row",gap:10,alignItems:"center",backgroundColor:"#fff",padding:12,borderRadius:10}}>
+     <Text style={{fontSize:22,color:"#14856a"}}>{manual?"☑":"□"}</Text>
+     <Text style={{fontSize:12,fontWeight:"750",color:"#173c58",flex:1}}>He revisado ticket y bolsas con cocina</Text>
+    </Pressable>
+   </>}
+  </View>:null}
  <View style={{backgroundColor:order.payment_method==="efectivo"?"#fff3d8":order.payment_method==="tarjeta"?"#e9f3ff":"#f2f3f6",padding:13,borderRadius:10,marginBottom:12}}>
  <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR"}</Text>
  <Text style={{color:palette.dark,fontSize:20,fontWeight:"900",marginTop:4}}>{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
  </View>
  <Text style={s.status}>{order.status.toUpperCase()}</Text>
- <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
+ <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>checkAndAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
 }
 const s=StyleSheet.create({
