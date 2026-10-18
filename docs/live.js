@@ -112,7 +112,7 @@ async function reload(){
   }
  }catch{/* Migration not installed: keep the old order view and disable reset. */}
  const since=operationsEpoch?.started_at;
- const epochFilter=since?"&created_at=gte."+encodeURIComponent(since):"";
+ const epochFilter=since?"&or=(created_at.gte."+encodeURIComponent(since)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))":"";
  if(member.role==="admin"){
   el("resetOperationsButton").disabled=!operationsResetReady;
   el("restoreOperationsButton").disabled=!operationsResetReady||!operationsEpoch?.previous_started_at;
