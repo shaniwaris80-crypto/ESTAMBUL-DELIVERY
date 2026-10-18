@@ -1,0 +1,30 @@
+name: Reversible operations reset - no destructive SQL
+on:
+  push:
+    branches:
+      - feature/estambul-pro-safe-reset-rollout-20261018
+  pull_request:
+    paths:
+      - docs/staging/operations-reset-soft-archive-review.sql
+      - docs/live.js
+      - docs/rider.js
+      - apps/rider/lib/connected.ts
+      - scripts/test-operations-reset.mjs
+      - .github/workflows/operations-reset-safe.yml
+permissions:
+  contents: read
+jobs:
+  safe-reset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate browser syntax
+        run: |
+          node --check docs/live.js
+          node --check docs/rider.js
+      - name: Prevent deletion and improper staff access
+        run: node --test scripts/test-operations-reset.mjs

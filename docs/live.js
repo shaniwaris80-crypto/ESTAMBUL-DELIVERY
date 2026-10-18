@@ -8,6 +8,7 @@ const labels={pendiente:"Pendiente",asignado:"Asignado",recogido:"Recogido",en_r
 const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const chan={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
 let session=null,member=null,account=null,orders=[],riders=[],busy=false;
+let operationsEpoch=null,operationsResetReady=false;
 let shiftClosures=[],shiftClosureItems=[],locationShares=new Map(),archivedOrderIds=new Set(),showArchivedOrders=false;
 let brandDetails=null,customerFeedback=[];
 let riderPositions=[],lastReloadAt=0;
@@ -94,7 +95,7 @@ async function identity(){
 function logged(){
  el("loginSection").hidden=true;el("appSection").hidden=false;el("logout").hidden=false;el("noConfig").hidden=true;
  const staff=member.role!=="rider";
- el("staffView").hidden=!staff;el("riderView").hidden=staff;el("inviteCard").hidden=member.role!=="admin";
+ el("staffView").hidden=!staff;el("riderView").hidden=staff;el("inviteCard").hidden=member.role!=="admin";el("operationsResetCard").hidden=member.role!=="admin";
  el("accountLabel").textContent=account.name+" · "+member.role.toUpperCase();
  el("viewTitle").textContent=staff?"Centro de reparto":"Mis entregas";
  el("viewSub").textContent="Sincronizado con Last.app y Supabase · actualización cada 5 segundos";
@@ -102,9 +103,26 @@ function logged(){
 }
 async function reload(){
  const q=encodeURIComponent(member.account_id);
+ operationsResetReady=false;operationsEpoch=null;
+ try{
+  const epochs=await query("/rest/v1/ed_operations_epoch?select=started_at,previous_started_at,revision&account_id=eq."+q+"&limit=1");
+  if(Array.isArray(epochs)){
+   operationsResetReady=true;
+   operationsEpoch=epochs[0]||null;
+  }
+ }catch{/* Migration not installed: keep the old order view and disable reset. */}
+ const since=operationsEpoch?.started_at;
+ const epochFilter=since?"&or=(created_at.gte."+encodeURIComponent(since)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))":"";
+ if(member.role==="admin"){
+  el("resetOperationsButton").disabled=!operationsResetReady;
+  el("restoreOperationsButton").disabled=!operationsResetReady||!operationsEpoch?.previous_started_at;
+  el("resetOperationsStatus").textContent=!operationsResetReady
+   ?"Reinicio desactivado: falta instalar y verificar la función segura en Supabase."
+   :since?"Panel iniciado desde "+new Date(since).toLocaleString("es-ES")+". Historial completo conservado.":"Vista completa actual. No se ha reiniciado.";
+ }
  const [rs,os]=await Promise.all([
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active,phone,customer_call_enabled&account_id=eq."+q+"&order=display_name.asc"),
-  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,notifications_consent,notification_channel,status,rider_id,created_at&account_id=eq."+q+"&order=created_at.desc&limit=100")
+  query("/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,lat,lng,amount,payment_method,notifications_consent,notification_channel,status,rider_id,created_at&account_id=eq."+q+epochFilter+"&order=created_at.desc&limit=100")
  ]);
  riders=rs||[];orders=os||[];
  if(member.role!=="rider"){
@@ -209,7 +227,11 @@ function renderFeedback(){
 
 function renderGpsPositions(){
  const now=Date.now();
- const active=riderPositions.filter(p=>Date.now()-Date.parse(p.updated_at)<=120000);
+ // Staff and customer tracking both use a strict 45-second live position cutoff.
+ const active=riderPositions.filter(p=>{
+  const age=now-Date.parse(p.updated_at);
+  return Number.isFinite(age)&&age>=0&&age<=45000;
+ });
  el("gpsAdminCount").textContent=active.length+" compartiendo";
  el("gpsRiderList").innerHTML=riders.map(r=>{
   const p=active.find(x=>x.rider_id===r.id);
@@ -305,7 +327,21 @@ function render(){
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
  el("lastSync").textContent=lastReloadAt?"Datos recibidos a las "+new Date(lastReloadAt).toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)":"Esperando sincronización…";
  if(staff){
-  el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
+  // Read-only operational summary: NEVER assigns Last.app couriers.
+  el("proAvailableRiders").textContent=String(riders.filter(r=>r.active&&r.online&&r.user_id).length);
+  el("proWaitingOrders").textContent=String(open.filter(o=>o.channel!=="test"&&o.status!=="en_ruta").length);
+  el("proSyncLabel").textContent=lastReloadAt?new Date(lastReloadAt).toLocaleTimeString("es-ES"):"Esperando…";
+  const rosterSlots=Array.from({length:5},(_,i)=>{
+   const n=i+1;
+   const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
+   return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
+  });
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
+  el("riderCapacity").innerHTML=rosterSlots.map(s=>
+   '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
+   '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+
+   '<small>'+(s.ready?(s.rider.online?'● Cuenta activa · Online':'● Cuenta activa · Offline'):
+    s.rider?'Pendiente de activación':'Sin cuenta creada')+'</small></div>').join("");
   el("orderCount").textContent=visibleOrders.length+" de "+allVisibleOrders.length+" pedidos";
   el("opsResultCount").textContent=visibleOrders.length+" resultados de "+allVisibleOrders.length+
     (opsFocus!=="all"||opsQuery||opsChannel!=="all"?" · Filtros activos":"")+" · "+archivedIds.size+" en arqueos cerrados";
@@ -391,7 +427,7 @@ el("sendInvitations").addEventListener("click",async()=>{
  if(busy||member?.role!=="admin")return;
  busy=true;clearError();el("sendInvitations").disabled=true;
  try{
-  if(!window.confirm("¿Crear dos usuarios Rider de prueba con contraseñas temporales únicas? Se mostrarán solo una vez."))return;
+  if(!window.confirm("¿Aprovisionar solo invitaciones Rider ya autorizadas? Las contraseñas temporales se mostrarán una sola vez."))return;
   const result=await query("/functions/v1/ed-invite-riders",{method:"POST",body:"{}"});
   const lines=(result.results||[]).map(r=>
    r.email+" — "+(r.status==="created"?"CUENTA CREADA":r.status)+(r.error?" ("+r.error+")":"")+
@@ -526,6 +562,29 @@ el("editForm").addEventListener("submit",e=>{
   const rows=await query(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(item)});
   if(!rows?.length)throw Error("No se pudo actualizar el pedido");
   el("editCard").hidden=true;
+ });
+});
+el("resetOperationsButton").addEventListener("click",()=>{
+ if(busy||member?.role!=="admin"||!operationsResetReady)return;
+ const active=orders.filter(o=>o.rider_id&&["asignado","recogido","en_ruta"].includes(o.status));
+ if(active.length){message(Error("Hay "+active.length+" entregas asignadas en curso. Finalízalas antes del reinicio."));return;}
+ if(!window.confirm("Se ocultarán los pedidos anteriores en Rider y gerencia. NO se eliminarán de Supabase ni del historial. ¿Continuar?"))return;
+ if(window.prompt("Para confirmar el reinicio de la vista de operaciones escribe REINICIAR:")!=="REINICIAR")return;
+ void operation(async()=>{
+  const result=await query("/rest/v1/rpc/ed_reset_operations_view",{
+   method:"POST",body:JSON.stringify({p_account_id:member.account_id,p_confirmation:"REINICIAR"})
+  });
+  el("resetOperationsStatus").textContent=result?.message||"Vista reiniciada. Los pedidos históricos siguen guardados.";
+ });
+});
+el("restoreOperationsButton").addEventListener("click",()=>{
+ if(busy||member?.role!=="admin"||!operationsResetReady||!operationsEpoch?.previous_started_at)return;
+ if(window.prompt("Para recuperar los pedidos anteriores en las pantallas escribe RESTAURAR:")!=="RESTAURAR")return;
+ void operation(async()=>{
+  const result=await query("/rest/v1/rpc/ed_restore_operations_view",{
+   method:"POST",body:JSON.stringify({p_account_id:member.account_id,p_confirmation:"RESTAURAR"})
+  });
+  el("resetOperationsStatus").textContent=result?.message||"Vista anterior restaurada.";
  });
 });
 el("refresh").addEventListener("click",()=>void operation(async()=>{}));

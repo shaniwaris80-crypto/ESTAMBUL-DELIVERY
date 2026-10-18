@@ -41,8 +41,11 @@ Deno.serve(async(req:Request)=>{
   });
   const auth=await client.auth.getUser(jwt);
   if(auth.error||!auth.data.user)return json({error:"Sesión de Rider no válida"},401);
+  // One private tracking link per accepted order. Never re-issue via Rider.
+  // Manual rescue requires a separate administrator-controlled workflow.
+  if(input.resend===true)return json({error:"No se generan enlaces ni SMS nuevos al reenviar. Utiliza el enlace inicial."},409);
   const {data:accepted,error:acceptError}=await client.rpc("ed_rider_accept_tracking",{
-   p_order_id:orderId,p_resend:input.resend===true
+   p_order_id:orderId,p_resend:false
   });
   if(acceptError)return json({error:acceptError.message||"Pedido no autorizado"},403);
   if(!accepted?.accepted)return json({error:"Pedido no aceptado"},409);
@@ -72,6 +75,16 @@ Deno.serve(async(req:Request)=>{
   }
   const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN"),from=env("TWILIO_SMS_FROM");
   if(!sid||!secret||!toE164(from))return json({...result,sms_status:"provider_not_configured"});
+  // The permanent dispatch claim MUST be committed before contacting Twilio:
+  // network timeouts may be ambiguous, so never automatically retry.
+  const service=env("SUPABASE_SERVICE_ROLE_KEY");
+  if(!service)return json({...result,sms_status:"dispatch_unavailable"});
+  const audit=createClient(supabaseUrl,service,{
+    auth:{persistSession:false,autoRefreshToken:false}
+  });
+  const {data:claimed,error:claimError}=await audit.rpc("ed_claim_one_tracking_sms",{p_order_id:orderId});
+  if(claimError)return json({...result,sms_status:"dispatch_unavailable"});
+  if(claimed!==true)return json({...result,sms_status:"already_sent_or_attempted"});
   const form=new URLSearchParams();
   form.set("To",to);form.set("From",from);
   form.set("Body","Seguimiento de tu pedido #"+String(order.reference||"")+
@@ -96,16 +109,15 @@ Deno.serve(async(req:Request)=>{
   }catch{
    providerError="Twilio connection error";
   }
-  const service=env("SUPABASE_SERVICE_ROLE_KEY");
-  if(service){
-   const audit=createClient(supabaseUrl,service,{
-    auth:{persistSession:false,autoRefreshToken:false}
-   });
-   await audit.rpc("ed_log_tracking_sms",{
-    p_order_id:orderId,p_token:token,p_success:success,
-    p_provider_sid:messageSid||null,p_error:providerError||null
-   });
-  }
+  try{
+    await audit.rpc("ed_finish_one_tracking_sms",{
+      p_order_id:orderId,p_accepted:success,p_provider_sid:messageSid||null
+    });
+    await audit.rpc("ed_log_tracking_sms",{
+      p_order_id:orderId,p_token:token,p_success:success,
+      p_provider_sid:messageSid||null,p_error:providerError||null
+    });
+  }catch{/* The already-claimed attempt stays spent, avoiding a duplicate SMS. */}
   if(success)return json({...result,sms_status:"provider_accepted"});
   return json({...result,sms_status:"provider_rejected"});
  }catch{

@@ -1,6 +1,6 @@
 /* Cache only the Rider app shell. Do not store orders, accounts or Supabase API responses. */
-const CACHE="estambul-rider-shell-v23";
-const assets=["./rider.html","./rider.webmanifest","./docs/rider.css","./docs/v2-rider.css","./docs/rider.js","./docs/live-config.js","./docs/icon.svg"];
+const CACHE="estambul-rider-shell-v24";
+const assets=["./rider.html","./rider.webmanifest","./docs/rider.css","./docs/v2-rider.css","./docs/rider-pro-v3.css","./docs/rider-pro-v4.css","./docs/rider-packing.css","./docs/rider-profiles.js","./docs/rider-items.js","./docs/rider.js","./docs/live-config.js","./docs/icon.svg"];
 self.addEventListener("install", event => {
  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(assets)).then(() => self.skipWaiting()));
 });

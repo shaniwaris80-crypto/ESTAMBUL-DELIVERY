@@ -24,10 +24,61 @@ function displayOrderCode(order){
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
+const paymentDrafts=new Map(); // Rider's transient payment selection, never persisted.
+let paymentInteractionUntil=0;
+function capturePaymentDrafts(){
+ document.querySelectorAll('#orders select[data-payment-for]').forEach(select=>{
+  const id=select.dataset.paymentFor;
+  if(!id)return;
+  if(["efectivo","tarjeta"].includes(select.value))paymentDrafts.set(id,select.value);
+  else paymentDrafts.delete(id);
+ });
+}
+const itemFeature=window.ESTAMBUL_RIDER_ITEMS_ENABLED===true&&Boolean(window.ESTAMBUL_ORDER_ITEMS);
+const itemController=window.ESTAMBUL_ORDER_ITEMS?.createController(escapeText,itemFeature);
 // Only unclosed deliveries belong to the current rider workday; the server keeps all settled orders.
 let unsettledIds=null, locationShares=new Map(), locationSharingAvailable=false;
 let deferredInstall = null;
 let mustChangePassword=false;
+let selectedRiderSlot=null;
+const riderProfiles=window.ESTAMBUL_RIDER_PROFILES;
+function setRiderSlot(slot){
+ if(!riderProfiles||!Number.isInteger(slot)||slot<1||slot>5)return;
+ selectedRiderSlot=slot;
+ const remembered=riderProfiles.readEmail(slot);
+ $("email").value=remembered;
+ $("riderEmailGroup").hidden=Boolean(remembered);
+ $("email").required=!remembered;
+ $("password").disabled=false;
+ $("forgetRiderDevice").hidden=!remembered;
+ $("riderProfileHint").textContent=remembered
+  ?"RIDER "+String(slot).padStart(2,"0")+" · Introduce tu contraseña para acceder."
+  :"RIDER "+String(slot).padStart(2,"0")+" · Primer acceso: introduce el correo autorizado y tu contraseña.";
+ document.querySelectorAll("[data-rider-slot]").forEach(button=>{
+  const chosen=Number(button.dataset.riderSlot)===slot;
+  button.setAttribute("aria-pressed",String(chosen));
+  button.classList.toggle("selected",chosen);
+ });
+ (remembered?$("password"):$("email")).focus();
+}
+function updateRiderProfileTiles(){
+ if(!riderProfiles)return;
+ document.querySelectorAll("[data-rider-slot]").forEach(button=>{
+  const slot=Number(button.dataset.riderSlot);
+  const small=button.querySelector("small");
+  if(small)small.textContent=riderProfiles.readEmail(slot)?"Acceso recordado":"Primer acceso";
+ });
+}
+if(riderProfiles){
+ $("riderProfiles").addEventListener("click",event=>{
+  const button=event.target.closest("[data-rider-slot]");
+  if(button&&!busy){setRiderSlot(Number(button.dataset.riderSlot));clearError();}
+ });
+ $("forgetRiderDevice").addEventListener("click",()=>{
+  if(selectedRiderSlot){riderProfiles.forgetEmail(selectedRiderSlot);updateRiderProfileTiles();setRiderSlot(selectedRiderSlot);}
+ });
+ updateRiderProfileTiles();
+}
 const followupPhone=(raw)=>{
  const s=String(raw||"").trim(),d=s.replace(/\D/g,"");
  if(s.startsWith("+")&&/^[1-9]\d{7,14}$/.test(d))return d;
@@ -59,7 +110,7 @@ function shareTrackingByWhatsApp(order,link,tab){
 }
 async function riderAcceptance(order,resend,tab){
  const output=await withAuth("/functions/v1/ed-rider-accept-sms",{
-  method:"POST",body:JSON.stringify({order_id:order.id,resend:Boolean(resend)})
+  method:"POST",body:JSON.stringify({order_id:order.id,resend:false})
  });
  if(!output?.accepted)throw Error("El pedido no se pudo aceptar");
  const link=typeof output.link==="string"&&/^https:\/\/shaniwaris80-crypto\.github\.io\/ESTAMBUL-DELIVERY\/track\.html#token=[a-f0-9]{64}$/.test(output.link)
@@ -69,7 +120,7 @@ async function riderAcceptance(order,resend,tab){
  if(output.already_accepted){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
-  $("riderShareNotice").textContent="Pedido ya aceptado. Usa «Reenviar seguimiento» si el cliente necesita otro enlace.";
+  $("riderShareNotice").textContent="Pedido ya aceptado. El enlace inicial del cliente muestra los cambios sin SMS adicionales.";
   return output;
  }
  if(!link){
@@ -93,7 +144,9 @@ async function riderAcceptance(order,resend,tab){
    invalid_phone:"El teléfono del cliente no es válido para SMS.",
    sms_not_authorized:"El cliente no tiene SMS autorizado para este pedido.",
    permission_or_order_error:"No se ha podido verificar el destinatario del SMS.",
-   link_error:"No se pudo generar un enlace válido."
+   link_error:"No se pudo generar un enlace válido.",
+   dispatch_unavailable:"Control de SMS único no disponible. No se ha enviado SMS.",
+   already_sent_or_attempted:"Ya existe un intento para este pedido. No se enviará otro SMS."
   };
   $("riderShareNotice").hidden=false;
   $("riderShareNotice").textContent="✓ Pedido aceptado. NO se ha enviado ningún SMS. "+
@@ -482,6 +535,8 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
+  paymentDrafts.clear();paymentInteractionUntil=0;
+  itemController?.clear();
   routeState.ids=[];routeState.coordsOptimized=false;routeState.manualOrder=false;
   orderBaselineReady=false;knownActiveOrders.clear();
   showHistory=false;acknowledgeNewOrders();
@@ -511,13 +566,24 @@ async function authenticate() {
   ]);
   const current = myRiders.find(row => row.user_id === user.id && row.active);
   if (!current) throw new Error("Tu rider todavía no está activo en el sistema.");
+  // The profile button is a UX shortcut, not an authentication bypass.
+  // Reject a password that belongs to any different Rider identity.
+  if(selectedRiderSlot!==null&&riderProfiles?.slotForName(current.display_name)!==selectedRiderSlot)
+   throw new Error("Esta cuenta no corresponde a RIDER "+String(selectedRiderSlot).padStart(2,"0")+". Solicita al responsable la vinculación correcta.");
   identity = { userId: user.id, accountId: assignment.account_id };
   rider = current;
   accountName = accounts && accounts[0] ? accounts[0].name : "ESTAMBUL DELIVERY";
 }
 async function fetchOrders() {
+  // When an admin starts a new operational period, older orders remain in the
+  // database but disappear from the daily Rider workflow. If schema is absent,
+  // use the existing orders view unchanged until coordinated rollout.
+  const epochRows=await withAuth("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
+   encodeURIComponent(identity.accountId)+"&limit=1").catch(()=>null);
+  const epoch=Array.isArray(epochRows)&&epochRows[0]?.started_at?epochRows[0].started_at:null;
+  const epochFilter=epoch?"&or=(created_at.gte."+encodeURIComponent(epoch)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))":"";
   const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
-    encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + "&order=created_at.desc&limit=100";
+    encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + epochFilter + "&order=created_at.desc&limit=100";
   // Refresh auth token once on the primary query, before ancillary calls run together.
   const response=await withAuth(endpoint);
   const [openDone,shareRows]=await Promise.all([
@@ -531,10 +597,12 @@ async function fetchOrders() {
   locationShares=new Map(locationSharingAvailable?shareRows.map(row=>[row.order_id,Boolean(row.enabled)]):[]);
   detectAssigned(updated);
   orders=updated.filter(o=>o.status!=="entregado"||unsettledIds===null||unsettledIds.has(o.id));
+  for(const id of paymentDrafts.keys())if(!orders.some(o=>o.id===id&&o.status==="en_ruta"))paymentDrafts.delete(id);
   if(gpsWatchId!==null&&(!rider?.online||!hasInProgressOrder()))void stopGps();
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
   draw();
+  if(itemFeature)void itemController.load(orders,withAuth,draw);
 }
 async function updateOrders() {
   if (inFlight || busy || !identity || document.visibilityState !== "visible") return;
@@ -567,7 +635,10 @@ function draw(){
  $("doneCount").textContent=done.length;
  $("listCount").textContent=active.length;
  $("historyCount").textContent=done.length;
- $("orders").innerHTML=active.length
+ capturePaymentDrafts();
+ // Continue 5-second synchronization, but don't replace focused payment selector,
+ // recent payment choice, or an ongoing swipe gesture.
+ if(!document.activeElement?.matches('select[data-payment-for]')&&activeSwipe===null&&Date.now()>=paymentInteractionUntil)$("orders").innerHTML=active.length
   ? (inRoute.length?'<div class="group-title"><span class="group-dot route"></span>EN REPARTO <small>'+inRoute.length+'</small></div>'+inRoute.map(o=>renderOrder(o,true)).join(""):"")+
     (toCollect.length?'<div class="group-title"><span class="group-dot"></span>POR RECOGER / PREPARAR <small>'+toCollect.length+'</small></div>'+toCollect.map(o=>renderOrder(o,false)).join(""):"")
   :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos activos. Las entregas sin arqueo aparecen en el historial.</p></div>';
@@ -602,14 +673,15 @@ function renderHistoryOrder(order){
 }
 function renderOrder(order,isPriority=false) {
   const nextStatus=allowedNext[order.status];
+  const draftPayment=paymentDrafts.get(order.id)??order.payment_method??"";
   const paymentConfirmation=nextStatus==="entregado"
     ?'<label class="payment-confirmation" for="payment-'+escapeText(order.id)+'">'+
       '<span>CONFIRMA EL COBRO ANTES DE ENTREGAR</span>'+
       '<select id="payment-'+escapeText(order.id)+'" data-payment-for="'+escapeText(order.id)+'" required>'+
        '<option value="">Seleccionar método de pago</option>'+
-       '<option value="efectivo" '+(order.payment_method==="efectivo"?"selected":"")+
+       '<option value="efectivo" '+(draftPayment==="efectivo"?"selected":"")+
        '>💶 Efectivo cobrado</option>'+
-       '<option value="tarjeta" '+(order.payment_method==="tarjeta"?"selected":"")+
+       '<option value="tarjeta" '+(draftPayment==="tarjeta"?"selected":"")+
        '>💳 Tarjeta / pago digital confirmado</option></select>'+
       '<small>Verifica lo cobrado de verdad, aunque Last.app haya indicado una preferencia.</small>'+
      '</label>':"";
@@ -637,7 +709,7 @@ function renderOrder(order,isPriority=false) {
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<button type="button" class="share-action" data-share="'+escapeText(order.id)+'">↗ Reenviar seguimiento</button>':'');
+        ?'<span class="one-link-note">✓ Enlace inicial enviado · sin SMS por estados</span>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -649,9 +721,11 @@ function renderOrder(order,isPriority=false) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
-    '<strong>'+euros(order.amount)+'</strong></div>'+
+    '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
+      "0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
@@ -679,12 +753,17 @@ async function signIn(email, password) {
   setSaved({ access: response.access_token, refresh: response.refresh_token, expiry: Date.now() + response.expires_in * 1000 });
   await authenticate();
   await fetchOrders();
+  if(selectedRiderSlot!==null&&riderProfiles){
+   riderProfiles.rememberEmail(selectedRiderSlot,email);
+   updateRiderProfileTiles();
+  }
   clearError(); setVisible(mustChangePassword ? "setPassword" : "dashboard"); $("password").value = "";
 }
 $("registerButton").addEventListener("click", async () => {
   if (busy) return;
   const email = $("email").value.trim(), password = $("password").value;
   clearError();
+  if(selectedRiderSlot===null){setError("Selecciona tu perfil Rider 01–05.",true);return;}
   if (!email || password.length < 8) {
     setError("Escribe tu correo autorizado y una contraseña nueva de al menos 8 caracteres.", true);
     return;
@@ -706,6 +785,7 @@ $("registerButton").addEventListener("click", async () => {
 });
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy) return;
+  if(selectedRiderSlot===null){setError("Primero elige tu RIDER 01–05.",true);return;}
   busy = true; clearError(); $("loginButton").disabled = true;
   try { await signIn($("email").value.trim(), $("password").value); }
   catch (error) {
@@ -881,7 +961,7 @@ $("orders").addEventListener("click",event=>{
  const resend=Boolean(action.dataset.share);
  if(!order||!rider.online||!["asignado","recogido","en_ruta"].includes(order.status))return;
  if(!resend&&order.accepted_at)return;
- if(resend&&!window.confirm("Generar otro enlace privado para el cliente. Los enlaces anteriores seguirán funcionando. ¿Continuar?"))return;
+ if(resend)return; // Rider cannot re-issue a tracking token.
  // A direct click reserves WhatsApp before asynchronous RPC (mobile popup protection).
  let tab=null;
  if(canShareFollowup(order)){
@@ -955,12 +1035,20 @@ $("orders").addEventListener("keydown",event=>{
  }
 });
 
+$("orders").addEventListener("change",event=>{
+ itemController?.onChange(event);
+ if(event.target.matches('select[data-payment-for]')){
+  capturePaymentDrafts();paymentInteractionUntil=Date.now()+20000;
+ }
+});
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;
   const order = orders.find(row => row.id === button.dataset.order);
+  capturePaymentDrafts();
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
+  // Checking pizzas/drinks is an optional aide-mémoire, never a route gate.
   // Reserve a tab during the user gesture: mobile browsers may block it after await.
   // Navigate to Maps only after the status PATCH succeeds.
   // Cash-up requires the Rider to confirm how money was actually collected.
@@ -994,26 +1082,10 @@ $("orders").addEventListener("click", event => {
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
       }
-      // Status is committed independently of SMS; report any dispatch failure.
-      if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
-        try{
-          const sms=await withAuth("/functions/v1/ed-send-notifications",{
-            method:"POST",body:JSON.stringify({order_id:order.id})
-          });
-          const notice=$("riderShareNotice");
-          if(sms.accepted>0){
-            notice.textContent="✓ Twilio ha aceptado el aviso de estado #"+displayOrderCode(order)+". Entrega al móvil aún no confirmada.";
-          }else if(sms.failed>0 || sms.enabled===false || sms.error){
-            notice.textContent="⚠ Estado actualizado, pero Twilio NO ha enviado el aviso de #"+displayOrderCode(order)+". "+(sms.error||sms.reason||"Revisa el proveedor SMS.");
-          }else{
-            notice.textContent="Estado actualizado. Sin nuevo SMS pendiente para #"+displayOrderCode(order)+".";
-          }
-          notice.hidden=false;
-        }catch(error){
-          $("riderShareNotice").hidden=false;
-          $("riderShareNotice").textContent="⚠ Estado actualizado, pero no se pudo enviar el SMS de #"+displayOrderCode(order)+": "+(error.message||"Error de envío");
-        }
+      if(status==="entregado"){
+       itemController?.completed(order.id);paymentDrafts.delete(order.id);paymentInteractionUntil=0;
       }
+      // No status-change SMS: customer refreshes the original private link.
       if (mapsDestination) {
         if (mapsTab && !mapsTab.closed) mapsTab.location.replace(mapsDestination);
         else window.location.assign(mapsDestination);

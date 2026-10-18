@@ -4,11 +4,22 @@ import type { DeliveryStatus } from "@estambul/shared";
 const base=(process.env.EXPO_PUBLIC_SUPABASE_URL||"").replace(/\/+$/,"");
 const apikey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY||"";
 export const isConnectedConfigured=base.startsWith("https://")&&apikey.length>20;
+export const connectedItemFeature=process.env.EXPO_PUBLIC_RIDER_ITEMS_ENABLED==="true";
+export const connectedPaymentConfirmation=process.env.EXPO_PUBLIC_RIDER_PAYMENT_CONFIRM_ENABLED==="true";
+export type DeliveryCollection="efectivo"|"tarjeta"|"online";
+export function collectionUpdate(next:DeliveryStatus,method?:DeliveryCollection):{status:DeliveryStatus;payment_method?:"efectivo"|"tarjeta"|null}{
+ if(next!=="entregado"||!connectedPaymentConfirmation)return {status:next};
+ if(!["efectivo","tarjeta","online"].includes(method||""))throw new Error("Confirma cómo se cobró antes de completar.");
+ // Online orders are *not* a cash/card collection by the Rider. Until finance
+ // has a dedicated prepaid status, leave them unclassified for manager review.
+ return {status:next,payment_method:method==="online"?null:method as "efectivo"|"tarjeta"};
+}
+export type ProductSnapshot={revision:string;items:{name:string;quantity:number;comments?:string;modifiers?:{name:string;quantity:number}[];children?:{name:string;quantity:number}[]}[]};
 const storageKey="estambul-connected-session";
 type Session={access_token:string;refresh_token:string;expires:number};
 let session:Session|null=null;
 type User={id:string};
-export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;payment_method:"efectivo"|"tarjeta"|null;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;created_at:string;};
+export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;payment_method:"efectivo"|"tarjeta"|null;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;created_at:string;items_snapshot?:ProductSnapshot;};
 export type ConnectedRider={id:string;display_name:string;online:boolean;active:boolean;user_id:string;};
 export type ConnectedState={rider:ConnectedRider;orders:RiderOrder[];account:string};
 
@@ -61,13 +72,30 @@ export async function loadConnected():Promise<ConnectedState>{
  const riders=await request("/rest/v1/ed_riders?select=id,display_name,online,active,user_id&account_id=eq."+membership.account_id) as ConnectedRider[];
  const rider=riders.find(r=>r.user_id===user.id&&r.active);
  if(!rider)throw new Error("No hay un rider activo vinculado a esta cuenta.");
- const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+"&order=created_at.desc&limit=100") as RiderOrder[];
+ // Filter only operational screens, never erase historical Supabase records.
+ // Fall back gracefully if the reset migration has not yet been installed.
+ let epochFilter="";
+ try{
+  const epochs=await request("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
+   membership.account_id+"&limit=1") as {started_at:string}[];
+  if(epochs?.[0]?.started_at)epochFilter="&or=(created_at.gte."+encodeURIComponent(epochs[0].started_at)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))";
+ }catch{/* Existing orders still load if the optional reset table is unavailable. */}
+ const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+epochFilter+"&order=created_at.desc&limit=100") as RiderOrder[];
+ if(connectedItemFeature&&orders.length){
+  // RLS limits these snapshots to the user's assigned orders; optional feature.
+  try{
+   const ids=orders.slice(0,80).map(o=>encodeURIComponent(o.id)).join(",");
+   const rows=(await request("/rest/v1/ed_order_item_snapshots?select=order_id,revision,items&order_id=in.("+ids+")&limit=80")) as {order_id:string;revision:string;items:ProductSnapshot["items"]}[];
+   const byOrder=new Map((Array.isArray(rows)?rows:[]).map(s=>[s.order_id,{revision:s.revision,items:s.items}]));
+   for(const o of orders)o.items_snapshot=byOrder.get(o.id);
+  }catch{/* The original order UI must remain available even if snapshots fail. */}
+ }
  return {rider,orders,account:membership.account_id};
 }
-export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus){
+export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus,collection?:DeliveryCollection){
  const old=order.status;if(!({asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"} as Record<string,string>)[old]||({asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"} as Record<string,string>)[old]!==next)throw new Error("Transición inválida.");
  const path="/rest/v1/ed_orders?id=eq."+order.id+"&rider_id=eq."+order.rider_id+"&status=eq."+old;
- const rows=await request(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify({status:next})});
+ const rows=await request(path,{method:"PATCH",headers:{"Prefer":"return=representation"},body:JSON.stringify(collectionUpdate(next,collection))});
  if(!Array.isArray(rows)||rows.length!==1)throw new Error("El pedido fue reasignado o modificado. Actualiza.");
 }
 export async function setRiderOnline(id:string,online:boolean){

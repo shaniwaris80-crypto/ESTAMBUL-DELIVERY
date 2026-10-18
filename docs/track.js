@@ -2,6 +2,7 @@
 "use strict";
 const root=window.ESTAMBUL_SUPABASE||{},base=String(root.url||"").replace(/\/+$/,""),key=root.anonKey||"";
 const el=id=>document.getElementById(id);
+const customerPresentation=window.ESTAMBUL_TRACK_PRESENTATION;
 const token=new URLSearchParams(location.hash.replace(/^#/,"")).get("token");
 const labels={pendiente:"Recibido",asignado:"Asignado",recogido:"Recogido",en_ruta:"En camino",entregado:"Entregado",cancelado:"Cancelado"};
 const steps=[
@@ -57,6 +58,22 @@ function applyBrand(data){
 function draw(data){
  current=data;el("loading").hidden=true;el("notFound").hidden=false;el("orderContent").hidden=false;
  applyBrand(data);el("orderRef").textContent="Pedido #"+data.reference;
+ const view=customerPresentation?.presentation(data.status);
+ if(view){
+  el("waitingIcon").textContent=view.icon;
+  el("waitingTitle").textContent=view.title;
+  el("waitingMessage").textContent=view.description;
+  el("waitingNext").textContent=view.next;
+  el("waitingFreshness").textContent="Consulta reciente · "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  el("waitingFreshness").classList.remove("offline");
+  el("progressText").textContent=data.status==="cancelado"?"Pedido cancelado":
+    "Paso "+view.stepNumber+" de "+view.total+" · "+view.step;
+  el("orderProgress").setAttribute("aria-valuenow",String(view.progress));
+  el("orderProgress").setAttribute("aria-valuetext",view.step);
+  el("waitingIcon").classList.toggle("waiting-finished",data.status==="entregado");
+  el("waitingIcon").classList.toggle("waiting-cancelled",data.status==="cancelado");
+ }
+
  const index=steps.findIndex(s=>s.status===data.status);
  el("liveStatus").textContent=labels[data.status]||"Actualización";
  el("liveStatus").classList.toggle("cancel",data.status==="cancelado");
@@ -101,6 +118,11 @@ function draw(data){
   :"";
  el("arrivalDetails").textContent=details;
  el("arrivalDetails").hidden=!details;
+ el("arrivalConfidence").textContent=canEstimate
+  ?"Tiempo orientativo: puede cambiar según el tráfico y la señal GPS."
+  :data.status==="entregado"?"Seguimiento finalizado."
+  :data.status==="cancelado"?"Si necesitas ayuda, llama al restaurante."
+  :"Sin estimación fiable disponible. No mostramos un tiempo inventado.";
  
  // Never draw historical or staff-only GPS: the server releases coordinates only with
  // a valid private tracking token, an active rider opt-in and a very recent position.
@@ -147,7 +169,11 @@ async function refresh(){
   void refreshCustomerChat();
  }catch{
   if(!current){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;}
-  else el("updatedAt").textContent="Sin conexión · prueba a actualizar";
+  else{
+   el("updatedAt").textContent="Sin conexión · prueba a actualizar";
+   el("waitingFreshness").textContent="Sin conexión reciente";
+   el("waitingFreshness").classList.add("offline");
+  }
  }finally{polling=false;}
 }
 el("refreshButton").addEventListener("click",()=>void refresh());

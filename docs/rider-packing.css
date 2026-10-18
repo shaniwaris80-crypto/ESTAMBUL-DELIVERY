@@ -1,0 +1,15 @@
+/* Rider PRO: clear articles, optional checks for pizzas and beverages only. */
+.order-packing{background:#f4f9fc;border:1px solid #c9d9e8;border-radius:15px;padding:15px 14px;margin:14px 0;display:grid;gap:10px}
+.packing-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:7px;border-bottom:1px solid #dce6ef}
+.packing-heading strong{font-size:12px;letter-spacing:.045em;color:#133350}.packing-heading span{font-size:10px;color:#188468;font-weight:900;white-space:nowrap}
+.packing-explanation{font-size:12px;line-height:1.5;color:#506a82;margin:0}
+.packing-item{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px;background:#fff;border:1px solid #dce5f0;min-width:0;color:#18364f}
+.packing-optional{cursor:pointer}.packing-optional input{flex:0 0 23px;height:23px;width:23px;margin:0;accent-color:#188c74;cursor:pointer}
+.packing-item span{min-width:0;display:grid;gap:4px}.packing-item strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}.packing-item small{font-size:12px;line-height:1.45;color:#63798c}
+.packing-optional:has(input:checked){background:#ebf8f3;border-color:#9dd8c3}.packing-optional:has(input:checked) strong{color:#146e56}
+.packing-optional:focus-within{outline:3px solid #65b9a5;outline-offset:2px}
+.packing-readonly{background:#f9fbfd}
+.packing-progress{font-size:12px;font-weight:750;color:#1b735f;background:#e7f4ee;border-radius:9px;padding:9px 12px}
+.packing-missing{margin:0;font-size:12px;line-height:1.55;color:#88581a;background:#fff8ed;border:1px solid #efdbbd;padding:11px;border-radius:9px}
+@media(min-width:720px){.order-packing{padding:18px}.packing-item{padding:15px}}
+@media(prefers-reduced-motion:reduce){.order-packing{scroll-behavior:auto}}
