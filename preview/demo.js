@@ -192,7 +192,7 @@ function render(){
  const channelNames={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
  const allowedNext={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
  const nextNames={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
- const paymentDrafts=new Map(),locationShares=new Map();
+ const paymentDrafts=new Map(),locationShares=new Map(),smsOutcomes=new Map();
  const locationSharingAvailable=true;
  const canShareFollowup=()=>false;
  const waitMinutes=o=>Math.max(0,Math.round((Date.now()-Date.parse(o.created_at))/60000));
@@ -259,7 +259,7 @@ function renderOrder(order,isPriority=false) {
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<span class="one-link-note">✓ Enlace inicial enviado · sin SMS por estados</span>':'');
+        ?'<span class="one-link-note">Pedido aceptado · SMS no verificado · sin mensajes adicionales por estados</span>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -271,6 +271,7 @@ function renderOrder(order,isPriority=false) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    (smsOutcomes.has(order.id)?'<div class="sms-delivery-notice '+(smsOutcomes.get(order.id).ok?'ok':'warn')+'" role="status">'+escapeText(smsOutcomes.get(order.id).message)+'</div>':'')+
     (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
@@ -279,7 +280,6 @@ function renderOrder(order,isPriority=false) {
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
-
 
  let showHistory=false;
  $("loading").hidden=true;$("login").hidden=true;$("dashboard").hidden=false;
@@ -327,6 +327,9 @@ function renderOrder(order,isPriority=false) {
  });
  $("toggleHistory").addEventListener("click",()=>{showHistory=!showHistory;draw();});
  $("refreshButton").addEventListener("click",()=>{draw();notice("Sincronización simulada; no se consultó LastPOS.");});
+ $("smsHealthPanel").classList.add("sms-ready");
+ $("smsHealthStatus").textContent="SMS simulado: esta vista nunca conecta con Twilio.";
+ $("checkSmsHealth").addEventListener("click",()=>notice("No se realiza ningún envío ni verificación real en la demostración."));
  $("availabilityButton").addEventListener("click",()=>{const x=$("onlineLabel");const online=x.textContent!=="Estoy disponible";x.textContent=online?"Estoy disponible":"No disponible";$("onlineLight").classList.toggle("active",online);notice("Disponibilidad ficticia.");});
  $("toggleGps").addEventListener("click",()=>notice("GPS desactivado en la previsualización."));
  $("reviewDay").addEventListener("click",()=>{$("dayClosePanel").hidden=!$("dayClosePanel").hidden;$("dayCloseTotals").textContent="Arqueo simulado · efectivo 16,50 € · tarjeta 20,00 €";});

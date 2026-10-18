@@ -5,7 +5,7 @@ const trackBase="https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/track.h
 const headers={
  "Access-Control-Allow-Origin":allowedOrigin,
  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
- "Access-Control-Allow-Methods":"POST, OPTIONS",
+ "Access-Control-Allow-Methods":"GET, POST, OPTIONS",
  "Cache-Control":"no-store",
  "Content-Type":"application/json"
 };
@@ -21,7 +21,7 @@ const toE164=(raw:unknown)=>{
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers});
- if(req.method!=="POST")return json({error:"Method not allowed"},405);
+ if(req.method!=="POST"&&req.method!=="GET")return json({error:"Method not allowed"},405);
  const origin=req.headers.get("origin");
  if(origin&&origin!==allowedOrigin)return json({error:"Origin not allowed"},403);
  const bearer=req.headers.get("authorization")||"";
@@ -29,6 +29,27 @@ Deno.serve(async(req:Request)=>{
  if(!jwt)return json({error:"Inicia sesión como Rider"},401);
  const supabaseUrl=env("SUPABASE_URL"),publishable=env("SUPABASE_ANON_KEY");
  if(!supabaseUrl||!publishable)return json({error:"Missing server configuration"},503);
+ // Read-only health check. No Twilio contact, message or claim occurs here.
+ // Only a signed-in active Rider can see coarse non-secret readiness flags.
+ if(req.method==="GET"){
+  try{
+   const client=createClient(supabaseUrl,publishable,{
+    global:{headers:{Authorization:bearer}},
+    auth:{persistSession:false,autoRefreshToken:false}
+   });
+   const current=await client.auth.getUser(jwt);
+   if(current.error||!current.data.user)return json({error:"Sesión no válida"},401);
+   const {data:roster,error:rosterError}=await client.from("ed_riders")
+    .select("id").eq("user_id",current.data.user.id).eq("active",true).limit(1);
+   if(rosterError||!roster?.length)return json({error:"Solo Rider activo"},403);
+   const enabled=env("ESTAMBUL_MESSAGING_ENABLED")==="true";
+   const configuredProvider=Boolean(env("TWILIO_ACCOUNT_SID")&&env("TWILIO_AUTH_TOKEN")&&toE164(env("TWILIO_SMS_FROM")));
+   const service=Boolean(env("SUPABASE_SERVICE_ROLE_KEY"));
+   return json({ready:enabled&&configuredProvider&&service,
+    reason:!enabled?"disabled":!configuredProvider?"provider_not_configured":!service?"dispatch_unavailable":"configured",
+    note:"Configuración verificada; recepción del SMS no comprobada."});
+  }catch{return json({error:"No se pudo consultar la configuración del SMS"},503);}
+ }
  let input:{order_id?:unknown;resend?:unknown};
  try{input=await req.json();}catch{return json({error:"Invalid payload"},400);}
  const orderId=String(input?.order_id||"");

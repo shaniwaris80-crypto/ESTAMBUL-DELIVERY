@@ -13,7 +13,7 @@ test("V5 modifies real production pages and shared branded identity",()=>{
 });
 test("PWA uses the new motorcycle icon and updated app shell",()=>{
  assert.match(read("rider.webmanifest"),/docs\/icon.svg\?v=5/);
- assert.match(read("rider-sw.js"),/estambul-rider-shell-v25/);
+ assert.match(read("rider-sw.js"),/estambul-rider-shell-v26/);
  assert.match(read("rider-sw.js"),/visual-rider-v5.css/);
 });
 test("Operations map is driven by real authenticated rider GPS not invented positions",()=>{

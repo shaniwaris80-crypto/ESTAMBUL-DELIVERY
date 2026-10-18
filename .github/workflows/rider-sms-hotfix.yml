@@ -1,0 +1,29 @@
+name: Rider contrast and SMS status safety
+on:
+  push:
+    branches:
+      - fix/rider-contrast-and-sms-visibility-20261018
+  pull_request:
+    paths:
+      - rider.html
+      - rider-sw.js
+      - 'docs/rider.js'
+      - 'docs/visual-rider-v5.css'
+      - 'supabase/functions/ed-rider-accept-sms/index.ts'
+      - 'scripts/test-rider-sms-hotfix.mjs'
+permissions:
+  contents: read
+jobs:
+  rider-safety:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: |
+          node --check docs/rider.js
+          node --check scripts/test-rider-sms-hotfix.mjs
+      - run: node --test scripts/test-rider-sms-hotfix.mjs
+      - run: node --test scripts/test-preview-parity.mjs
