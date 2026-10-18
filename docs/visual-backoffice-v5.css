@@ -1,0 +1,125 @@
+/* ESTAMBUL DELIVERY · TRUE VISUAL PRO v5
+   REAL BACKOFFICE: same Supabase orders and LastPOS/manual assignment.
+   Decorative art is branded vector; status metrics and GPS remain server-grounded. */
+body.ed-visual-v5{
+ --ed-ink:#e8f2fb;--ed-muted:#9ab0c5;--ed-navy:#0b1727;--ed-blue:#42b3ff;
+ --ed-teal:#3ce6aa;--ed-amber:#ffae50;--ed-outline:#294258;--ed-canvas:#071421;
+ background:radial-gradient(ellipse 80% 42% at 72% 0%,#1a354f 0,transparent 75%),
+ linear-gradient(160deg,#07131f 0,#0b1b2b 53%,#071421 100%);
+ color:#e9f4ff;
+}
+.ed-visual-v5 .bar{background:#081522ed;border-bottom-color:#2a3e52;backdrop-filter:blur(18px);box-shadow:0 8px 25px #020c18a8}
+.ed-visual-v5 .bar .brand{font-size:16px;letter-spacing:-.025em}
+.ed-visual-v5 .bar .brand b{color:#ffae50}
+.ed-visual-v5 .brand .brand-icon{background:none;box-shadow:none;border-radius:0;width:49px;height:49px}
+.ed-visual-v5 .brand .brand-icon img{width:49px;height:49px;filter:drop-shadow(0 4px 10px #e4782d55)}
+.ed-visual-v5 .wrap{max-width:1840px}
+.ed-visual-v5 .app-title{padding:10px 0 23px}
+.ed-visual-v5 .app-title .eyebrow{color:#f4ad5b}
+.ed-visual-v5 .app-title h1{color:#fff;font-size:clamp(31px,3.5vw,45px);letter-spacing:-.045em;text-shadow:0 4px 20px #0005}
+.ed-visual-v5 .app-title p{color:#9cb6ca}
+.ed-visual-v5 #refresh{background:#18334c;color:#d6edff;border:1px solid #3e6180;box-shadow:0 5px 18px #041120aa}
+.ed-visual-v5 #refresh:hover{background:#214663}
+.ed-visual-v5 .stats{gap:12px}
+.ed-visual-v5 .stats .stat{min-height:126px;border-radius:17px;background:linear-gradient(155deg,#142a40,#0b1a2a);border:1px solid #284055;box-shadow:0 13px 29px #030d18aa;position:relative;overflow:hidden}
+.ed-visual-v5 .stats .stat:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:#f9a449}
+.ed-visual-v5 .stats .stat:nth-child(2):before{background:#fb695f}
+.ed-visual-v5 .stats .stat:nth-child(3):before{background:#3ae0a7}
+.ed-visual-v5 .stats .stat:nth-child(4):before{background:#4baefc}
+.ed-visual-v5 .stats .stat small:first-child{color:#bed3e7}
+.ed-visual-v5 .stats .stat b{color:#fff;font-size:clamp(32px,3vw,42px)}
+.ed-visual-v5 .stats .stat small:last-child{color:#7594ad}
+.ed-visual-v5 #staffView{grid-template-columns:205px minmax(0,1fr);gap:17px;align-items:start}
+.ed-visual-v5 #staffView>.v2-admin-nav{background:linear-gradient(180deg,#081522,#112538);border:1px solid #274158;box-shadow:0 10px 35px #020b1590;padding:18px 9px;top:90px;grid-row:1/span 20}
+.ed-visual-v5 #staffView>.v2-admin-nav:before{content:"ESTAMBUL · PRO";color:#f8b061;margin-bottom:16px}
+.ed-visual-v5 #staffView>.v2-admin-nav a{font-size:12px;color:#bcd2e7;border-radius:11px}
+.ed-visual-v5 #staffView>.v2-admin-nav a:first-of-type{background:linear-gradient(95deg,#9a4a1c,#e78b32);color:#fff;border-color:#cc7a3d;box-shadow:0 5px 16px #a4522770}
+.ed-visual-v5 #staffView>.v2-admin-nav a:hover,.ed-visual-v5 #staffView>.v2-admin-nav a:focus-visible{background:#1b4057;color:#fff}
+.ed-visual-v5 #staffView>.v2-admin-nav:after{content:"🛵 REPARTO LOCAL\A 🥙 ESTAMBUL DELIVERY\A\A Asignación manual\A desde LastPOS";color:#eab176;background:linear-gradient(0deg,#301c16b0,transparent);padding:19px 14px 24px;border-radius:12px;border-top:1px solid #35485b;min-height:120px}
+.ed-visual-v5 .ops-pro-hero{position:relative;background:linear-gradient(90deg,#0a1b2eea 0%,#10283fd0 51%,#11283db0 100%),url("visual-burgos-rider.svg") right 45% / auto 150% no-repeat;
+ border:1px solid #39516c;border-radius:21px;box-shadow:0 16px 38px #0009;min-height:235px;overflow:hidden}
+.ed-visual-v5 .ops-pro-hero:before{content:"🛵";position:absolute;right:25%;top:15px;color:#ffb866;font-size:31px;opacity:.7;filter:drop-shadow(0 3px 7px #f4a33a77);pointer-events:none}
+.ed-visual-v5 .ops-pro-hero-kicker{color:#ffbc79}
+.ed-visual-v5 .ops-pulse-dot{background:#40ecae;box-shadow:0 0 0 5px #41cb9950,0 0 19px #51ffc0}
+.ed-visual-v5 .ops-pro-hero h2{font-size:clamp(27px,3vw,38px);text-shadow:0 4px 17px #010b1e}
+.ed-visual-v5 .ops-pro-hero p{color:#bcd4e7}
+.ed-visual-v5 .ops-pro-hero-info>div{background:#081a2bbd;border:1px solid #4b6478aa;backdrop-filter:blur(8px);box-shadow:0 4px 13px #0004}
+.ed-visual-v5 .ops-pro-hero-info span{color:#91b7d0}
+.ed-visual-v5 .ops-pro-hero-info strong{color:#fff}
+.ed-visual-v5 .ops-pro-main-link{background:linear-gradient(145deg,#ffc16c,#ef8a32);border:0;color:#17253a;box-shadow:0 5px 17px #e48a3f73}
+.ed-visual-v5 .ops-pro-link-secondary{border-color:#5e7891;color:#e8f6ff;background:#203b51c7}
+.ed-visual-v5 #staffView>.card{background:linear-gradient(145deg,#0e2031,#0b1b2b);color:#deeeff;border:1px solid #29445b;box-shadow:0 12px 30px #020d17a1;border-radius:18px}
+.ed-visual-v5 #staffView>.card .section-head h2{color:#fff;font-size:clamp(18px,2.1vw,24px)}
+.ed-visual-v5 #staffView>.card .section-head p{color:#91adc5}
+.ed-visual-v5 #staffView>.card .tag{background:#162f43;border-color:#31546a;color:#acd7ec}
+.ed-visual-v5 #staffView .eyebrow{color:#ffb365}
+.ed-visual-v5 #staffView>.card h2,.ed-visual-v5 #staffView>.card h3,.ed-visual-v5 #staffView>.card strong{color:#f0f6ff}
+.ed-visual-v5 #staffView>.card p,.ed-visual-v5 #staffView>.card small,.ed-visual-v5 #staffView>.card label{color:#a7becf}
+.ed-visual-v5 #staffView input:not([type=checkbox]):not([type=color]),.ed-visual-v5 #staffView select,.ed-visual-v5 #staffView textarea{background:#071827;color:#f1f7ff;border:1px solid #3a536c;border-radius:10px}
+.ed-visual-v5 #staffView input::placeholder,.ed-visual-v5 #staffView textarea::placeholder{color:#7392ac}
+.ed-visual-v5 #staffView button.btn,.ed-visual-v5 #staffView .btn{background:#f5a044;color:#112436;border:1px solid #ffc075;font-weight:900;border-radius:10px}
+.ed-visual-v5 #staffView button.outline,.ed-visual-v5 #staffView .outline{background:#152e43;color:#deecff;border:1px solid #365471}
+.ed-visual-v5 #staffView button.outline:hover{background:#1f4662}
+.ed-visual-v5 #staffView>.card .section-head{margin-bottom:17px}
+.ed-visual-v5 #ordersArea .ops-overview{gap:10px}
+.ed-visual-v5 #ordersArea .ops-insight{background:linear-gradient(150deg,#152d41,#102538);border:1px solid #32526b}
+.ed-visual-v5 #ordersArea .ops-insight span{color:#b1cadc}
+.ed-visual-v5 #ordersArea .ops-insight strong{color:#fff}
+.ed-visual-v5 #ordersArea .ops-insight small{color:#7e9aaf}
+.ed-visual-v5 #ordersArea .ops-insight[aria-pressed=true]{background:#194138;border-color:#37c38b}
+.ed-visual-v5 #ordersArea .ops-toolbar{background:#081a2b;border:1px solid #2c4b63}
+.ed-visual-v5 #ordersArea .ops-field span{color:#a4bacd}
+.ed-visual-v5 #ordersArea .ops-filter-footer{color:#96b0c4}
+.ed-visual-v5 #ordersArea .table-scroll{background:#071726;border:1px solid #35516a}
+.ed-visual-v5 #ordersArea table{background:#071726;border-collapse:separate;border-spacing:0 3px}
+.ed-visual-v5 #ordersArea th{background:#10263b;color:#d8e9f7;border-color:#2a4a65}
+.ed-visual-v5 #ordersArea td{background:#102437;color:#cfdded;border-bottom:1px solid #233c54}
+.ed-visual-v5 #ordersArea tbody tr:hover td{background:#183852}
+.ed-visual-v5 #ordersArea td strong{color:#fff}
+.ed-visual-v5 #ordersArea td small{color:#9cb2c7}
+.ed-visual-v5 #ordersArea .last-manual{background:#153a31;color:#7cf0bf;border-color:#266651}
+.ed-visual-v5 #ordersArea .pill{background:#15354b;color:#a0ddf2}
+.ed-visual-v5 #ordersArea .pill.state-en_ruta{background:#143c5d;color:#7ed1ff}
+.ed-visual-v5 #ordersArea .pill.state-entregado{background:#114638;color:#7af1b3}
+.ed-visual-v5 .rider-slot,.ed-visual-v5 .rider-item{background:#10263b;border:1px solid #2d4a62;color:#d8e9f8;box-shadow:0 3px 14px #010b1969}
+.ed-visual-v5 .rider-slot.ready{background:#123a33;border-color:#326754}
+.ed-visual-v5 .rider-slot-number{background:#153a57;color:#ffa64b}
+.ed-visual-v5 .rider-slot.ready .rider-slot-number{background:#167f60;color:#fff}
+.ed-visual-v5 .rider-item .avatar{background:#f8a24d;color:#0b1c2b}
+.ed-visual-v5 .gps-admin-row,.ed-visual-v5 .shift-admin-report{background:#10283b;border:1px solid #31516a;color:#dbe9f7}
+.ed-visual-v5 #operationsResetCard{background:linear-gradient(140deg,#322416,#122233)!important;border-color:#765338!important}
+.ed-visual-v5 #operationsResetCard h2{color:#ffe0b4!important}
+.ed-visual-v5 #inviteCard{background:#1e2835!important;border-color:#5a4c37!important}
+.ed-visual-v5 #createCard{background:#102234!important;border-color:#3d5870!important}
+.ed-visual-v5 #brandCard,.ed-visual-v5 #feedbackAdmin,.ed-visual-v5 #notifyAdminCard{background:#0d2031!important}
+.ed-visual-v5 #riderView .card,.ed-visual-v5 #loginSection .card{background:#0d2030;color:#dbeaf8;border:1px solid #31516b}
+.ed-visual-v5 #loginSection .auth-art{background:linear-gradient(80deg,#0a1727dc,#10283baa),url("visual-burgos-rider.svg") 65% center /cover}
+.ed-visual-v5 #loginSection h1,.ed-visual-v5 #loginSection h2{color:white}
+.ed-visual-v5 #loginSection p{color:#b6cee0}
+.ed-visual-v5 #loginSection input{background:#081a2c;color:white;border:1px solid #36536d}
+.ed-visual-v5 .footer{color:#88a7bc}
+.ed-visual-v5 .ed-ops-map-panel{min-width:0;background:#0b1d2e;border:1px solid #33516a;border-radius:20px;overflow:hidden;box-shadow:0 16px 33px #0009}
+.ed-visual-v5 .ed-map-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:19px 23px 13px;flex-wrap:wrap}
+.ed-visual-v5 .ed-map-heading h2{font-weight:950;font-size:22px;letter-spacing:-.035em;color:white;margin:4px 0 6px}
+.ed-visual-v5 .ed-map-heading p{font-size:12px;color:#9db5cb;line-height:1.55;margin:0}
+.ed-visual-v5 .ed-map-fresh{color:#9cd6e9;background:#112e42;border:1px solid #32566f;border-radius:30px;padding:9px 12px;font-size:11px;font-weight:800}
+.ed-visual-v5 .ed-map-canvas{position:relative;min-height:390px;margin:0 13px;background:#081827;border:1px solid #2a4760;border-radius:16px;overflow:hidden}
+.ed-visual-v5 .ed-map-placeholder{position:absolute;inset:0;background:linear-gradient(85deg,#071522bf,#09213799),repeating-linear-gradient(0deg,transparent 0,transparent 60px,#324b5b34 61px,#324b5b34 62px);display:flex;align-items:center;justify-content:center}
+.ed-visual-v5 .ed-map-placeholder img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.42}
+.ed-visual-v5 .ed-map-placeholder-copy{position:relative;z-index:2;width:min(370px,90%);padding:24px;text-align:center;border:1px solid #4a627ba1;background:#081c31de;backdrop-filter:blur(10px);border-radius:16px;box-shadow:0 12px 30px #0008}
+.ed-visual-v5 .ed-map-placeholder-copy strong{font-size:20px;color:#fff;font-weight:950}
+.ed-visual-v5 .ed-map-placeholder-copy p{font-size:13px;color:#b7d2e3;line-height:1.5}
+.ed-visual-v5 .ed-map-placeholder-copy button{display:block;width:100%;margin:10px 0 12px;border:0;border-radius:11px;background:linear-gradient(135deg,#ffb965,#f38a30);color:#081a2b;padding:14px;font-weight:950;cursor:pointer}
+.ed-visual-v5 .ed-map-placeholder-copy small{display:block;font-size:10px;line-height:1.55;color:#87a8c2}
+.ed-visual-v5 .ed-leaflet-map{height:390px;background:#0c2131;z-index:1}
+.ed-visual-v5 .ed-map-footer{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 21px;color:#8cb3cd;font-size:11px}
+.ed-visual-v5 .ed-map-footer span:first-child{color:#68dbad}
+.ed-visual-v5 .ed-map-marker{border:0;background:none}
+.ed-visual-v5 .ed-map-marker span{display:block;border:2px solid #57ffc1;border-radius:50%;background:#133f39;color:#fff;font-size:21px;text-align:center;line-height:43px;width:48px;height:48px;box-shadow:0 0 0 5px #37e9ab35,0 0 22px #3ae6ad}
+.ed-visual-v5 .ed-ops-map-panel .leaflet-control-zoom a{background:#102b42;color:#fff;border-color:#294a65}
+.ed-visual-v5 .ed-ops-map-panel .leaflet-popup-content-wrapper{background:#0d2335;color:#fff}
+.ed-visual-v5 .ed-ops-map-panel .leaflet-popup-tip{background:#0d2335}
+.ed-visual-v5 [hidden]{display:none!important}
+@media(max-width:1100px){.ed-visual-v5 #staffView{display:block}.ed-visual-v5 #staffView>.v2-admin-nav{display:flex;flex-direction:row;position:sticky;top:71px;margin-bottom:15px;max-height:none;gap:5px;overflow:auto}.ed-visual-v5 #staffView>.v2-admin-nav:before,.ed-visual-v5 #staffView>.v2-admin-nav:after{display:none}.ed-visual-v5 #staffView>:not(.v2-admin-nav){margin-bottom:16px}}
+@media(max-width:700px){.ed-visual-v5 .wrap{width:calc(100% - 22px);padding-top:15px}.ed-visual-v5 .bar{min-height:65px}.ed-visual-v5 .app-title{flex-wrap:wrap}.ed-visual-v5 .app-title h1{font-size:29px}.ed-visual-v5 .stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.ed-visual-v5 .stats .stat{min-height:103px;padding:13px}.ed-visual-v5 #staffView>.v2-admin-nav{top:65px}.ed-visual-v5 .ops-pro-hero{background:linear-gradient(100deg,#0a1b2ef0,#0a1b2ea0),url("visual-burgos-rider.svg") center/cover;grid-template-columns:1fr;min-height:200px}.ed-visual-v5 .ed-map-heading{padding:16px}.ed-visual-v5 .ed-map-canvas{min-height:290px;margin:0 8px}.ed-visual-v5 .ed-leaflet-map{height:290px}.ed-visual-v5 .ed-map-placeholder-copy{padding:14px}.ed-visual-v5 #ordersArea .ops-toolbar{grid-template-columns:1fr 1fr}.ed-visual-v5 #staffView>.card{padding:14px}}
+@media(prefers-reduced-motion:reduce){.ed-visual-v5 *{scroll-behavior:auto!important;transition:none!important}}
