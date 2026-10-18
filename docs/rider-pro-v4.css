@@ -1,0 +1,94 @@
+/* Rider PRO v4 unified polish. Existing buttons, payment logic, GPS and LastPOS remain intact. */
+:root{--r-ink:#13273d;--r-forest:#158a75;--r-gold:#f4a660;--r-border:#dbe6f0;--r-bg:#f2f6fb}
+body{background:linear-gradient(180deg,#e9f0f8,#f7f9fc 440px);color:var(--r-ink);font-feature-settings:"tnum";font-synthesis:none}
+.topbar{background:#0c2034;border-bottom:1px solid #203e55;box-shadow:0 7px 26px rgba(9,28,47,.14)}
+.topbar-inner{min-height:70px;max-width:1050px;padding-left:17px;padding-right:17px}
+.topbar .mark{background:linear-gradient(145deg,#ffc27d,#ee9b50);color:#18324a;box-shadow:0 7px 16px rgba(229,147,71,.25)}
+.topbar .mode-tag{border-radius:100px;font-size:10px;letter-spacing:.09em;background:rgba(255,255,255,.08)}
+.app{max-width:1020px;padding:19px clamp(14px,3vw,28px) max(65px,env(safe-area-inset-bottom))}
+#login.login-screen{gap:22px;margin:16px auto}
+#login .intro{background:radial-gradient(circle at 92% 10%,#2e6680,transparent 43%),linear-gradient(125deg,#0d2339,#1a3c56 68%,#215d78);border:1px solid #315676;border-radius:24px;padding:clamp(24px,4vw,39px)}
+#login .intro h1{font-size:clamp(30px,4.2vw,48px);line-height:1.12;color:#fff;letter-spacing:-.055em}
+#login .intro p{line-height:1.65;color:#d3e4f1;font-size:14px}
+#login .pro-access{border-radius:23px;border:1px solid #e0e9f3;box-shadow:0 14px 40px rgba(14,43,70,.1)}
+#login .pro-access h2{font-size:27px}
+#login .rider-profile{min-height:108px;background:#f8fafd;border-radius:14px;border:1px solid #dce7f0}
+#login .rider-profile[aria-pressed="true"]{background:#ebf8f2;border-color:#1c9e7e;box-shadow:0 0 0 3px rgba(24,153,122,.12)}
+#login .rider-avatar{background:#e2eaf3;color:#1d4f6b}
+#login .rider-profile[aria-pressed="true"] .rider-avatar{background:#168d75;color:#fff}
+#login .pro-access .btn-main{background:#f2a352;color:#17324b;border:0;border-radius:13px;min-height:52px;box-shadow:0 8px 16px rgba(234,143,62,.22)}
+#login .rider-profile-hint{background:#e9f7f2;color:#19634e;border-color:#d1e9de;border-radius:11px}
+#dashboard .welcome{position:relative;margin-bottom:15px;padding:25px 28px;background:linear-gradient(125deg,#10253a,#1e4966);border:1px solid #2b5978;border-radius:22px;box-shadow:0 13px 26px rgba(10,38,66,.11);color:#fff;display:flex;justify-content:space-between;gap:10px}
+#dashboard .welcome h1{color:#fff;font-size:clamp(22px,4vw,33px);line-height:1.15;letter-spacing:-.048em;font-weight:950}
+#dashboard .welcome .eyebrow{color:#f6b973;font-size:10px}
+#dashboard .welcome p{color:#bfd6e6}
+#dashboard .welcome .icon-button{background:rgba(255,255,255,.1);color:#fff;border-color:#668aa6;border-radius:12px;min-height:42px;min-width:42px}
+#dashboard .availability{background:#15334b;box-shadow:0 9px 24px rgba(17,45,71,.12);border:1px solid #315776;border-radius:18px;min-height:82px}
+#dashboard .availability strong{font-size:15px;font-weight:900;color:#fff}
+#dashboard .availability p{font-size:11px;color:#d0deeb}
+#dashboard .availability .online-indicator.active{background:#57d49f;box-shadow:0 0 0 5px rgba(87,212,159,.12)}
+#dashboard .gps-panel,#dashboard .sound-panel{border-radius:15px;border:1px solid #dce6f0;box-shadow:0 5px 18px rgba(12,40,65,.04)}
+#dashboard .gps-panel .gps-heading{gap:12px}
+#dashboard .gps-panel strong,#dashboard .sound-panel strong{font-size:13px}
+#dashboard .gps-panel p,#dashboard .sound-panel p{line-height:1.55}
+#dashboard .gps-toggle,#dashboard .sound-primary{min-height:43px;border-radius:10px}
+#dashboard .summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px;margin:20px 0}
+#dashboard .metric{border:1px solid #dce7f1;border-radius:17px;padding:18px 15px;min-height:114px;box-shadow:0 6px 17px rgba(12,40,65,.04);background:#fff}
+#dashboard .metric strong{font-variant-numeric:tabular-nums;font-size:36px;letter-spacing:-.06em;color:#15334a}
+#dashboard .metric small{color:#6c8298;font-size:11px;font-weight:800}
+#dashboard .metric .metric-icon{font-size:18px}
+#dashboard .v2-rider-nav{position:sticky;top:76px;z-index:19;display:flex;flex-wrap:nowrap;overflow:auto;gap:6px;border-radius:14px;padding:7px;border:1px solid #dbe5ee;background:#fff;box-shadow:0 8px 22px rgba(11,42,64,.065)}
+#dashboard .v2-rider-nav a{white-space:nowrap;flex-shrink:0;padding:11px 14px;border-radius:10px;font-size:12px;font-weight:900}
+#dashboard .work-header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 8px}
+#dashboard .work-header h2{font-size:clamp(21px,3vw,26px);letter-spacing:-.035em;font-weight:950;color:#13314a}
+#dashboard .work-header .eyebrow{font-size:10px;color:#267e88;letter-spacing:.13em}
+#dashboard .live-indicator{font-size:10px;font-weight:900;border-radius:100px;padding:7px 10px;background:#e3f6ef;color:#196e59;white-space:nowrap}
+#dashboard .rider-help{font-size:12px;color:#667f95;line-height:1.65}
+#dashboard .order-card{border:1px solid #d8e5ef;border-radius:20px;background:#fff;box-shadow:0 12px 32px rgba(15,45,74,.06);overflow:hidden;margin:14px 0}
+#dashboard .order-card.priority-order{border-left:5px solid #f0a052}
+#dashboard .order-top{background:#f8fafc;border-bottom:1px solid #e7edf3;padding:15px 16px}
+#dashboard .order-number{color:#173e5b;font-weight:950;font-size:19px}
+#dashboard .order-card h3{font-size:clamp(21px,3vw,24px);letter-spacing:-.035em;line-height:1.2;color:#102a42}
+#dashboard .order-wait{font-variant-numeric:tabular-nums}
+#dashboard .payment-panel{border:1px solid #dbe7f1;border-radius:13px;padding:15px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px}
+#dashboard .payment-panel strong{font-size:22px;font-weight:950;color:#18374d;line-height:1.15;letter-spacing:-.03em}
+#dashboard .payment-confirmation{display:flex;flex-direction:column;gap:9px;background:#f1f8fc;border:1px solid #cfe2ee;padding:15px;border-radius:13px;margin-top:13px}
+#dashboard .payment-confirmation span{font-size:11px;font-weight:950;letter-spacing:.06em;color:#284d65}
+#dashboard .payment-confirmation select{border:1px solid #bacfdf;border-radius:11px;padding:12px;font-size:16px;min-height:49px;background:#fff;color:#17354a}
+#dashboard .payment-confirmation small{font-size:11px;line-height:1.5;color:#5f758a}
+#dashboard .order-card .actions button,#dashboard .order-card .actions a{border-radius:11px;min-height:47px;font-size:12px;font-weight:850}
+#dashboard .order-card .actions [data-next]{background:#eda058;color:#16324a;font-weight:900}
+#dashboard .order-card .finish-accessible{min-height:46px;border-radius:11px;background:#eff8f3;color:#167154;border:1px solid #b6dfcb}
+#dashboard .swipe-finish{border-radius:100px}
+#dashboard .multi-route-panel,#dashboard .day-close-card,#dashboard .history-section{border-radius:18px;border:1px solid #dce7ef;background:#fff}
+#dashboard .day-close-review{border-radius:11px;min-height:49px}
+#dashboard .sync-note{font-variant-numeric:tabular-nums;color:#60778e;font-size:10px}
+.order-packing{background:#f4f9fc!important;border-color:#ccddeb!important;border-radius:14px!important}
+.packing-explanation{font-size:12px}
+.packing-optional{border-left:4px solid #45ac95!important}
+.packing-readonly{opacity:.92}
+:focus-visible{outline:3px solid #28ac91;outline-offset:3px}
+@media(max-width:640px){
+ .app{padding:14px 12px 70px}
+ #dashboard .welcome{padding:19px;border-radius:17px}
+ #dashboard .welcome h1{font-size:24px}
+ #dashboard .availability{padding:15px}
+ #dashboard .v2-rider-nav{top:69px}
+ #dashboard .summary{gap:7px}
+ #dashboard .metric{padding:14px 8px;border-radius:13px;min-height:102px}
+ #dashboard .metric strong{font-size:30px}
+ #dashboard .metric small{font-size:10px}
+ #dashboard .work-header h2{font-size:21px}
+ #dashboard .order-card{border-radius:16px}
+ #dashboard .payment-panel{padding:12px}
+ #dashboard .payment-panel strong{font-size:21px}
+ #dashboard .order-card .actions{gap:7px}
+ #dashboard .order-card .actions button,#dashboard .order-card .actions a{min-height:45px}
+}
+@media(max-width:390px){
+ #login .rider-profile-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+ #dashboard .welcome .wave{display:none}
+ #dashboard .summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+ #dashboard .metric .metric-icon{font-size:15px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;transition-duration:0s!important}}
