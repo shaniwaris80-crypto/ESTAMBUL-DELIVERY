@@ -72,7 +72,15 @@ export async function loadConnected():Promise<ConnectedState>{
  const riders=await request("/rest/v1/ed_riders?select=id,display_name,online,active,user_id&account_id=eq."+membership.account_id) as ConnectedRider[];
  const rider=riders.find(r=>r.user_id===user.id&&r.active);
  if(!rider)throw new Error("No hay un rider activo vinculado a esta cuenta.");
- const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+"&order=created_at.desc&limit=100") as RiderOrder[];
+ // Filter only operational screens, never erase historical Supabase records.
+ // Fall back gracefully if the reset migration has not yet been installed.
+ let epochFilter="";
+ try{
+  const epochs=await request("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
+   membership.account_id+"&limit=1") as {started_at:string}[];
+  if(epochs?.[0]?.started_at)epochFilter="&created_at=gte."+encodeURIComponent(epochs[0].started_at);
+ }catch{/* Existing orders still load if the optional reset table is unavailable. */}
+ const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+epochFilter+"&order=created_at.desc&limit=100") as RiderOrder[];
  if(connectedItemFeature&&orders.length){
   // RLS limits these snapshots to the user's assigned orders; optional feature.
   try{
