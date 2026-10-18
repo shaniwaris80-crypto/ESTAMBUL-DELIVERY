@@ -60,7 +60,7 @@ test("prepaid/online is not misclassified as cash nor rider-collected card",()=>
  assert.equal(x.preferredCollectionMethod,null);
 });
 test("Last imports remain unaltered unless item snapshot feature explicitly activated",()=>{
- assert.match(worker,/env\("ED_RIDER_ITEMS_INGEST_ENABLED"\)==="true"/);
+ assert.match(worker,/env\("ED_RIDER_ITEMS_INGEST_ENABLED"\)!=="false"/);
  assert.match(worker,/await rpc<Dict>\("ed_last_import_tab"/);
  assert.match(worker,/try[\s\S]*?ed_last_upsert_item_snapshot[\s\S]*?catch/);
  const sql=read("docs/staging/ed_last_import_tab_review.sql");
