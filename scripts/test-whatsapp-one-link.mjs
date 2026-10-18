@@ -41,7 +41,7 @@ test("Twilio WhatsApp request uses ContentSid/ContentVariables and not SMS Body"
  assert.match(edge,/form\.set\("To",channel==="whatsapp"\?"whatsapp:"\+to:to\)/);
  assert.match(edge,/form\.set\("ContentSid",contentSid\)/);
  assert.match(edge,/form\.set\("ContentVariables",JSON\.stringify/);
- assert.match(edge,/channel==="whatsapp"\?"whatsapp_provider_accepted"/);
+ assert.match(edge,/channel==="whatsapp"\?\s*"whatsapp_provider_accepted"/);
  assert.match(edge,/if\(channel==="sms"\)await audit\.rpc\("ed_log_tracking_sms"/);
 });
 test("one link, no status-change SMS or WhatsApp and no automatic retry",()=>{
