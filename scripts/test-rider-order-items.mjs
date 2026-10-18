@@ -122,7 +122,8 @@ test("native Rider only offers pizza and beverage marks without gate",()=>{
  const native=read("apps/rider/app/connected.tsx");
  assert.match(native,/function optionalPackingCategory/);
  assert.match(native,/disabled=\{!optional\}/);
- assert.match(native,/onPress=\{\(\)=>onAdvance\(status\)\}/);
+ assert.match(native,/onPress=\{\(\)=>onAdvance\(status,collection\|\|undefined\)\}/);
+ assert.match(native,/connectedPaymentConfirmation&&status==="entregado"&&!collection/);
  assert.doesNotMatch(native,/checkAndAdvance\(/);
  assert.doesNotMatch(native,/!ready/);
  assert.match(native,/No hace falta marcar nada para continuar/);
