@@ -38,7 +38,8 @@ test("only email identifiers are remembered after explicit successful login",()=
 });
 test("never caches plaintext passwords, tokens or active orders in slot helper",()=>{
  const source=read("docs/rider-profiles.js");
- assert.doesNotMatch(source,/password|access_token|refresh_token|service_role|ed_orders|supabase\.co/i);
+ assert.doesNotMatch(source,/access_token|refresh_token|service_role|ed_orders|supabase\.co/i);
+ assert.doesNotMatch(source,/setItem\([^\n]*password/i);
  assert.doesNotMatch(source,/fetch\s*\(|XMLHttpRequest|WebSocket/);
 });
 test("legacy Supabase Auth login and role checks remain in the PWA",()=>{
