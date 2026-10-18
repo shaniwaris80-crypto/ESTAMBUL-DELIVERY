@@ -138,16 +138,30 @@ async function riderAcceptance(order,resend,tab){
   $("riderShareNotice").textContent="Pedido aceptado, pero no se recibió enlace. Consulta con el administrador.";
   return output;
  }
- if(output.sms_status==="provider_accepted"){
+ if(output.sms_status==="whatsapp_provider_accepted"){
+  if(tab&&!tab.closed)tab.close();
+  $("riderShareNotice").hidden=false;
+  smsOutcomes.set(order.id,{ok:true,message:"Twilio ha aceptado el WhatsApp de seguimiento. Su entrega al móvil todavía no está confirmada."});
+  $("riderShareNotice").textContent="✓ WhatsApp solicitado correctamente con el enlace. No se enviará otro mensaje por cada cambio de estado.";
+ }else if(output.sms_status==="provider_accepted"){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
   smsOutcomes.set(order.id,{ok:true,message:"Twilio ha aceptado el SMS de seguimiento. Aún no se ha confirmado su recepción en el teléfono."});
   $("riderShareNotice").textContent="✓ Pedido aceptado. El proveedor ha aceptado el SMS con el enlace para el cliente. La entrega del SMS aún no está confirmada.";
- }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)){
+ }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)&&
+     ["whatsapp_manual_only","whatsapp_not_configured","whatsapp_template_not_found",
+      "whatsapp_template_unapproved","whatsapp_approval_unverified"].includes(output.sms_status)){
+  // This opens only a draft: rider must explicitly press Send.
   shareTrackingByWhatsApp(order,link,tab);
  }else{
   if(tab&&!tab.closed)tab.close();
   const reasons={
+   whatsapp_provider_rejected:"Twilio rechazó el WhatsApp. No se reintenta para evitar duplicados.",
+   whatsapp_manual_only:"WhatsApp automático no está habilitado; utiliza el envío manual consentido.",
+   whatsapp_not_configured:"Falta configurar el remitente o el Content SID de WhatsApp.",
+   whatsapp_template_not_found:"Twilio no encuentra el Content SID en esta cuenta (error 21655).",
+   whatsapp_template_unapproved:"La plantilla aún no está aprobada para WhatsApp.",
+   whatsapp_approval_unverified:"No se pudo verificar la aprobación de la plantilla.",
    provider_disabled:"El envío automático está pendiente de activar con Twilio.",
    provider_not_configured:"Faltan datos del proveedor SMS para enviar automáticamente.",
    provider_rejected:"El proveedor SMS ha rechazado el intento de envío.",
@@ -159,10 +173,11 @@ async function riderAcceptance(order,resend,tab){
    already_sent_or_attempted:"Ya existe un intento para este pedido. No se enviará otro SMS."
   };
   $("riderShareNotice").hidden=false;
-  smsOutcomes.set(order.id,{ok:false,message:"SMS NO ENVIADO: "+(reasons[output.sms_status]||"Motivo no identificado; revisar configuración.")});
-  $("riderShareNotice").textContent="✓ Pedido aceptado. NO se ha enviado ningún SMS. "+
+  const via=order.notification_channel==="whatsapp"?"WHATSAPP":"SMS";
+  smsOutcomes.set(order.id,{ok:false,message:via+" NO CONFIRMADO: "+(reasons[output.sms_status]||"Revisar con administración.")});
+  $("riderShareNotice").textContent="✓ Pedido aceptado. "+via+" no confirmado: "+
     (reasons[output.sms_status]||"Comprueba la configuración del aviso.")+
-    " Puedes copiar el enlace para enviarlo manualmente.";
+    " No se reintentará automáticamente.";
  }
  return output;
 }
