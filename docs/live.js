@@ -309,6 +309,10 @@ function render(){
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
  el("lastSync").textContent=lastReloadAt?"Datos recibidos a las "+new Date(lastReloadAt).toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)":"Esperando sincronización…";
  if(staff){
+  // Read-only operational summary: NEVER assigns Last.app couriers.
+  el("proAvailableRiders").textContent=String(riders.filter(r=>r.active&&r.online&&r.user_id).length);
+  el("proWaitingOrders").textContent=String(open.filter(o=>o.channel!=="test"&&o.status!=="en_ruta").length);
+  el("proSyncLabel").textContent=lastReloadAt?new Date(lastReloadAt).toLocaleTimeString("es-ES"):"Esperando…";
   const rosterSlots=Array.from({length:5},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
