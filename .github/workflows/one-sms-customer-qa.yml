@@ -1,0 +1,35 @@
+name: One tracking SMS and customer waiting QA
+on:
+  push:
+    branches:
+      - feature/one-sms-customer-waiting-pro-20261018
+  pull_request:
+    paths:
+      - docs/track-state.js
+      - docs/track.js
+      - docs/track-pro-v2.css
+      - track.html
+      - docs/rider.js
+      - supabase/functions/ed-send-notifications/index.ts
+      - supabase/functions/ed-rider-accept-sms/index.ts
+      - docs/staging/one-sms-tracking-policy-review.sql
+      - scripts/test-one-sms-waiting-pro.mjs
+permissions:
+  contents: read
+jobs:
+  sms-and-customer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check customer and Rider browser scripts
+        run: |
+          node --check docs/track.js
+          node --check docs/track-state.js
+          node --check docs/rider.js
+          node --check scripts/test-one-sms-waiting-pro.mjs
+      - name: Check at-most-once messaging, tracking and privacy
+        run: node --test scripts/test-one-sms-waiting-pro.mjs
