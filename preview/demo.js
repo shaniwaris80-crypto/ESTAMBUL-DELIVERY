@@ -256,7 +256,7 @@ function renderOrder(order,isPriority=false) {
       (order.status==="asignado"&&!order.accepted_at
         ?'<button type="button" class="accept-action" data-accept="'+escapeText(order.id)+'">✅ Aceptar pedido'+
           (order.notifications_consent&&order.notification_channel==="sms"?" · SMS automático":
-           canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
+           canShareFollowup(order)?" · WhatsApp autorizado":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
         ?'<span class="one-link-note">Pedido aceptado · SMS no verificado · sin mensajes adicionales por estados</span>':'');
