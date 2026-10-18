@@ -53,6 +53,65 @@ REVOKE ALL ON FUNCTION public.ed_finish_one_tracking_sms(uuid,boolean,text)
  FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.ed_finish_one_tracking_sms(uuid,boolean,text) TO service_role;
 
+-- Treat historical SMS attempts as already spent BEFORE enabling a new Edge sender.
+-- This prevents a previous Twilio acceptance from receiving a new link after migration.
+INSERT INTO private.ed_one_tracking_sms_dispatch(
+ order_id,account_id,attempted_at,provider_accepted,completed_at
+)
+SELECT DISTINCT ON (r.order_id)
+ r.order_id,r.account_id,r.attempted_at,
+ (r.result='provider_accepted'),r.attempted_at
+FROM private.ed_tracking_sms_receipts r
+ORDER BY r.order_id,r.attempted_at DESC
+ON CONFLICT(order_id) DO NOTHING;
+
+-- Also respect previous status SMS attempts. Do not resend merely because an
+-- old server already sent something before switching to the one-link policy.
+INSERT INTO private.ed_one_tracking_sms_dispatch(
+ order_id,account_id,attempted_at,provider_accepted,completed_at
+)
+SELECT DISTINCT ON (q.order_id)
+ q.order_id,q.account_id,coalesce(q.attempted_at,q.queued_at),
+ (q.delivery_status='sent'),coalesce(q.attempted_at,q.queued_at)
+FROM private.ed_notification_queue q
+WHERE q.channel='sms' AND q.delivery_status IN ('sent','sending','failed')
+ORDER BY q.order_id,coalesce(q.attempted_at,q.queued_at) DESC
+ON CONFLICT(order_id) DO NOTHING;
+
+-- Rider direct RPC must not bypass the one-link rule by setting p_resend=true.
+-- Token hashes are not reversible; an already accepted Rider sees the existing
+-- customer tracking state rather than issuing a second private token.
+CREATE OR REPLACE FUNCTION public.ed_rider_accept_tracking(
+ p_order_id uuid,p_resend boolean DEFAULT false
+) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
+DECLARE o record; token text;
+BEGIN
+ SELECT e.id,e.account_id,e.rider_id,e.status,e.accepted_at,r.online,r.active
+ INTO o FROM public.ed_orders e JOIN public.ed_riders r
+ ON r.id=e.rider_id AND r.account_id=e.account_id
+ WHERE e.id=p_order_id FOR UPDATE OF e;
+ IF o.id IS NULL OR NOT private.ed_is_rider(o.account_id,o.rider_id)
+   OR NOT o.active OR NOT o.online
+   OR o.status NOT IN ('asignado','recogido','en_ruta') THEN
+  RAISE EXCEPTION 'No autorizado para aceptar este pedido';
+ END IF;
+ IF o.accepted_at IS NOT NULL THEN
+  RETURN jsonb_build_object('accepted',true,'link_created',false,'already_accepted',true);
+ END IF;
+ IF o.status<>'asignado' THEN
+  RAISE EXCEPTION 'Solo se acepta antes de marcar recogido';
+ END IF;
+ UPDATE public.ed_orders SET accepted_at=clock_timestamp() WHERE id=o.id;
+ token=encode(extensions.gen_random_bytes(32),'hex');
+ INSERT INTO private.ed_public_tracking_tokens(account_id,order_id,token_hash,expires_at,issued_by)
+ VALUES(o.account_id,o.id,encode(extensions.digest(token,'sha256'),'hex'),
+ now()+interval '21 days',(select auth.uid()));
+ RETURN jsonb_build_object('accepted',true,'link_created',true,
+   'token',token,'first_accept',true);
+END $fn$;
+REVOKE ALL ON FUNCTION public.ed_rider_accept_tracking(uuid,boolean) FROM PUBLIC,anon;
+GRANT EXECUTE ON FUNCTION public.ed_rider_accept_tracking(uuid,boolean) TO authenticated;
+
 -- No state-change notifications: the same private URL updates itself automatically.
 -- This function remains attached to the existing trigger to prevent old updates
 -- from creating rows, including for a rider whose phone previously opted in.
@@ -71,17 +130,3 @@ WHERE delivery_status='awaiting_provider'
 
 COMMIT;
 
--- Important: existing provider-accepted sends cannot be undone.
--- Before rollout, import/honor prior successful tracking SMS receipts and statuses
--- as spent attempts, otherwise a historic order could get a second message:
--- 
--- INSERT INTO private.ed_one_tracking_sms_dispatch(order_id,account_id,provider_accepted,completed_at)
--- SELECT DISTINCT ON (r.order_id) r.order_id,r.account_id,
---   (r.result='provider_accepted'),r.attempted_at
--- FROM private.ed_tracking_sms_receipts r
--- ORDER BY r.order_id,r.attempted_at ASC
--- ON CONFLICT(order_id) DO NOTHING;
--- 
--- Production migration should run the above *inside the same transaction*
--- and also treat the existing accepted SMS status queue as historical sends.
--- Confirm exact legacy status-send records before production rollout.
