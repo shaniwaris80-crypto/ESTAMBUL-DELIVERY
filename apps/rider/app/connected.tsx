@@ -5,7 +5,7 @@ import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
 import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
-const palette={dark:"#14253b",orange:"#ee9848",green:"#199874",muted:"#7890a4",bg:"#f3f6fa"};
+const palette={dark:"#10243a",orange:"#ed9944",green:"#139b78",muted:"#6d8195",bg:"#f2f5fa"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const nextLabel:{[key:string]:string}={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
 function waiting(order:RiderOrder):number{
@@ -162,7 +162,7 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
   void Linking.openURL("https://www.google.com/maps/dir/?api=1&destination="+encodeURIComponent(destination)+"&travelmode=driving");
  };
  const call=()=>{const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");if(phone.length>=6)void Linking.openURL("tel:"+phone)};
- return <View style={s.card}><Text style={s.eyebrow}>{order.channel.toUpperCase()} · {order.reference}</Text>
+ return <View style={[s.card,s.orderCard]}><Text style={s.eyebrow}>{order.channel.toUpperCase()} · {order.reference}</Text>
  <Text style={{fontSize:12,fontWeight:"900",color:waiting(order)>=30?"#ad2e21":waiting(order)>=15?"#986515":palette.green,marginBottom:8}}>◷ {waiting(order)} min esperando{waiting(order)>=30?" · PRIORITARIO":""}</Text>
  <Text style={s.title}>{order.customer_name}</Text>
  <Text style={s.eyebrow}>DIRECCIÓN DE ENTREGA</Text>
@@ -178,16 +178,17 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  </View>
 }
 const s=StyleSheet.create({
- safe:{flex:1,backgroundColor:palette.bg},top:{backgroundColor:palette.dark,padding:18,paddingTop:24,flexDirection:"row",alignItems:"center",gap:20},
+ safe:{flex:1,backgroundColor:palette.bg},top:{backgroundColor:palette.dark,padding:20,paddingTop:27,flexDirection:"row",alignItems:"center",gap:20},
  back:{color:"#bdcde0",fontSize:15},brand:{color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:.6},topSub:{color:"#bdcde0",fontSize:10,letterSpacing:1,marginTop:4},
- body:{padding:16,paddingBottom:50},card:{backgroundColor:"#fff",borderColor:"#e0e7ee",borderWidth:1,borderRadius:15,padding:19,marginBottom:12},
- eyebrow:{fontSize:10,color:"#7593ab",fontWeight:"800",marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
+ body:{padding:16,paddingBottom:65},card:{backgroundColor:"#fff",borderColor:"#dce6ef",borderWidth:1,borderRadius:19,padding:20,marginBottom:14,shadowColor:"#183353",shadowOpacity:.07,shadowRadius:13,shadowOffset:{width:0,height:5},elevation:2},
+ eyebrow:{fontSize:10,color:"#5c7d98",fontWeight:"900",letterSpacing:.6,marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
  help:{color:palette.muted,fontSize:13,lineHeight:21,marginBottom:15},
- input:{backgroundColor:"#fff",padding:14,borderRadius:9,borderColor:"#dbe3eb",borderWidth:1,marginVertical:7},
- button:{backgroundColor:palette.orange,padding:13,borderRadius:9,alignItems:"center",justifyContent:"center"},
+ input:{backgroundColor:"#f9fbfd",padding:15,borderRadius:12,borderColor:"#cfdeeb",borderWidth:1,marginVertical:8,fontSize:16,minHeight:50},
+ button:{backgroundColor:palette.orange,padding:15,borderRadius:12,alignItems:"center",justifyContent:"center"},
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
- outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b4c9df",alignItems:"center",justifyContent:"center"},
+ outline:{padding:13,borderRadius:12,borderWidth:1,borderColor:"#bed1e1",alignItems:"center",justifyContent:"center"},
  outlineText:{color:"#3474a9",fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
+ orderCard:{borderLeftWidth:4,borderLeftColor:"#ee9a46"},
  loginIntro:{backgroundColor:"#112840",borderRadius:23,padding:27,marginBottom:16},
  loginIntroEyebrow:{color:"#f9ba77",fontWeight:"900",fontSize:10,letterSpacing:1.5,marginBottom:8},
  loginIntroTitle:{color:"#fff",fontSize:34,fontWeight:"900",letterSpacing:-1.4,lineHeight:39,marginBottom:8},
