@@ -152,22 +152,20 @@ export default function Connected(){
  <Text style={s.footer}>Pedidos de Last.app visibles solo tras activar la integración y asignar cada Rider en LastPOS. La ruta es orientativa.</Text>
  </ScrollView></SafeAreaView>
 }
+function optionalPackingCategory(line:{name:string;children?:{name:string}[]}):"pizza"|"bebida"|null{
+ const names=[line.name,...(line.children||[]).map(x=>x.name)];
+ const norm=names.join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+ if(/\b(pizzas?|pizzetas?|calzones?)\b/.test(norm))return "pizza";
+ if(/\b(bebidas?|refrescos?|aguas?|coca[\s-]?colas?|colas?|pepsis?|fantas?|sprites?|seven[\s-]?up|7[\s-]?up|aquarius|nesteas?|kas|zumos?|jugos?|cervezas?|tonicas?|red[\s-]?bull|monsters?|batidos?)\b/.test(norm))return "bebida";
+ return null;
+}
 function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvance:(status:DeliveryStatus)=>void}){
  const [checked,setChecked]=useState<Record<number,boolean>>({});
- const [manual,setManual]=useState(false);
- useEffect(()=>{setChecked({});setManual(false);},[order.id,order.items_snapshot?.revision]);
+ useEffect(()=>{setChecked({});},[order.id,order.items_snapshot?.revision]);
  const list=Array.isArray(order.items_snapshot?.items)?order.items_snapshot.items.slice(0,80):[];
  const hasItems=connectedItemFeature&&list.length>0;
- const ready=hasItems?list.every((_,i)=>checked[i]):manual;
- const checkAndAdvance=(nextStatus:DeliveryStatus)=>{
-  if(connectedItemFeature&&["recogido","en_ruta"].includes(nextStatus)&&!ready){
-   Alert.alert("Revisión antes de salir",hasItems?
-    "Comprueba cada pizza, bebida y complemento antes de salir.":
-    "Confirma que has revisado el ticket y las bolsas con cocina.");
-   return;
-  }
-  onAdvance(nextStatus);
- };
+ const optionalIndexes=list.map((line,i)=>optionalPackingCategory(line)?i:-1).filter(i=>i>=0);
+ const optionalChecked=optionalIndexes.filter(i=>checked[i]).length;
  const status=next[order.status];
  const nav=()=>{
   const text=String(order.destination||"").trim();
@@ -187,35 +185,42 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  {order.notes?<View style={{backgroundColor:"#fff6e8",padding:12,borderRadius:9,marginBottom:12}}><Text style={s.help}>📝 {order.notes}</Text></View>:null}
  {connectedItemFeature&&["asignado","recogido","en_ruta"].includes(order.status)?
   <View style={{backgroundColor:"#f0f7fc",padding:14,borderColor:"#cbdce8",borderWidth:1,borderRadius:14,marginBottom:14}}>
-   <Text style={{fontSize:12,fontWeight:"900",color:"#173c58",marginBottom:10}}>🍕 ARTÍCULOS DEL PEDIDO</Text>
+   <Text style={{fontSize:12,fontWeight:"900",color:"#173c58",marginBottom:6}}>🍕 ARTÍCULOS DEL PEDIDO</Text>
+   <Text style={{fontSize:11,color:"#5c748a",marginBottom:12}}>Marca pizzas y bebidas si quieres. No hace falta marcar nada para continuar.</Text>
    {hasItems?<>
-    {list.map((line,i)=><Pressable key={i} accessibilityRole="checkbox" accessibilityState={{checked:Boolean(checked[i]),disabled:order.status==="en_ruta"}}
-      disabled={order.status==="en_ruta"} onPress={()=>setChecked(old=>({...old,[i]:!old[i]}))}
-      style={{backgroundColor:checked[i]?"#e4f6ed":"#fff",borderColor:checked[i]?"#a1d7ba":"#dce7f1",borderWidth:1,borderRadius:11,padding:12,marginBottom:8,flexDirection:"row",gap:12}}>
-      <Text style={{fontSize:22,color:checked[i]?"#14856a":"#6e8195"}}>{checked[i]?"☑":"□"}</Text>
-      <View style={{flex:1}}>
-       <Text style={{fontSize:14,fontWeight:"800",color:"#162e45"}}>{line.quantity}× {line.name}</Text>
-       {!!line.comments&&<Text style={{fontSize:12,color:"#5b738a"}}>📝 {line.comments}</Text>}
-       {(line.modifiers||[]).map((m,j)=><Text key={"m"+j} style={{fontSize:12,color:"#527087"}}>+ {m.quantity||1}× {m.name}</Text>)}
-       {(line.children||[]).map((child,j)=><Text key={"c"+j} style={{fontSize:12,color:"#527087"}}>↳ {child.quantity||1}× {child.name}</Text>)}
-      </View>
-     </Pressable>)}
-    <Text style={{fontSize:12,fontWeight:"800",color:"#137a61"}}>{list.filter((_,i)=>checked[i]).length} de {list.length} comprobados</Text>
-   </>:<>
-    <Text style={{fontSize:12,fontWeight:"700",color:"#98631d",marginBottom:11}}>⚠ No hay desglose fiable. Comprueba ticket y bolsas con cocina.</Text>
-    <Pressable disabled={order.status==="en_ruta"} accessibilityRole="checkbox" accessibilityState={{checked:manual}}
-      onPress={()=>setManual(v=>!v)} style={{flexDirection:"row",gap:10,alignItems:"center",backgroundColor:"#fff",padding:12,borderRadius:10}}>
-     <Text style={{fontSize:22,color:"#14856a"}}>{manual?"☑":"□"}</Text>
-     <Text style={{fontSize:12,fontWeight:"700",color:"#173c58",flex:1}}>He revisado ticket y bolsas con cocina</Text>
-    </Pressable>
-   </>}
+    {list.map((line,i)=>{
+     const category=optionalPackingCategory(line),optional=Boolean(category);
+     return <Pressable key={i} disabled={!optional}
+       accessibilityRole={optional?"checkbox":undefined}
+       accessibilityState={optional?{checked:Boolean(checked[i])}:undefined}
+       accessibilityLabel={optional?"Marcar "+category+": "+line.name:undefined}
+       onPress={()=>{if(optional)setChecked(old=>({...old,[i]:!old[i]}));}}
+       style={{backgroundColor:optional&&checked[i]?"#e4f6ed":"#fff",
+        borderColor:optional&&checked[i]?"#a1d7ba":"#dce7f1",
+        borderWidth:1,borderRadius:11,padding:12,marginBottom:8,flexDirection:"row",gap:12}}>
+       {optional?<Text style={{fontSize:22,color:checked[i]?"#14856a":"#6e8195"}}>{checked[i]?"☑":"□"}</Text>:null}
+       <View style={{flex:1}}>
+        <Text style={{fontSize:14,fontWeight:"800",color:"#162e45"}}>{line.quantity}× {line.name}</Text>
+        {!!line.comments&&<Text style={{fontSize:12,color:"#5b738a"}}>📝 {line.comments}</Text>}
+        {(line.modifiers||[]).map((m,j)=><Text key={"m"+j} style={{fontSize:12,color:"#527087"}}>+ {m.quantity||1}× {m.name}</Text>)}
+        {(line.children||[]).map((child,j)=><Text key={"c"+j} style={{fontSize:12,color:"#527087"}}>↳ {child.quantity||1}× {child.name}</Text>)}
+       </View>
+      </Pressable>;
+    })}
+    <Text style={{fontSize:12,fontWeight:"800",color:"#137a61"}}>
+     {optionalIndexes.length?optionalChecked+" de "+optionalIndexes.length+" pizzas/bebidas marcadas · opcional":
+       "Sin casillas: el resto de artículos es solo informativo."}
+    </Text>
+   </>:<Text style={{fontSize:12,color:"#98631d"}}>
+    No hay lista digital completa. Puedes consultar el ticket con cocina; no bloquea el reparto.
+   </Text>}
   </View>:null}
  <View style={{backgroundColor:order.payment_method==="efectivo"?"#fff3d8":order.payment_method==="tarjeta"?"#e9f3ff":"#f2f3f6",padding:13,borderRadius:10,marginBottom:12}}>
  <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR"}</Text>
  <Text style={{color:palette.dark,fontSize:20,fontWeight:"900",marginTop:4}}>{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
  </View>
  <Text style={s.status}>{order.status.toUpperCase()}</Text>
- <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>checkAndAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
+ <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
 }
 const s=StyleSheet.create({
