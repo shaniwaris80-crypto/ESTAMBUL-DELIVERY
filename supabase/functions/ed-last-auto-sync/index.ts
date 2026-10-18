@@ -77,7 +77,7 @@ Deno.serve(async req=>{
       const imported=await rpc<Dict>("ed_last_import_tab",{p_location_id:location,p_tab_id:tabId,p_tab:tab});
       // Feature gated until schema, RLS, and menu completeness are validated.
       // Do not fail order reception if the optional snapshot import fails.
-      if(env("ED_RIDER_ITEMS_INGEST_ENABLED")==="true"&&!imported?.ignored){
+      if(env("ED_RIDER_ITEMS_INGEST_ENABLED")!=="false"&&!imported?.ignored){
        try{
         await rpc("ed_last_upsert_item_snapshot",{p_location_id:location,p_tab_id:tabId,p_tab:tab});
        }catch{
