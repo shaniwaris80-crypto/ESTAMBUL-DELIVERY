@@ -36,6 +36,7 @@ test("read-only health check never triggers sending, attempt claim or token gene
  assert.match(health,/ESTAMBUL_MESSAGING_ENABLED/);
  assert.match(health,/TWILIO_SMS_FROM/);
  assert.doesNotMatch(health,/Messages\.json|ed_claim_one_tracking_sms|ed_rider_accept_tracking/);
+ assert.match(edge,/Access-Control-Allow-Methods":"GET, POST, OPTIONS"/);
  assert.match(edge,/if\(input\.resend===true\)return json/);
  assert.match(edge,/claimed!==true/);
 });
