@@ -90,8 +90,9 @@ export default function Connected(){
     await logoutRider();
     throw new Error("La cuenta no corresponde a RIDER "+String(slot).padStart(2,"0")+". Contacta al gerente.");
    }
-   await saveRiderEmail(slot,email.trim());
-   setRemembered(true);setPassword("");setData(state);setSigned(true);
+   // Device caching is optional: authentication must succeed even if SecureStore is unavailable.
+   try{await saveRiderEmail(slot,email.trim());setRemembered(true);}catch{setRemembered(false);}
+   setPassword("");setData(state);setSigned(true);
   }catch(e){await logoutRider();setPassword("");setError(e instanceof Error?e.message:"Acceso denegado");}
   finally{setBusy(false)}
  }
