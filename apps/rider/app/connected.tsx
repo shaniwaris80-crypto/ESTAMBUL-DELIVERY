@@ -2,7 +2,7 @@ import { useCallback,useEffect,useRef,useState } from "react";
 import { Alert, ActivityIndicator, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
-import { advanceDelivery, isConnectedConfigured, connectedItemFeature, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
+import { advanceDelivery, isConnectedConfigured, connectedItemFeature, connectedPaymentConfirmation, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type DeliveryCollection, type ConnectedState, type RiderOrder } from "../lib/connected";
 import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
 const palette={dark:"#10243a",orange:"#ed9944",green:"#139b78",muted:"#6d8195",bg:"#f2f5fa"};
@@ -136,8 +136,8 @@ export default function Connected(){
     <Text style={s.outlineText}>🗺️ Google Maps · Tramo {i+1} de {links.length}</Text>
   </Pressable>)}
  </View>:null}
- {orders.length===0?<View style={s.card}><Text style={s.help}>Sin pedidos asignados desde Last.app. Asigna manualmente el Rider en LastPOS para que aparezcan aquí.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={status=>void operate(async()=>{
-  await advanceDelivery(o,status);
+ {orders.length===0?<View style={s.card}><Text style={s.help}>Sin pedidos asignados desde Last.app. Asigna manualmente el Rider en LastPOS para que aparezcan aquí.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={(status,collection)=>void operate(async()=>{
+  await advanceDelivery(o,status,collection);
   if(status==="en_ruta"){
     const target=String(o.destination||"").trim();
     const destination=o.lat!=null&&o.lng!=null?o.lat+","+o.lng:(/burgos|españa|spain/i.test(target)?target:target+", Burgos, España");
@@ -159,7 +159,9 @@ function optionalPackingCategory(line:{name:string;children?:{name:string}[]}):"
  if(/\b(bebidas?|refrescos?|aguas?|coca[\s-]?colas?|colas?|pepsis?|fantas?|sprites?|seven[\s-]?up|7[\s-]?up|aquarius|nesteas?|kas|zumos?|jugos?|cervezas?|tonicas?|red[\s-]?bull|monsters?|batidos?)\b/.test(norm))return "bebida";
  return null;
 }
-function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvance:(status:DeliveryStatus)=>void}){
+function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvance:(status:DeliveryStatus,payment?:DeliveryCollection)=>void}){
+ const [collection,setCollection]=useState<DeliveryCollection|null>(null);
+ useEffect(()=>{setCollection(null);},[order.id,order.status]);
  const [checked,setChecked]=useState<Record<number,boolean>>({});
  useEffect(()=>{setChecked({});},[order.id,order.items_snapshot?.revision]);
  const list=Array.isArray(order.items_snapshot?.items)?order.items_snapshot.items.slice(0,80):[];
@@ -219,8 +221,30 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR"}</Text>
  <Text style={{color:palette.dark,fontSize:20,fontWeight:"900",marginTop:4}}>{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
  </View>
+ {String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
+  <Text style={{color:"#9e5e12",fontWeight:"800",fontSize:12,marginBottom:12}}>⚠ Importe 0 €: verifica el total en Last.app antes de cobrar.</Text>:null}
+ {connectedPaymentConfirmation&&status==="entregado"?
+  <View style={{borderRadius:14,borderWidth:1,borderColor:"#d4e4ef",backgroundColor:"#f4f9fc",padding:13,marginBottom:13}}>
+   <Text style={{fontSize:12,fontWeight:"900",color:"#193953",marginBottom:5}}>COBRO AL ENTREGAR</Text>
+   <Text style={{color:"#58738b",fontSize:11,marginBottom:11}}>Confirma el cobro real, no la preferencia de Last.app.</Text>
+   {([
+    ["efectivo","💶 Efectivo cobrado"],
+    ["tarjeta","💳 Tarjeta cobrada"],
+    ["online","✓ Ya pagado online · revisión gerente"]
+    ] as const).map(([method,label])=>
+    <Pressable key={method} accessibilityRole="radio" accessibilityState={{checked:collection===method}}
+     onPress={()=>setCollection(method)} style={{padding:13,borderRadius:10,marginBottom:7,
+      flexDirection:"row",alignItems:"center",gap:9,
+      backgroundColor:collection===method?"#e4f7f0":"#fff",
+      borderColor:collection===method?"#1b9679":"#d7e1ec",borderWidth:1}}>
+     <Text style={{fontSize:18,color:"#158b70"}}>{collection===method?"◉":"◯"}</Text>
+     <Text style={{fontSize:12,fontWeight:"800",color:"#22435d",flex:1}}>{label}</Text>
+    </Pressable>)}
+   {collection==="online"?
+    <Text style={{color:"#955f14",fontSize:11,lineHeight:18}}>El pago online no se cuenta como dinero cobrado por el Rider. Gerencia tendrá que conciliarlo.</Text>:null}
+  </View>:null}
  <Text style={s.status}>{order.status.toUpperCase()}</Text>
- <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
+ <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy||(connectedPaymentConfirmation&&status==="entregado"&&!collection)} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status,collection||undefined)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
 }
 const s=StyleSheet.create({
