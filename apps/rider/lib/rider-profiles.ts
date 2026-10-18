@@ -8,7 +8,7 @@ export function validRiderSlot(slot:number):boolean{
  return Number.isInteger(slot)&&slot>=1&&slot<=5;
 }
 export function riderSlotFromName(name:string):number|null{
- const found=String(name||"").trim().match(/^rider[\\s_-]*0?([1-5])$/i);
+ const found=String(name||"").trim().match(/^rider[\s_-]*0?([1-5])$/i);
  return found?Number(found[1]):null;
 }
 export async function savedRiderEmail(slot:number):Promise<string>{
@@ -17,7 +17,7 @@ export async function savedRiderEmail(slot:number):Promise<string>{
 }
 export async function saveRiderEmail(slot:number,email:string):Promise<void>{
  const value=email.trim().toLowerCase();
- if(!validRiderSlot(slot)||!/^\\S+@\\S+\\.\\S+$/.test(value))throw new Error("Correo Rider inválido");
+ if(!validRiderSlot(slot)||!/^\S+@\S+\.\S+$/.test(value))throw new Error("Correo Rider inválido");
  await SecureStore.setItemAsync(key(slot),value);
 }
 export async function clearRiderEmail(slot:number):Promise<void>{
