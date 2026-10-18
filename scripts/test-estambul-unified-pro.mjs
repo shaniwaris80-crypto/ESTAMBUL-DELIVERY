@@ -99,7 +99,7 @@ test("PWA app-shell cache includes the new UI assets without storing orders or A
   "docs/rider-items.js","docs/rider-profiles.js","docs/rider.js"]){
   assert.match(sw,new RegExp(path.replace(".","\\.")));
  }
- assert.match(sw,/const CACHE="estambul-rider-shell-v25"/);
+ assert.match(sw,/const CACHE="estambul-rider-shell-v26"/);
  assert.match(sw,/reqUrl\.origin!==self\.location\.origin/);
  assert.match(sw,/Never cache Supabase endpoints/);
  assert.doesNotMatch(sw,/ed_orders|customer_phone|access_token|refresh_token|service_role/i);
