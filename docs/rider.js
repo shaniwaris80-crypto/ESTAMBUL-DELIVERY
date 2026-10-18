@@ -24,6 +24,16 @@ function displayOrderCode(order){
 const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
+const paymentDrafts=new Map(); // Rider's transient payment selection, never persisted.
+let paymentInteractionUntil=0;
+function capturePaymentDrafts(){
+ document.querySelectorAll('#orders select[data-payment-for]').forEach(select=>{
+  const id=select.dataset.paymentFor;
+  if(!id)return;
+  if(["efectivo","tarjeta"].includes(select.value))paymentDrafts.set(id,select.value);
+  else paymentDrafts.delete(id);
+ });
+}
 const itemFeature=window.ESTAMBUL_RIDER_ITEMS_ENABLED===true&&Boolean(window.ESTAMBUL_ORDER_ITEMS);
 const itemController=window.ESTAMBUL_ORDER_ITEMS?.createController(escapeText,itemFeature);
 // Only unclosed deliveries belong to the current rider workday; the server keeps all settled orders.
@@ -523,6 +533,7 @@ function clearError() {
 function resetLocal() {
   setSaved(null);
   identity = null; rider = null; orders = []; accountName = "";
+  paymentDrafts.clear();paymentInteractionUntil=0;
   itemController?.clear();
   routeState.ids=[];routeState.coordsOptimized=false;routeState.manualOrder=false;
   orderBaselineReady=false;knownActiveOrders.clear();
@@ -577,6 +588,7 @@ async function fetchOrders() {
   locationShares=new Map(locationSharingAvailable?shareRows.map(row=>[row.order_id,Boolean(row.enabled)]):[]);
   detectAssigned(updated);
   orders=updated.filter(o=>o.status!=="entregado"||unsettledIds===null||unsettledIds.has(o.id));
+  for(const id of paymentDrafts.keys())if(!orders.some(o=>o.id===id&&o.status==="en_ruta"))paymentDrafts.delete(id);
   if(gpsWatchId!==null&&(!rider?.online||!hasInProgressOrder()))void stopGps();
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
@@ -614,7 +626,10 @@ function draw(){
  $("doneCount").textContent=done.length;
  $("listCount").textContent=active.length;
  $("historyCount").textContent=done.length;
- $("orders").innerHTML=active.length
+ capturePaymentDrafts();
+ // Continue 5-second synchronization, but don't replace focused payment selector,
+ // recent payment choice, or an ongoing swipe gesture.
+ if(!document.activeElement?.matches('select[data-payment-for]')&&activeSwipe===null&&Date.now()>=paymentInteractionUntil)$("orders").innerHTML=active.length
   ? (inRoute.length?'<div class="group-title"><span class="group-dot route"></span>EN REPARTO <small>'+inRoute.length+'</small></div>'+inRoute.map(o=>renderOrder(o,true)).join(""):"")+
     (toCollect.length?'<div class="group-title"><span class="group-dot"></span>POR RECOGER / PREPARAR <small>'+toCollect.length+'</small></div>'+toCollect.map(o=>renderOrder(o,false)).join(""):"")
   :'<div class="empty active-empty"><span class="empty-icon">✓</span><strong>¡Todo al día!</strong><p>No quedan pedidos activos. Las entregas sin arqueo aparecen en el historial.</p></div>';
@@ -649,14 +664,15 @@ function renderHistoryOrder(order){
 }
 function renderOrder(order,isPriority=false) {
   const nextStatus=allowedNext[order.status];
+  const draftPayment=paymentDrafts.get(order.id)??order.payment_method??"";
   const paymentConfirmation=nextStatus==="entregado"
     ?'<label class="payment-confirmation" for="payment-'+escapeText(order.id)+'">'+
       '<span>CONFIRMA EL COBRO ANTES DE ENTREGAR</span>'+
       '<select id="payment-'+escapeText(order.id)+'" data-payment-for="'+escapeText(order.id)+'" required>'+
        '<option value="">Seleccionar método de pago</option>'+
-       '<option value="efectivo" '+(order.payment_method==="efectivo"?"selected":"")+
+       '<option value="efectivo" '+(draftPayment==="efectivo"?"selected":"")+
        '>💶 Efectivo cobrado</option>'+
-       '<option value="tarjeta" '+(order.payment_method==="tarjeta"?"selected":"")+
+       '<option value="tarjeta" '+(draftPayment==="tarjeta"?"selected":"")+
        '>💳 Tarjeta / pago digital confirmado</option></select>'+
       '<small>Verifica lo cobrado de verdad, aunque Last.app haya indicado una preferencia.</small>'+
      '</label>':"";
@@ -699,7 +715,8 @@ function renderOrder(order,isPriority=false) {
     (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
-    '<strong>'+euros(order.amount)+'</strong></div>'+
+    '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
+      "0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
@@ -1009,11 +1026,17 @@ $("orders").addEventListener("keydown",event=>{
  }
 });
 
-$("orders").addEventListener("change",event=>itemController?.onChange(event));
+$("orders").addEventListener("change",event=>{
+ itemController?.onChange(event);
+ if(event.target.matches('select[data-payment-for]')){
+  capturePaymentDrafts();paymentInteractionUntil=Date.now()+20000;
+ }
+});
 $("orders").addEventListener("click", event => {
   const button = event.target.closest("button[data-order]");
   if (!button || !rider || busy) return;
   const order = orders.find(row => row.id === button.dataset.order);
+  capturePaymentDrafts();
   const status = button.dataset.next;
   if (!order || allowedNext[order.status] !== status) return;
   // Checking pizzas/drinks is an optional aide-mémoire, never a route gate.
@@ -1050,7 +1073,9 @@ $("orders").addEventListener("click", event => {
       if (!Array.isArray(rows) || rows.length !== 1) {
         throw new Error("El pedido ha sido reasignado o cambiado. Actualiza.");
       }
-      if(status==="entregado")itemController?.completed(order.id);
+      if(status==="entregado"){
+       itemController?.completed(order.id);paymentDrafts.delete(order.id);paymentInteractionUntil=0;
+      }
       // Status is committed independently of SMS; report any dispatch failure.
       if(order.notifications_consent && ["sms","whatsapp"].includes(order.notification_channel)){
         try{
