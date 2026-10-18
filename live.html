@@ -17,7 +17,7 @@
 
 <div id="staffView" hidden>
 <nav class="v2-admin-nav" aria-label="Secciones del centro de reparto">
-<a href="#ordersArea">📦 Pedidos</a><a href="#riderDirectory">🛵 Repartidores</a><a href="#gpsAdminCard">📍 GPS</a><a href="#shiftHistoryCard">💶 Arqueos</a><a href="#createCard">＋ Pruebas</a>
+<a href="#ordersArea">📦 Pedidos</a><a href="#operationsResetCard">↻ Reinicio</a><a href="#riderDirectory">🛵 Repartidores</a><a href="#gpsAdminCard">📍 GPS</a><a href="#shiftHistoryCard">💶 Arqueos</a><a href="#createCard">＋ Pruebas</a>
 </nav>
 <div class="ops-pro-hero" role="status" aria-live="polite">
   <div class="ops-pro-hero-main">
@@ -36,6 +36,20 @@
     <div><span>Última sincronización</span><strong id="proSyncLabel">Esperando…</strong></div>
   </div>
 </div>
+<section class="card reset-operations" id="operationsResetCard" hidden aria-labelledby="operationsResetTitle">
+ <div class="section-head">
+  <div><span class="eyebrow">ADMINISTRACIÓN · RECUPERABLE</span>
+   <h2 id="operationsResetTitle">Reiniciar operaciones</h2>
+   <p>Oculta los pedidos antiguos de la vista de gerencia y Rider para empezar con el panel limpio. No elimina pedidos, pagos, arqueos, clientes ni registros.</p>
+  </div><span class="tag">Solo administrador</span>
+ </div>
+ <div class="reset-operations-actions">
+  <button id="resetOperationsButton" type="button" class="outline" disabled>↻ Reiniciar pedidos visibles</button>
+  <button id="restoreOperationsButton" type="button" class="outline" disabled>⟲ Recuperar vista anterior</button>
+ </div>
+ <p id="resetOperationsStatus" class="small-note" role="status">Comprobando disponibilidad del reinicio seguro…</p>
+ <p class="reset-operations-caution">No se permite reiniciar mientras haya pedidos asignados en curso. Las asignaciones manuales siguen realizándose desde LastPOS.</p>
+</section>
 <section class="card" id="inviteCard" hidden>
   <div class="section-head"><div><h2>Activar repartidores</h2><p>Aprovisiona únicamente las invitaciones Rider previamente autorizadas. Cada rider necesita una identidad propia, acceso individual y contraseña que deberá cambiar. Los perfiles 01–05 no crean automáticamente cuentas nuevas.</p></div></div>
   <button type="button" id="sendInvitations" class="btn">🔑 Crear y activar cuentas Rider</button>
