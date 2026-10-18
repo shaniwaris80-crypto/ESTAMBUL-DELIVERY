@@ -24,8 +24,9 @@ test("legacy status messaging Edge worker contains NO network/database/Twilio se
  assert.match(statusSender,/accepted:0,failed:0/);
 });
 test("one SMS attempt is claimed permanently BEFORE Twilio is contacted",()=>{
- const claim=sms.indexOf('audit.rpc("ed_claim_one_tracking_sms"');
- const provider=sms.indexOf('fetch("https://api.twilio.com/');
+ const smsOnly=sms.slice(sms.indexOf('if(!order.notifications_consent||order.notification_channel!=="sms")'));
+ const claim=smsOnly.indexOf('audit.rpc("ed_claim_one_tracking_sms"');
+ const provider=smsOnly.indexOf('fetch("https://api.twilio.com/');
  assert.ok(claim>0&&provider>claim);
  assert.match(sms,/if\(claimError\)return json\(\{\.\.\.result,sms_status:"dispatch_unavailable"\}\)/);
  assert.match(sms,/if\(claimed!==true\)return json\(\{\.\.\.result,sms_status:"already_sent_or_attempted"\}\)/);

@@ -19,6 +19,28 @@ const toE164=(raw:unknown)=>{
  return null;
 };
 const uuid=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const isContentSid=(value:string)=>/^HX[0-9a-fA-F]{32}$/.test(value);
+const isAccountSid=(value:string)=>/^AC[0-9a-fA-F]{32}$/.test(value);
+// WhatsApp templates are ACCOUNT-SCOPED and must be approved before sending.
+// Failure before the claim allows a manual (explicit) fallback; after claim,
+// do not retry because ambiguous timeouts may still have created a message.
+async function checkWhatsAppTemplate(accountSid:string,secret:string,contentSid:string){
+ const authorization="Basic "+btoa(accountSid+":"+secret);
+ const url="https://content.twilio.com/v1/Content/"+encodeURIComponent(contentSid);
+ try{
+  const [contentRes,approvalRes]=await Promise.all([
+    fetch(url,{headers:{Authorization:authorization},signal:AbortSignal.timeout(6500)}),
+    fetch(url+"/ApprovalRequests",{headers:{Authorization:authorization},signal:AbortSignal.timeout(6500)})
+  ]);
+  if(!contentRes.ok)return "template_not_found";
+  const content=await contentRes.json();
+  if(content.account_sid!==accountSid)return "wrong_template_account";
+  if(!approvalRes.ok)return "approval_unavailable";
+  const approved=await approvalRes.json();
+  return approved?.whatsapp?.status==="approved"?null:"template_not_approved";
+ }catch{return "template_check_failed";}
+}
+
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response(null,{status:204,headers});
  if(req.method!=="POST"&&req.method!=="GET")return json({error:"Method not allowed"},405);
@@ -45,9 +67,16 @@ Deno.serve(async(req:Request)=>{
    const enabled=env("ESTAMBUL_MESSAGING_ENABLED")==="true";
    const configuredProvider=Boolean(env("TWILIO_ACCOUNT_SID")&&env("TWILIO_AUTH_TOKEN")&&toE164(env("TWILIO_SMS_FROM")));
    const service=Boolean(env("SUPABASE_SERVICE_ROLE_KEY"));
+   const whatsappFlag=env("ESTAMBUL_WHATSAPP_ENABLED")==="true";
+   const whatsappConfigured=isAccountSid(env("TWILIO_ACCOUNT_SID"))&&
+     Boolean(env("TWILIO_AUTH_TOKEN"))&&
+     Boolean(toE164(env("TWILIO_WHATSAPP_FROM")))&&
+     isContentSid(env("TWILIO_WHATSAPP_CONTENT_SID"));
    return json({ready:enabled&&configuredProvider&&service,
     reason:!enabled?"disabled":!configuredProvider?"provider_not_configured":!service?"dispatch_unavailable":"configured",
-    note:"Configuración verificada; recepción del SMS no comprobada."});
+    whatsapp_configured:whatsappFlag&&whatsappConfigured&&service,
+    whatsapp_reason:!whatsappFlag?"disabled":!whatsappConfigured?"provider_not_configured":!service?"dispatch_unavailable":"configured_requires_template_check",
+    note:"Configuración local verificada; no demuestra aprobación de plantilla ni recepción del mensaje."});
   }catch{return json({error:"No se pudo consultar la configuración del SMS"},503);}
  }
  let input:{order_id?:unknown;resend?:unknown};
@@ -85,6 +114,61 @@ Deno.serve(async(req:Request)=>{
   if(orderError||!order||!order.accepted_at||
      !["asignado","recogido","en_ruta"].includes(order.status)){
     return json({...result,sms_status:"permission_or_order_error"});
+  }
+  if(order.notification_channel==="whatsapp"){
+   if(!order.notifications_consent)return json({...result,whatsapp_status:"not_authorized"});
+   const to=toE164(order.customer_phone);
+   if(!to)return json({...result,whatsapp_status:"invalid_phone"});
+   if(env("ESTAMBUL_WHATSAPP_ENABLED")!=="true")
+    return json({...result,whatsapp_status:"provider_disabled"});
+   const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN"),
+     contentSid=env("TWILIO_WHATSAPP_CONTENT_SID"),
+     from=toE164(env("TWILIO_WHATSAPP_FROM"));
+   if(!isAccountSid(sid)||!secret||!isContentSid(contentSid)||!from)
+    return json({...result,whatsapp_status:"provider_not_configured"});
+   // Sandbox is for allow-listed test phones only, never normal customers.
+   if(from==="+14155238886"&&!(
+     env("ESTAMBUL_WHATSAPP_TEST_MODE")==="true"&&
+     env("TWILIO_WHATSAPP_TEST_TO")===to
+   ))return json({...result,whatsapp_status:"sandbox_only"});
+   // The Twilio 21655 error is a wrong, missing or other-account Content SID.
+   // Check ownership AND WhatsApp approval before consuming the one-time claim.
+   const templateIssue=await checkWhatsAppTemplate(sid,secret,contentSid);
+   if(templateIssue)return json({...result,whatsapp_status:templateIssue});
+   const service=env("SUPABASE_SERVICE_ROLE_KEY");
+   if(!service)return json({...result,whatsapp_status:"dispatch_unavailable"});
+   const audit=createClient(supabaseUrl,service,{
+    auth:{persistSession:false,autoRefreshToken:false}
+   });
+   const {data:claimed,error:claimError}=await audit.rpc("ed_claim_one_tracking_whatsapp",{p_order_id:orderId});
+   if(claimError)return json({...result,whatsapp_status:"dispatch_unavailable"});
+   if(claimed!==true)return json({...result,whatsapp_status:"already_sent_or_attempted"});
+   const form=new URLSearchParams();
+   form.set("To","whatsapp:"+to);form.set("From","whatsapp:"+from);
+   form.set("ContentSid",contentSid);
+   form.set("ContentVariables",JSON.stringify({"1":String(order.reference||"Pedido"),"2":track}));
+   // Do NOT include Body/MediaUrl with ContentSid.
+   let acceptedByProvider=false,messageSid="",errorCode="";
+   try{
+    const response=await fetch("https://api.twilio.com/2010-04-01/Accounts/"+
+     encodeURIComponent(sid)+"/Messages.json",{
+      method:"POST",
+      headers:{"Authorization":"Basic "+btoa(sid+":"+secret),
+       "Content-Type":"application/x-www-form-urlencoded"},
+      body:form.toString(),signal:AbortSignal.timeout(10000)
+    });
+    const data=await response.json().catch(()=>({}));
+    if(response.ok){acceptedByProvider=true;messageSid=String(data.sid||"");}
+    else errorCode=String(data.code||response.status);
+   }catch{errorCode="network_ambiguous";}
+   // A claim remains SPENT even when the HTTP response is ambiguous.
+   const {error:finishError}=await audit.rpc("ed_finish_one_tracking_whatsapp",{
+    p_order_id:orderId,p_accepted:acceptedByProvider,
+    p_provider_sid:messageSid||null,p_error_code:errorCode||null
+   });
+   if(finishError)return json({...result,whatsapp_status:"attempt_unverified"});
+   return json({...result,whatsapp_status:acceptedByProvider?"provider_accepted":"provider_rejected",
+    ...(errorCode?{provider_error_code:errorCode}:{})});
   }
   if(!order.notifications_consent||order.notification_channel!=="sms"){
     return json({...result,sms_status:"sms_not_authorized"});

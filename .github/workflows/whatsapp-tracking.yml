@@ -1,0 +1,31 @@
+name: Estambul WhatsApp template and consent safety
+on:
+  push:
+    branches:
+      - feature/whatsapp-track-template-safe-20261018
+  pull_request:
+    paths:
+      - 'supabase/functions/ed-rider-accept-sms/index.ts'
+      - 'docs/staging/ed_one_whatsapp_tracking_review.sql'
+      - 'docs/rider.js'
+      - 'scripts/create-estambul-whatsapp-template.mjs'
+      - 'scripts/test-whatsapp-tracking.mjs'
+permissions:
+  contents: read
+jobs:
+  guarded-whatsapp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check CLI and Rider scripts
+        run: |
+          node --check scripts/create-estambul-whatsapp-template.mjs
+          node --check docs/rider.js
+      - name: WhatsApp security regression
+        run: node --test scripts/test-whatsapp-tracking.mjs
+      - name: Verify preview parity
+        run: node --test scripts/test-preview-parity.mjs
