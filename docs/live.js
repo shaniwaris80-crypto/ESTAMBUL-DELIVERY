@@ -209,7 +209,11 @@ function renderFeedback(){
 
 function renderGpsPositions(){
  const now=Date.now();
- const active=riderPositions.filter(p=>Date.now()-Date.parse(p.updated_at)<=120000);
+ // Staff and customer tracking both use a strict 45-second live position cutoff.
+ const active=riderPositions.filter(p=>{
+  const age=now-Date.parse(p.updated_at);
+  return Number.isFinite(age)&&age>=0&&age<=45000;
+ });
  el("gpsAdminCount").textContent=active.length+" compartiendo";
  el("gpsRiderList").innerHTML=riders.map(r=>{
   const p=active.find(x=>x.rider_id===r.id);
