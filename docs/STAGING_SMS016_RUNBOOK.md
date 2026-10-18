@@ -25,8 +25,8 @@ git rev-parse --abbrev-ref HEAD
 
 El último comando debe mostrar `pr-17-staging`; `git status --short` debe estar vacío. No hacer push de esta rama.
 
-Registrar el commit con `git rev-parse HEAD` en la evidencia. El árbol actual del PR contiene dos archivos con versión `016` (`016_assign_waiting_last_orders_on_rider_online.sql` y `016_single_sms_skip_secondary.sql`) y migraciones hasta `023`. **Este conflicto debe bloquear cualquier `db push`.** En la rama del PR, renombrar la migración nueva a `024_single_sms_skip_secondary.sql`, comprobar que no quedan versiones duplicadas y actualizar el PR antes de ejecutar la fase de staging. No renumerar ni editar `main`.
-
+Registrar el commit con `git rev-parse HEAD` en la evidencia. La colisión de numeración se ha corregido en esta rama: la migración SMS es ahora `024_single_sms_skip_secondary.sql`; las versiones del repositorio llegan de 001 a 024 sin duplicados. El proyecto staging `rknxqlijcgpbecoophva` está activo, pero la comprobación del 19-10-2026 encontró cero tablas, cero migraciones y cero funciones Edge. Por tanto, **detenerse antes de `db push`**: primero debe prepararse y revisarse la línea base completa 001–023 y confirmar que el staging vacío es el destino intencionado. Tras esa preparación, el dry-run deberá mostrar solo 024 si 001–023 ya están registradas como aplicadas; si staging sigue vacío, no aplicar una secuencia completa sin revisar cada migración.
+ 
 Definir localmente los dos refs conocidos (no poner contraseñas ni tokens en el terminal compartido):
 
 ```sh
@@ -65,7 +65,7 @@ print('\n'.join(duplicates))
 PY
 ```
 
-La salida debe estar vacía. **Con el árbol del PR consultado ahora, la salida es `016`, por lo que hay que detenerse aquí.** Tras corregir el nombre en la rama del PR, staging debe tener migraciones 001–023 aplicadas y el dry-run debe mostrar únicamente `024_single_sms_skip_secondary.sql`. Si falta cualquier migración anterior o aparece otro cambio, detenerse y corregir el staging; no aplicar una cola de cambios desconocida.
+La salida debe estar vacía. **Con la rama corregida, la salida de duplicados locales debe estar vacía.** Staging está vacío; por ello aún no se debe ejecutar el push. El criterio de este runbook (dry-run solo 024) aplica únicamente después de validar y registrar 001–023 como línea base aplicada. Si falta cualquier migración anterior o aparece otro cambio, detenerse y corregir el staging; no aplicar una cola de cambios desconocida.
 
 Aplicar solo después del dry-run revisado:
 
@@ -162,7 +162,7 @@ order by o.reference, q.queued_at;
 
 Usar otra rama/base de staging desechable, anterior a 016, con un solo fixture SMS. Con Twilio sin salida de red y un transporte simulado, ejecutar el worker contra ese fixture. Resultado esperado: respuesta 503 por RPC ausente y cero llamadas HTTP al proveedor. La fila puede quedar en `sending`: la migración 008 reclama `awaiting_provider` y el código actual no contiene recuperación automática de leases `sending`.
 
-En ese fixture únicamente, anotar primero el ID y referencia, devolver esa fila de prueba a `awaiting_provider` mediante una operación SQL acotada por ambos valores, y volver a probar después de aplicar 016. No ejecutar una actualización masiva ni reparar filas de producción. Este resultado documenta un bloqueo de recuperación, no una prueba superada.
+En ese fixture únicamente, anotar primero el ID y referencia, devolver esa fila de prueba a `awaiting_provider` mediante una operación SQL acotada por ambos valores, y volver a probar después de aplicar 024. No ejecutar una actualización masiva ni reparar filas de producción. Este resultado documenta un bloqueo de recuperación, no una prueba superada.
 
 ## 3. Duplicados, estados y errores
 
@@ -206,19 +206,20 @@ En staging, con una cuenta Rider de prueba:
 Hacer el ensayo en una segunda rama/base staging descartable, con snapshot o recreación disponible y solo fixtures sintéticos. No hacer rollback de una base compartida.
 
 1. Deshabilitar el flag de mensajería y detener invocaciones del worker en staging.
-2. Volver a desplegar en staging la versión anterior de `ed-send-notifications`, que no llama a la RPC 016.
+2. Volver a desplegar en staging la versión anterior de `ed-send-notifications`, que no llama a la RPC 024.
 3. En SQL Editor de staging ejecutar `drop function if exists public.ed_skip_secondary_sms(uuid);`.
 4. Verificar `to_regprocedure('public.ed_skip_secondary_sms(uuid)') is null`, que el worker anterior ya no requiere la RPC y que el flujo de pedido/cobro sigue operativo.
 5. Comparar migraciones y datos sintéticos con la línea base. Recrear la rama descartable para repetir la prueba desde cero.
 
-No editar a mano `supabase_migrations.schema_migrations`. La migración 016 no incluye una migración de bajada y su entrada quedará en el historial de ese staging tras el DROP; el rollback limpio y repetible requiere recrear una rama/base de staging desde la línea base anterior a 016 o añadir y revisar una migración de reversión.
+No editar a mano `supabase_migrations.schema_migrations`. La migración 024 no incluye una migración de bajada y su entrada quedará en el historial de ese staging tras el DROP; el rollback limpio y repetible requiere recrear una rama/base de staging desde la línea base anterior a 016 o añadir y revisar una migración de reversión.
 
 Éxito: staging vuelve a la función previa, sin RPC 016 requerida; el flujo funcional de prueba y sus datos están restaurados/recreados. Si no existe copia/restauración probada, rollback no se considera superado.
 
 ## Configuración y documentación que todavía faltan
 
 - [ ] Ref separado y confirmado para staging; acceso a un proyecto descartable.
-- [ ] Resolver la colisión de versión: renombrar la migración nueva de 016 a 024 en la rama del PR y confirmar que no hay versiones locales duplicadas.
+- [x] Resolver la colisión de versión: migración SMS renumerada a 024; versiones locales únicas.
+- [ ] Preparar y validar el esquema base 001–023 en staging; confirmar el dry-run de 024.
 - [ ] Fixture para pedido efectivo y cierre de caja; el fixture SQL de las dos filas SMS está incluido arriba.
 - [ ] Transporte mock de Twilio con bloqueo de red externa; ninguna credencial real.
 - [ ] Recuperación segura y alertas para filas `sending` atascadas; política explícita de reintentos.

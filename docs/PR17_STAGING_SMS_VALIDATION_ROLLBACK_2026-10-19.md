@@ -11,14 +11,11 @@ Estado: **guía preparada; pruebas no ejecutadas**. PR 17 sigue en borrador. No 
 - No usar `supabase db reset --linked` salvo que se haya verificado que el proyecto enlazado es desechable y se acepta borrar íntegramente ese proyecto.
 - No hacer checkout, push, merge ni despliegue en `main` o producción.
 
-## Bloqueo previo detectado
+## Numeración corregida y estado de staging
 
-La rama contiene **dos archivos con versión 016**:
+La migración de omisión se ha renumerado en esta rama como `024_single_sms_skip_secondary.sql`. La secuencia de archivos del repositorio llega a 023 y ya no hay dos archivos con la misma versión.
 
-- `016_assign_waiting_last_orders_on_rider_online.sql`
-- `016_single_sms_skip_secondary.sql`
-
-No ejecutar `db push` mientras siga esta colisión. Primero, en esta misma rama, asignar a `016_single_sms_skip_secondary.sql` una versión única que siga el historial confirmado (la secuencia visible llega a 023; previsiblemente 024, pero debe confirmarse con `supabase migration list` y la base de staging). Revisar que el cambio de nombre no altere ninguna migración ya aplicada. La migración 016 de SMS crea la RPC `ed_skip_secondary_sms(uuid)`; según la migración 008, el estado `skipped` ya está permitido.
+El proyecto enlazado `rknxqlijcgpbecoophva` está activo, pero la comprobación de staging del 19-10-2026 encontró cero tablas públicas, cero migraciones y cero Edge Functions. **No aplicar `db push` todavía**: primero hay que revisar y preparar la línea base completa de la aplicación en staging; el dry-run actual no puede tratarse como una actualización aislada de 024. La migración 024 crea la RPC `public.ed_skip_secondary_sms(uuid)`; el esquema de cola debe permitir `skipped`.
 
 ## 1. Preparar checkout y proyecto
 
@@ -90,21 +87,21 @@ Criterio: todas las comprobaciones terminan con código 0 y export Android cread
 
 ## 4. Aplicar migraciones únicamente en staging
 
-Tras resolver la colisión de versiones:
+Solo después de preparar y revisar la línea base completa (001–023) en el staging vacío:
 
 ```sh
 supabase migration list --linked
 supabase db push --dry-run
 ```
 
-Leer toda la salida del dry-run. Debe listar solo la secuencia pendiente esperada en el staging desechable, incluida la nueva migración de omisión; detenerse si muestra migraciones inesperadas o una versión repetida. Un responsable confirma visualmente el proyecto en el panel y luego aplica:
+Leer toda la salida del dry-run. Debe listar solo la secuencia pendiente esperada en el staging desechable, incluida únicamente la nueva migración 024; detenerse si muestra migraciones inesperadas o una versión repetida. Un responsable confirma visualmente el proyecto en el panel y luego aplica:
 
 ```sh
 supabase db push
 supabase migration list --linked
 ```
 
-Éxito: la migración aparece aplicada una sola vez; `public.ed_skip_secondary_sms(uuid)` existe, solo `service_role` tiene permiso y el estado `skipped` sigue permitido por la restricción de `private.ed_notification_queue`. No desplegar funciones con `ESTAMBUL_MESSAGING_ENABLED=true`.
+Éxito: la migración 024 aparece aplicada una sola vez; `public.ed_skip_secondary_sms(uuid)` existe, solo `service_role` tiene permiso y el estado `skipped` sigue permitido por la restricción de `private.ed_notification_queue`. No desplegar funciones con `ESTAMBUL_MESSAGING_ENABLED=true`.
 
 ## 5. Pruebas SQL de cola, reintentos y concurrencia
 
@@ -162,7 +159,7 @@ Criterio: rollback deja el staging en el estado previsto, sin datos de QA ni men
 
 | Resultado | Interpretación | Acción |
 |---|---|---|
-| Duplicate migration/version | Colisión 016 o secuencia divergente | Parar; corregir numeración en rama y volver a comparar historial |
+| Duplicate migration/version | Secuencia local/remota divergente | Parar; corregir numeración en rama y volver a comparar historial |
 | `ed_skip_secondary_sms` no existe | Migración no aplicada al staging enlazado | Parar worker; verificar ref y aplicar migración solo tras dry-run |
 | No se puede establecer `skipped` | Restricción/esquema distinto al esperado | Parar; capturar error y revisar migración 008 y esquema real |
 | Dos claims del mismo ID | No se cumple exclusión concurrente | No aprobar; guardar logs/IDs QA y corregir claim antes de avanzar |
@@ -172,7 +169,8 @@ Criterio: rollback deja el staging en el estado previsto, sin datos de QA ni men
 
 ## Lista final antes de reconsiderar el PR
 
-- [ ] Migración con versión única y secuencia comprobada contra staging.
+- [x] Migración nueva renumerada a 024; no hay versión duplicada en la rama.
+- [ ] Línea base 001–023 e historial remoto comprobados; dry-run de staging revisado.
 - [ ] Migraciones aplicadas en staging desechable y diff/historial adjuntos.
 - [ ] Fixture QA repetible y script/SQL de limpieza por IDs guardado.
 - [ ] Claims concurrentes sin ID duplicado; estado `skipped` correcto; permisos negativos probados.
