@@ -180,3 +180,6 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
  .header-right .outline{font-size:9px}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+/* Security/UX: author layout rules must never override HTML hidden states. */
+[hidden]{display:none!important}
