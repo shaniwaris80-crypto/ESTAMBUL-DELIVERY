@@ -581,7 +581,7 @@ async function fetchOrders() {
   const epochRows=await withAuth("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
    encodeURIComponent(identity.accountId)+"&limit=1").catch(()=>null);
   const epoch=Array.isArray(epochRows)&&epochRows[0]?.started_at?epochRows[0].started_at:null;
-  const epochFilter=epoch?"&created_at=gte."+encodeURIComponent(epoch):"";
+  const epochFilter=epoch?"&or=(created_at.gte."+encodeURIComponent(epoch)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))":"";
   const endpoint = "/rest/v1/ed_orders?select=id,reference,channel,customer_name,customer_phone,destination,notes,amount,payment_method,accepted_at,notifications_consent,notification_channel,status,rider_id,lat,lng,created_at&account_id=eq." +
     encodeURIComponent(identity.accountId) + "&rider_id=eq." + encodeURIComponent(rider.id) + epochFilter + "&order=created_at.desc&limit=100";
   // Refresh auth token once on the primary query, before ancillary calls run together.
