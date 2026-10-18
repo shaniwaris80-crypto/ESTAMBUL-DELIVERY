@@ -4,11 +4,13 @@ import type { DeliveryStatus } from "@estambul/shared";
 const base=(process.env.EXPO_PUBLIC_SUPABASE_URL||"").replace(/\/+$/,"");
 const apikey=process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY||"";
 export const isConnectedConfigured=base.startsWith("https://")&&apikey.length>20;
+export const connectedItemFeature=process.env.EXPO_PUBLIC_RIDER_ITEMS_ENABLED==="true";
+export type ProductSnapshot={revision:string;items:{name:string;quantity:number;comments?:string;modifiers?:{name:string;quantity:number}[];children?:{name:string;quantity:number}[]}[]};
 const storageKey="estambul-connected-session";
 type Session={access_token:string;refresh_token:string;expires:number};
 let session:Session|null=null;
 type User={id:string};
-export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;payment_method:"efectivo"|"tarjeta"|null;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;created_at:string;};
+export type RiderOrder={id:string;reference:string;customer_name:string;customer_phone:string|null;notes:string;destination:string;payment_method:"efectivo"|"tarjeta"|null;channel:string;status:DeliveryStatus|"cancelado";rider_id:string|null;lat:number|null;lng:number|null;amount:number;created_at:string;items_snapshot?:ProductSnapshot;};
 export type ConnectedRider={id:string;display_name:string;online:boolean;active:boolean;user_id:string;};
 export type ConnectedState={rider:ConnectedRider;orders:RiderOrder[];account:string};
 
@@ -62,6 +64,16 @@ export async function loadConnected():Promise<ConnectedState>{
  const rider=riders.find(r=>r.user_id===user.id&&r.active);
  if(!rider)throw new Error("No hay un rider activo vinculado a esta cuenta.");
  const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+"&order=created_at.desc&limit=100") as RiderOrder[];
+ if(connectedItemFeature&&orders.length){
+  // RLS limits these snapshots to the user's assigned orders; optional feature.
+  try{
+   const ids=orders.slice(0,80).map(o=>encodeURIComponent(o.id)).join(",");
+   const rows=await request("/rest/v1/ed_order_item_snapshots?select=order_id,revision,items&order_id=in.("+ids+")&limit=80")
+    as {order_id:string;revision:string;items:ProductSnapshot["items"]}[];
+   const byOrder=new Map((Array.isArray(rows)?rows:[]).map(s=>[s.order_id,{revision:s.revision,items:s.items}]));
+   for(const o of orders)o.items_snapshot=byOrder.get(o.id);
+  }catch{/* The original order UI must remain available even if snapshots fail. */}
+ }
  return {rider,orders,account:membership.account_id};
 }
 export async function advanceDelivery(order:RiderOrder,next:DeliveryStatus){
