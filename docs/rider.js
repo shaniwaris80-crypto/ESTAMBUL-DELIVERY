@@ -25,6 +25,7 @@ const storageKey = "estambul-rider-pwa-session";
 let session = null, identity = null, rider = null, accountName = "";
 let orders = [], busy = false, inFlight = false, showHistory = false, lastSync = 0;
 const paymentDrafts=new Map(); // Rider's transient payment selection, never persisted.
+const smsOutcomes=new Map(); // Ephemeral per-order provider result; never store customer SMS data.
 let paymentInteractionUntil=0;
 function capturePaymentDrafts(){
  document.querySelectorAll('#orders select[data-payment-for]').forEach(select=>{
@@ -109,9 +110,15 @@ function shareTrackingByWhatsApp(order,link,tab){
   :"✓ Pedido aceptado. WhatsApp fue bloqueado: copia y comparte el enlace privado.";
 }
 async function riderAcceptance(order,resend,tab){
- const output=await withAuth("/functions/v1/ed-rider-accept-sms",{
-  method:"POST",body:JSON.stringify({order_id:order.id,resend:false})
- });
+ let output;
+ try{
+  output=await withAuth("/functions/v1/ed-rider-accept-sms",{
+   method:"POST",body:JSON.stringify({order_id:order.id,resend:false})
+  });
+ }catch(error){
+  smsOutcomes.set(order.id,{ok:false,message:"No se ha podido comprobar el SMS. El pedido puede haberse aceptado, pero el envío no está confirmado. Comprueba el aviso con administración; no se reintentará automáticamente."});
+  throw error;
+ }
  if(!output?.accepted)throw Error("El pedido no se pudo aceptar");
  const link=typeof output.link==="string"&&/^https:\/\/shaniwaris80-crypto\.github\.io\/ESTAMBUL-DELIVERY\/track\.html#token=[a-f0-9]{64}$/.test(output.link)
   ?output.link:null;
@@ -120,18 +127,21 @@ async function riderAcceptance(order,resend,tab){
  if(output.already_accepted){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
-  $("riderShareNotice").textContent="Pedido ya aceptado. El enlace inicial del cliente muestra los cambios sin SMS adicionales.";
+  smsOutcomes.set(order.id,{ok:false,message:"Pedido aceptado anteriormente. No se ha solicitado otro SMS; el envío inicial no se puede confirmar desde aquí."});
+  $("riderShareNotice").textContent="Pedido aceptado anteriormente. No se envía otro SMS. Comprueba con administración el estado del primer intento.";
   return output;
  }
  if(!link){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
+  smsOutcomes.set(order.id,{ok:false,message:"Pedido aceptado sin enlace devuelto. No se puede confirmar el SMS; solicita ayuda al administrador."});
   $("riderShareNotice").textContent="Pedido aceptado, pero no se recibió enlace. Consulta con el administrador.";
   return output;
  }
  if(output.sms_status==="provider_accepted"){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
+  smsOutcomes.set(order.id,{ok:true,message:"Twilio ha aceptado el SMS de seguimiento. Aún no se ha confirmado su recepción en el teléfono."});
   $("riderShareNotice").textContent="✓ Pedido aceptado. El proveedor ha aceptado el SMS con el enlace para el cliente. La entrega del SMS aún no está confirmada.";
  }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)){
   shareTrackingByWhatsApp(order,link,tab);
@@ -149,6 +159,7 @@ async function riderAcceptance(order,resend,tab){
    already_sent_or_attempted:"Ya existe un intento para este pedido. No se enviará otro SMS."
   };
   $("riderShareNotice").hidden=false;
+  smsOutcomes.set(order.id,{ok:false,message:"SMS NO ENVIADO: "+(reasons[output.sms_status]||"Motivo no identificado; revisar configuración.")});
   $("riderShareNotice").textContent="✓ Pedido aceptado. NO se ha enviado ningún SMS. "+
     (reasons[output.sms_status]||"Comprueba la configuración del aviso.")+
     " Puedes copiar el enlace para enviarlo manualmente.";
@@ -709,7 +720,7 @@ function renderOrder(order,isPriority=false) {
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<span class="one-link-note">✓ Enlace inicial enviado · sin SMS por estados</span>':'');
+        ?'<span class="one-link-note">Pedido aceptado · SMS no verificado · sin mensajes adicionales por estados</span>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -727,7 +738,8 @@ function renderOrder(order,isPriority=false) {
     '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
       "0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
-    '<div class="actions">'+actions+'</div></article>';
+    '<div class="actions">'+actions+'</div>'+
+    (smsOutcomes.has(order.id)?'<div class="sms-delivery-notice '+(smsOutcomes.get(order.id).ok?'ok':'warn')+'" role="status">'+escapeText(smsOutcomes.get(order.id).message)+'</div>':'')+'</article>';
 }
 
 async function operation(fn) {
