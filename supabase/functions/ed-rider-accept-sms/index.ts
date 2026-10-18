@@ -5,7 +5,7 @@ const trackBase="https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/track.h
 const headers={
  "Access-Control-Allow-Origin":allowedOrigin,
  "Access-Control-Allow-Headers":"authorization, x-client-info, apikey, content-type",
- "Access-Control-Allow-Methods":"POST, OPTIONS",
+ "Access-Control-Allow-Methods":"GET, POST, OPTIONS",
  "Cache-Control":"no-store",
  "Content-Type":"application/json"
 };
