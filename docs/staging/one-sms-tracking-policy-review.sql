@@ -86,7 +86,8 @@ CREATE OR REPLACE FUNCTION public.ed_rider_accept_tracking(
 ) RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $fn$
 DECLARE o record; token text;
 BEGIN
- SELECT e.id,e.account_id,e.rider_id,e.status,e.accepted_at,r.online,r.active
+ SELECT e.id,e.account_id,e.rider_id,e.status,e.accepted_at,e.customer_phone,
+        e.notifications_consent,e.notification_channel,r.online,r.active
  INTO o FROM public.ed_orders e JOIN public.ed_riders r
  ON r.id=e.rider_id AND r.account_id=e.account_id
  WHERE e.id=p_order_id FOR UPDATE OF e;
@@ -107,7 +108,10 @@ BEGIN
  VALUES(o.account_id,o.id,encode(extensions.digest(token,'sha256'),'hex'),
  now()+interval '21 days',(select auth.uid()));
  RETURN jsonb_build_object('accepted',true,'link_created',true,
-   'token',token,'first_accept',true);
+   'token',token,
+   'can_whatsapp',coalesce(o.notifications_consent,false)
+    and o.notification_channel='whatsapp' and o.customer_phone is not null,
+   'first_accept',true);
 END $fn$;
 REVOKE ALL ON FUNCTION public.ed_rider_accept_tracking(uuid,boolean) FROM PUBLIC,anon;
 GRANT EXECUTE ON FUNCTION public.ed_rider_accept_tracking(uuid,boolean) TO authenticated;
