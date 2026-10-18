@@ -79,6 +79,18 @@ function render(){
   el("proAvailableRiders").textContent=String(riders.filter(r=>r.active&&r.online&&r.user_id).length);
   el("proWaitingOrders").textContent=String(open.filter(o=>o.channel!=="test"&&o.status!=="en_ruta").length);
   el("proSyncLabel").textContent=lastReloadAt?new Date(lastReloadAt).toLocaleTimeString("es-ES"):"Esperando…";
+  const spotlight=open.filter(o=>o.channel!=="test").slice(0,5);
+  el("opsSpotlightOrders").innerHTML=spotlight.length?spotlight.map(o=>{
+   const riderLabel=riders.find(r=>r.id===o.rider_id)?.display_name||"Sin Rider · asignar desde LastPOS";
+   const pay=Number(o.amount)>0?Number(o.amount).toLocaleString("es-ES",{style:"currency",currency:"EUR"}):"Importe pendiente";
+   return '<article class="ed-spotlight-order"><div class="ed-spotlight-icon" aria-hidden="true">🥙</div>'+
+    '<div class="ed-spotlight-info"><span class="ed-spotlight-code">#'+esc(o.reference)+
+    ' <small>'+esc(chan[o.channel]||o.channel)+'</small></span><strong>'+esc(o.customer_name||"Cliente")+
+    '</strong><p>'+esc(o.destination||"Dirección no indicada")+'</p>'+
+    '<small class="ed-spotlight-rider">🛵 '+esc(riderLabel)+'</small></div>'+
+    '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
+    '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
+  }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
   const rosterSlots=Array.from({length:5},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
@@ -133,7 +145,6 @@ function render(){
   }).join("")||'<p>No hay pedidos asignados a este rider.</p>';
  }
 }
-
   document.querySelector("#loading")?.setAttribute("hidden","");
   el("noConfig").hidden=true;el("loginSection").hidden=true;el("appSection").hidden=false;el("staffView").hidden=false;
   el("accountLabel").textContent="DEMOSTRACIÓN · ESTAMBUL";el("connection").textContent="DEMO · SIN CONEXIÓN";
