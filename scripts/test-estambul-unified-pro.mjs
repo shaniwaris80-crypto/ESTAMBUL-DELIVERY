@@ -92,3 +92,21 @@ test("no real credentials or database migration introduced by UI design",()=>{
   assert.doesNotMatch(src,/service_role_key|twilio_auth_token|auth\/v1\/admin\/users|fetch\(["']https:/i);
  }
 });
+
+test("PWA app-shell cache includes the new UI assets without storing orders or API data",()=>{
+ const sw=read("rider-sw.js");
+ for(const path of ["docs/rider-pro-v3.css","docs/rider-pro-v4.css","docs/rider-packing.css",
+  "docs/rider-items.js","docs/rider-profiles.js","docs/rider.js"]){
+  assert.match(sw,new RegExp(path.replace(".","\\.")));
+ }
+ assert.match(sw,/const CACHE="estambul-rider-shell-v24"/);
+ assert.match(sw,/reqUrl\.origin!==self\.location\.origin/);
+ assert.match(sw,/Never cache Supabase endpoints/);
+ assert.doesNotMatch(sw,/ed_orders|customer_phone|access_token|refresh_token|service_role/i);
+});
+test("the private dashboards stay hidden until session permissions are verified",()=>{
+ assert.match(read("docs/live-pro-v4.css"),/\[hidden\]\{display:none!important\}/);
+ assert.match(read("docs/rider-pro-v4.css"),/\[hidden\]\{display:none!important\}/);
+ assert.match(staffHtml,/id="appSection" hidden/);
+ assert.match(riderHtml,/id="dashboard" hidden/);
+});
