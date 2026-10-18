@@ -15,7 +15,7 @@ Estado: **guía preparada; pruebas no ejecutadas**. PR 17 sigue en borrador. No 
 
 La migración de omisión se ha renumerado en esta rama como `024_single_sms_skip_secondary.sql`. La secuencia de archivos del repositorio llega a 023 y ya no hay dos archivos con la misma versión.
 
-El proyecto enlazado `rknxqlijcgpbecoophva` está activo, pero la comprobación de staging del 19-10-2026 encontró cero tablas públicas, cero migraciones y cero Edge Functions. **No aplicar `db push` todavía**: primero hay que revisar y preparar la línea base completa de la aplicación en staging; el dry-run actual no puede tratarse como una actualización aislada de 024. La migración 024 crea la RPC `public.ed_skip_secondary_sms(uuid)`; el esquema de cola debe permitir `skipped`.
+El staging `rknxqlijcgpbecoophva` recibió las migraciones 001–024 el 2026-10-18; la RPC 024 existe, `service_role` puede ejecutarla, `anon` no, y `skipped` está permitido. Comprobaciones posteriores: 0 pedidos, 0 filas en la cola, 0 recibos SMS y 0 Edge Functions desplegadas. No se desplegó ningún código ni se contactó Twilio. La migración 023 de la rama se corrigió a no-op porque su backfill fallaba con `ed_orders.accepted_at` inexistente y no debe habilitar consentimiento retroactivo. **Bloqueo nuevo:** el esquema desplegado no contiene `ed_orders.customer_phone` ni `accepted_at`, y no existe `public.ed_rider_accept_tracking`; por tanto la función de aceptación/SMS no puede validarse ni desplegarse desde esta línea base. Debe añadirse una migración y el RPC de aceptación correctos antes de continuar. No volver a ejecutar `db push` desde esta rama hasta actualizar y revisar el plan.
 
 ## 1. Preparar checkout y proyecto
 
@@ -87,21 +87,16 @@ Criterio: todas las comprobaciones terminan con código 0 y export Android cread
 
 ## 4. Aplicar migraciones únicamente en staging
 
-Solo después de preparar y revisar la línea base completa (001–023) en el staging vacío:
+El estado ya aplicado es 001–024. No volver a aplicar ni resetear el staging compartido. Para reproducir desde cero, crear otro proyecto desechable y verificar su ref antes de enlazarlo. Allí, inspeccionar primero:
 
 ```sh
 supabase migration list --linked
 supabase db push --dry-run
 ```
 
-Leer toda la salida del dry-run. Debe listar solo la secuencia pendiente esperada en el staging desechable, incluida únicamente la nueva migración 024; detenerse si muestra migraciones inesperadas o una versión repetida. Un responsable confirma visualmente el proyecto en el panel y luego aplica:
+No continuar mientras la rama carezca de migración para `customer_phone`, `accepted_at` y del RPC `ed_rider_accept_tracking`. Una vez añadidos y revisados en la rama, el dry-run debe listar solo las migraciones nuevas previstas; entonces aplicarlas únicamente a ese staging desechable y volver a consultar el historial.
 
-```sh
-supabase db push
-supabase migration list --linked
-```
-
-Éxito: la migración 024 aparece aplicada una sola vez; `public.ed_skip_secondary_sms(uuid)` existe, solo `service_role` tiene permiso y el estado `skipped` sigue permitido por la restricción de `private.ed_notification_queue`. No desplegar funciones con `ESTAMBUL_MESSAGING_ENABLED=true`.
+En el staging ya preparado se verificó: `public.ed_skip_secondary_sms(uuid)` existe, solo `service_role` tiene permiso, `anon` no, y `skipped` está permitido. No hay pedidos ni cola con los que probar concurrencia. No desplegar funciones con `ESTAMBUL_MESSAGING_ENABLED=true`.
 
 ## 5. Pruebas SQL de cola, reintentos y concurrencia
 
@@ -170,8 +165,9 @@ Criterio: rollback deja el staging en el estado previsto, sin datos de QA ni men
 ## Lista final antes de reconsiderar el PR
 
 - [x] Migración nueva renumerada a 024; no hay versión duplicada en la rama.
-- [ ] Línea base 001–023 e historial remoto comprobados; dry-run de staging revisado.
-- [ ] Migraciones aplicadas en staging desechable y diff/historial adjuntos.
+- [x] Migraciones 001–024 aplicadas en staging; historial remoto confirmado.
+- [ ] Añadir y validar en staging `customer_phone`, `accepted_at` y `ed_rider_accept_tracking`; ahora faltan.
+- [x] Esquema 001–024 aplicado en staging; no se desplegaron Edge Functions.
 - [ ] Fixture QA repetible y script/SQL de limpieza por IDs guardado.
 - [ ] Claims concurrentes sin ID duplicado; estado `skipped` correcto; permisos negativos probados.
 - [ ] Worker deshabilitado no reclama; prueba Twilio simulada y cerrada a red añadida.
@@ -183,4 +179,4 @@ Criterio: rollback deja el staging en el estado previsto, sin datos de QA ni men
 - [ ] Documentación de secretos/flags, logs mínimos, monitoreo, propietario del rollback y limpieza QA actualizada.
 - [ ] Revisión final mantiene PR 17 en borrador hasta completar y aceptar todos los puntos.
 
-**No se considera aprobada ni ejecutada ninguna prueba de staging por la existencia de esta guía.**
+**El esquema sí fue aplicado en staging; las pruebas funcionales, E2E, GPS, arqueo, concurrencia y rollback siguen sin ejecutarse. No se enviaron mensajes ni se crearon pedidos.**
