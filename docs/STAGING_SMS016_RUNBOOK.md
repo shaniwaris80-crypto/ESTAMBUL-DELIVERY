@@ -41,7 +41,7 @@ supabase functions deploy --help
 
 En el Dashboard, confirmar que el proyecto señalado por `STAGING_PROJECT_REF` se llama staging y está separado de producción. Si el nombre/ref no coincide, detenerse. No ejecutar `supabase db reset --linked`: destruye la base enlazada.
 
-## 1. Revisar esquema antes de aplicar 016
+## 1. Revisar esquema antes de aplicar la migración corregida
 
 Autenticarse y enlazar únicamente el ref de staging. La contraseña de base de datos se introduce en el prompt del CLI, nunca se añade al comando:
 
@@ -53,11 +53,16 @@ supabase migration list --linked
 supabase db push --dry-run --linked
 ```
 
-Antes del dry-run, detectar versiones duplicadas localmente:
+Detectar versiones duplicadas localmente antes de ejecutar el dry-run:
 
 ```sh
-find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
-  | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d
+python3 - <<'PY'
+from pathlib import Path
+from collections import Counter
+versions = [p.name.split('_', 1)[0] for p in Path('supabase/migrations').glob('*.sql')]
+duplicates = sorted(v for v, n in Counter(versions).items() if n > 1)
+print('\n'.join(duplicates))
+PY
 ```
 
 La salida debe estar vacía. **Con el árbol del PR consultado ahora, la salida es `016`, por lo que hay que detenerse aquí.** Tras corregir el nombre en la rama del PR, staging debe tener migraciones 001–023 aplicadas y el dry-run debe mostrar únicamente `024_single_sms_skip_secondary.sql`. Si falta cualquier migración anterior o aparece otro cambio, detenerse y corregir el staging; no aplicar una cola de cambios desconocida.
