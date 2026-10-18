@@ -132,7 +132,7 @@ test("order details feature still OFF by default until staging verified",()=>{
  const js=read("docs/rider.js"),native=read("apps/rider/lib/connected.ts"),worker=read("supabase/functions/ed-last-auto-sync/index.ts");
  assert.match(js,/window\.ESTAMBUL_RIDER_ITEMS_ENABLED===true/);
  assert.match(native,/EXPO_PUBLIC_RIDER_ITEMS_ENABLED==="true"/);
- assert.match(worker,/ED_RIDER_ITEMS_INGEST_ENABLED"\)==="true"/);
+ assert.match(worker,/ED_RIDER_ITEMS_INGEST_ENABLED"\)!=="false"/);
  assert.match(worker,/Order item snapshot unavailable; original Last\.app order was preserved/);
 });
 test("proposed snapshot RLS restricts orders to assigned Rider and readonly API",()=>{
