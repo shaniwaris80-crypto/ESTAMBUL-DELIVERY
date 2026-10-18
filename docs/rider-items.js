@@ -39,6 +39,13 @@
   const revision=clean(snapshot.revision,128);
   return {revision,items,available:items.length>0&&revision.length>0};
  }
+ function optionalCategory(line){
+  const x=asObj(line),names=[clean(x.name),...(Array.isArray(x.children)?x.children:[]).map(y=>clean(asObj(y).name))];
+  const normalized=names.join(" ").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+  if(/\b(pizzas?|pizzetas?|calzones?)\b/.test(normalized))return "pizza";
+  if(/\b(bebidas?|refrescos?|aguas?|coca[\s-]?colas?|colas?|pepsis?|fantas?|sprites?|seven[\s-]?up|7[\s-]?up|aquarius|nesteas?|kas|zumos?|jugos?|cervezas?|tonicas?|red[\s-]?bull|monsters?|batidos?)\b/.test(normalized))return "bebida";
+  return null;
+ }
  function newChecklist(){
   const stored=new Map();
   const key=(orderId,revision)=>String(orderId)+"|"+String(revision);
@@ -65,56 +72,59 @@
  }
 
  function createController(escape,enabled){
-  const packing=newChecklist(),snapshots=new Map(),manual=new Set();
+  const packing=newChecklist(),snapshots=new Map();
   let lastFetch=0,fetching=false;
+  function optionalRows(snapshot){
+   const norm=parseSnapshot(snapshot);
+   return norm.items.map((item,index)=>({item,index,category:optionalCategory(item)})).filter(row=>row.category);
+  }
   function render(order){
    if(!enabled||!["asignado","recogido","en_ruta"].includes(order.status))return "";
-   const snap=snapshots.get(order.id),norm=parseSnapshot(snap),editable=order.status!=="en_ruta";
+   const snap=snapshots.get(order.id),norm=parseSnapshot(snap);
+   const optional=optionalRows(snap);
    const items=norm.available?norm.items.map((item,index)=>{
+    const category=optionalCategory(item);
     const detail=[
-      ...item.modifiers.map(m=>(m.quantity===1?"":m.quantity+"× ")+m.name),
-      ...item.children.map(m=>(m.quantity===1?"":m.quantity+"× ")+m.name),
-      item.comments
+     ...item.modifiers.map(m=>(m.quantity===1?"":m.quantity+"× ")+m.name),
+     ...item.children.map(m=>(m.quantity===1?"":m.quantity+"× ")+m.name),
+     item.comments
     ].filter(Boolean).map(escape).join(" · ");
-    return '<label class="packing-item"><input type="checkbox" data-pack-id="'+escape(order.id)+
-      '" data-pack-rev="'+escape(norm.revision)+'" data-pack-index="'+index+'" '+
-      (packing.selected(order.id,norm.revision,index)?"checked ":"")+(editable?"":"disabled ")+
-      '><span><strong>'+escape(item.quantity+"× "+item.name)+'</strong>'+
-      (detail?'<small>'+detail+'</small>':"")+'</span></label>';
+    const line='<span><strong>'+escape(item.quantity+"× "+item.name)+'</strong>'+
+     (detail?'<small>'+detail+'</small>':"")+'</span>';
+    return category?
+     '<label class="packing-item packing-optional"><input type="checkbox" data-pack-id="'+escape(order.id)+
+       '" data-pack-rev="'+escape(norm.revision)+'" data-pack-index="'+index+'" '+
+       (packing.selected(order.id,norm.revision,index)?"checked ":"")+
+       'aria-label="Marcar '+escape(category)+': '+escape(item.name)+'" >'+line+'</label>':
+     '<div class="packing-item packing-readonly">'+line+'</div>';
    }).join(""):"";
-   const notice=norm.available?'<div class="packing-progress">'+
-      packing.count(order.id,snap)+" de "+norm.items.length+" líneas comprobadas</div>":
-      '<p class="packing-missing">⚠ No hay desglose fiable. Verifica el ticket y las bolsas directamente con cocina.</p>'+
-      '<label class="packing-manual"><input type="checkbox" data-pack-manual="'+escape(order.id)+'" '+
-        (manual.has(order.id)?"checked ":"")+(editable?"":"disabled ")+
-      '> He revisado el ticket y confirmado las bolsas con cocina.</label>';
-   return '<section class="order-packing" aria-label="Lista de productos para preparar"><div class="packing-heading">'+
-    '<strong>🍕 ARTÍCULOS DEL PEDIDO</strong><span>'+(norm.available?norm.items.length+" líneas":"Sin desglose")+
-    '</span></div>'+items+notice+'</section>';
+   const done=optional.filter(row=>packing.selected(order.id,norm.revision,row.index)).length;
+   const notice=norm.available?
+     (optional.length?'<div class="packing-progress">'+done+" de "+optional.length+
+       ' pizzas/bebidas marcadas (opcional)</div>':
+       '<div class="packing-progress">Sin casillas: solo pizzas y bebidas llevan control opcional.</div>'):
+     '<p class="packing-missing">No hay desglose de artículos en este pedido. Puedes consultar el ticket en cocina; no es obligatorio marcar nada.</p>';
+   return '<section class="order-packing" aria-label="Artículos del pedido">'+
+    '<div class="packing-heading"><strong>🍕 ARTÍCULOS DEL PEDIDO</strong>'+
+     '<span>REVISIÓN OPCIONAL</span></div>'+
+    '<p class="packing-explanation">Solo pizzas y bebidas tienen casilla. Puedes continuar el reparto sin marcar.</p>'+
+    items+notice+'</section>';
   }
   function onChange(event){
    if(!enabled)return;
    const input=event.target;
-   if(input?.matches?.('input[data-pack-id]')){
-    const id=input.dataset.packId,snap=snapshots.get(id);
-    if(snap&&input.dataset.packRev===snap.revision){
-     packing.set(id,snap.revision,Number(input.dataset.packIndex),input.checked);
-     const progress=input.closest(".order-packing")?.querySelector(".packing-progress");
-     if(progress)progress.textContent=packing.count(id,snap)+" de "+parseSnapshot(snap).items.length+" líneas comprobadas";
-    }
-   }else if(input?.matches?.('input[data-pack-manual]')){
-    input.checked?manual.add(input.dataset.packManual):manual.delete(input.dataset.packManual);
+   if(!input?.matches?.('input[data-pack-id]'))return;
+   const id=input.dataset.packId,snap=snapshots.get(id);
+   if(!snap||input.dataset.packRev!==snap.revision)return;
+   const index=Number(input.dataset.packIndex),norm=parseSnapshot(snap);
+   if(!norm.available||!norm.items[index]||!optionalCategory(norm.items[index]))return;
+   packing.set(id,snap.revision,index,input.checked);
+   const progress=input.closest(".order-packing")?.querySelector(".packing-progress");
+   if(progress){
+    const optional=optionalRows(snap);
+    const done=optional.filter(row=>packing.selected(id,snap.revision,row.index)).length;
+    progress.textContent=done+" de "+optional.length+" pizzas/bebidas marcadas (opcional)";
    }
-  }
-  function mayStartRoute(order){
-   if(!enabled)return {ok:true};
-   const snap=snapshots.get(order.id),norm=parseSnapshot(snap);
-   if(norm.available){
-    return packing.verified(order.id,snap)?{ok:true}:
-      {ok:false,reason:"Comprueba cada artículo, especialmente pizzas, bebidas y complementos, antes de empezar el reparto."};
-   }
-   return manual.has(order.id)?{ok:true}:
-     {ok:false,reason:"Sin lista digital: confirma que revisaste el ticket y todas las bolsas con cocina."};
   }
   async function load(orders,withAuth,redraw){
    if(!enabled||fetching||Date.now()-lastFetch<15000)return;
@@ -129,12 +139,12 @@
      redraw();
     }
    }catch{
-    // Feature may be disabled on server: never interrupt Last.app order syncing.
+    // Optional read-only detail cannot interrupt the ongoing delivery.
    }finally{fetching=false;}
   }
-  const clear=()=>{snapshots.clear();manual.clear();lastFetch=0;};
-  const completed=id=>{packing.clear(id);manual.delete(id);};
-  return {render,onChange,mayStartRoute,load,clear,completed};
+  const clear=()=>{snapshots.clear();lastFetch=0;};
+  const completed=id=>packing.clear(id);
+  return {render,onChange,load,clear,completed};
  }
- root.ESTAMBUL_ORDER_ITEMS=Object.freeze({normalizeItems,fromLastTab,parseSnapshot,newChecklist,createController});
+ root.ESTAMBUL_ORDER_ITEMS=Object.freeze({normalizeItems,fromLastTab,parseSnapshot,optionalCategory,newChecklist,createController});
 })(typeof window!=="undefined"?window:globalThis);
