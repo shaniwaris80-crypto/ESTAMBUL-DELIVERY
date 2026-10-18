@@ -68,8 +68,7 @@ export async function loadConnected():Promise<ConnectedState>{
   // RLS limits these snapshots to the user's assigned orders; optional feature.
   try{
    const ids=orders.slice(0,80).map(o=>encodeURIComponent(o.id)).join(",");
-   const rows=await request("/rest/v1/ed_order_item_snapshots?select=order_id,revision,items&order_id=in.("+ids+")&limit=80")
-    as {order_id:string;revision:string;items:ProductSnapshot["items"]}[];
+   const rows=(await request("/rest/v1/ed_order_item_snapshots?select=order_id,revision,items&order_id=in.("+ids+")&limit=80")) as {order_id:string;revision:string;items:ProductSnapshot["items"]}[];
    const byOrder=new Map((Array.isArray(rows)?rows:[]).map(s=>[s.order_id,{revision:s.revision,items:s.items}]));
    for(const o of orders)o.items_snapshot=byOrder.get(o.id);
   }catch{/* The original order UI must remain available even if snapshots fail. */}
