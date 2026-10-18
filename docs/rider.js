@@ -531,6 +531,30 @@ async function withAuth(path, options) {
   }
   return jsonResponse(resp);
 }
+let smsHealthLastChecked=0,smsHealthChecking=false;
+async function checkSmsHealth(force=false){
+ if(!session||!rider||smsHealthChecking)return;
+ if(!force&&Date.now()-smsHealthLastChecked<180000)return;
+ smsHealthLastChecked=Date.now();smsHealthChecking=true;
+ const label=$("smsHealthStatus"),panel=$("smsHealthPanel");
+ label.textContent="Comprobando la configuración del SMS…";
+ try{
+  const info=await withAuth("/functions/v1/ed-rider-accept-sms",{method:"GET"});
+  panel.classList.toggle("sms-ready",info.ready===true);
+  panel.classList.toggle("sms-unavailable",info.ready!==true);
+  const reasons={
+   disabled:"SMS automático DESACTIVADO en el servidor. No se enviarán SMS hasta que el administrador lo habilite.",
+   provider_not_configured:"Twilio no está completamente configurado. No se enviarán SMS automáticos.",
+   dispatch_unavailable:"El control de SMS único no está disponible en el servidor. Consulta con administración.",
+   configured:"Configuración de envío preparada. La recepción de cada SMS debe confirmarse en Twilio."
+  };
+  label.textContent=info.ready===true?reasons.configured:(reasons[info.reason]||"SMS no disponible. Consulta con administración.");
+ }catch(e){
+  panel.classList.remove("sms-ready");panel.classList.add("sms-unavailable");
+  label.textContent="No se pudo comprobar la conexión del sistema SMS. No supone que el mensaje se haya enviado.";
+ }finally{smsHealthChecking=false;}
+}
+$("checkSmsHealth").addEventListener("click",()=>{smsHealthLastChecked=0;void checkSmsHealth(true);});
 function setVisible(view) {
   ["loading", "login", "dashboard", "setup", "setPassword"].forEach(id => { $(id).hidden = id !== view; });
 }
@@ -613,6 +637,7 @@ async function fetchOrders() {
   if(openChatOrderId&&!orders.some(o=>o.id===openChatOrderId&&["asignado","recogido","en_ruta"].includes(o.status)))closeRiderChat();
   lastSync = Date.now();
   draw();
+  void checkSmsHealth();
   if(itemFeature)void itemController.load(orders,withAuth,draw);
 }
 async function updateOrders() {
@@ -732,14 +757,14 @@ function renderOrder(order,isPriority=false) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    (smsOutcomes.has(order.id)?'<div class="sms-delivery-notice '+(smsOutcomes.get(order.id).ok?'ok':'warn')+'" role="status">'+escapeText(smsOutcomes.get(order.id).message)+'</div>':'')+
     (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
     '<strong>'+(String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
       "0,00 € · verificar importe en Last.app":euros(order.amount))+'</strong></div>'+
     paymentConfirmation+
-    '<div class="actions">'+actions+'</div>'+
-    (smsOutcomes.has(order.id)?'<div class="sms-delivery-notice '+(smsOutcomes.get(order.id).ok?'ok':'warn')+'" role="status">'+escapeText(smsOutcomes.get(order.id).message)+'</div>':'')+'</article>';
+    '<div class="actions">'+actions+'</div></article>';
 }
 
 async function operation(fn) {
