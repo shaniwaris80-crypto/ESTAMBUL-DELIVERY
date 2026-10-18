@@ -305,7 +305,17 @@ function render(){
  el("stats").innerHTML=stats.map(x=>'<div class="stat"><small>'+esc(x[0])+'</small><b>'+x[1]+'</b><small>En esta cuenta</small></div>').join("");
  el("lastSync").textContent=lastReloadAt?"Datos recibidos a las "+new Date(lastReloadAt).toLocaleTimeString("es-ES")+" · Acceso limitado por usuario (RLS)":"Esperando sincronización…";
  if(staff){
-  el("riderCount").textContent=riders.filter(r=>r.active).length+" activos";
+  const rosterSlots=Array.from({length:5},(_,i)=>{
+   const n=i+1;
+   const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
+   return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
+  });
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
+  el("riderCapacity").innerHTML=rosterSlots.map(s=>
+   '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
+   '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+
+   '<small>'+(s.ready?(s.rider.online?'● Cuenta activa · Online':'● Cuenta activa · Offline'):
+    s.rider?'Pendiente de activación':'Sin cuenta creada')+'</small></div>').join("");
   el("orderCount").textContent=visibleOrders.length+" de "+allVisibleOrders.length+" pedidos";
   el("opsResultCount").textContent=visibleOrders.length+" resultados de "+allVisibleOrders.length+
     (opsFocus!=="all"||opsQuery||opsChannel!=="all"?" · Filtros activos":"")+" · "+archivedIds.size+" en arqueos cerrados";
@@ -391,7 +401,7 @@ el("sendInvitations").addEventListener("click",async()=>{
  if(busy||member?.role!=="admin")return;
  busy=true;clearError();el("sendInvitations").disabled=true;
  try{
-  if(!window.confirm("¿Crear dos usuarios Rider de prueba con contraseñas temporales únicas? Se mostrarán solo una vez."))return;
+  if(!window.confirm("¿Aprovisionar solo invitaciones Rider ya autorizadas? Las contraseñas temporales se mostrarán una sola vez."))return;
   const result=await query("/functions/v1/ed-invite-riders",{method:"POST",body:"{}"});
   const lines=(result.results||[]).map(r=>
    r.email+" — "+(r.status==="created"?"CUENTA CREADA":r.status)+(r.error?" ("+r.error+")":"")+
