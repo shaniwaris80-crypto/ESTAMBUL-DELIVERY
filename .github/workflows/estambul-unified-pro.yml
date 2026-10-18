@@ -1,0 +1,40 @@
+name: Estambul PRO unified quality gate
+on:
+  push:
+    branches:
+      - feature/estambul-pro-unified-safe-20261018
+  pull_request:
+    paths:
+      - docs/rider.js
+      - docs/live.js
+      - rider.html
+      - live.html
+      - apps/rider/app/connected.tsx
+      - apps/rider/lib/connected.ts
+      - docs/live-pro-v4.css
+      - docs/rider-pro-v4.css
+      - scripts/test-estambul-unified-pro.mjs
+      - .github/workflows/estambul-unified-pro.yml
+permissions:
+  contents: read
+jobs:
+  integrated-regressions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax
+        run: |
+          node --check docs/rider.js
+          node --check docs/live.js
+          node --check docs/last-finance-diagnostic.mjs
+          node --check scripts/test-estambul-unified-pro.mjs
+      - name: Unified operational safety suite
+        run: node --test scripts/test-estambul-unified-pro.mjs
+      - name: Rider items and five-profile regression suites
+        run: |
+          node --test scripts/test-rider-order-items.mjs
+          node --test scripts/test-rider-profiles.mjs
