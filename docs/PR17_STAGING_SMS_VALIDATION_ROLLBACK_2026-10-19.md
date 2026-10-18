@@ -180,3 +180,15 @@ Criterio: rollback deja el staging en el estado previsto, sin datos de QA ni men
 - [ ] Revisión final mantiene PR 17 en borrador hasta completar y aceptar todos los puntos.
 
 **El esquema sí fue aplicado en staging; las pruebas funcionales, E2E, GPS, arqueo, concurrencia y rollback siguen sin ejecutarse. No se enviaron mensajes ni se crearon pedidos.**
+
+
+## Auditoría de código y ejecución local (2026-10-19)
+
+- **Bloqueo de importación:** las migraciones 015/017/018 y la app usan `ed_orders.customer_phone`, pero la línea base aplicada no crea esa columna. La consulta en staging solo encuentra `notifications_consent` y `notification_channel` entre los campos de mensajería.
+- **Bloqueo de aceptación:** `docs/rider.js` y `supabase/functions/ed-rider-accept-sms/index.ts` consultan `accepted_at); no está en `ed_orders`. El RPC `ed_rider_accept_tracking` no existe en staging ni aparece en las migraciones del PR.
+- **Pérdida del aviso:** el endpoint acepta primero el pedido y después verifica configuración, teléfono y consentimiento. Un rechazo o configuración ausente deja el pedido aceptado; la siguiente pulsación devuelve `already_accepted` y no reintenta. El UI avisa que no se mandó, pero no permite un reintento seguro. Diseñar una recuperación idempotente antes de habilitar mensajería.
+- **Sin transporte de prueba:** la función de aceptación llama directamente a `api.twilio.com`; no hay mock inyectable cerrado a red ni E2E para verificar un envío simulado. No activar el flag para probar.
+- **Auditoría de staging:** la RPC 024 tiene permisos esperados y `skipped` está permitido; los recuentos son 0 pedidos, 0 cola y 0 recibos. Las rutas de logs de Edge observadas corresponden a health/admin/rest, no a una función de SMS. No se observa una invocación de la función de SMS en staging.
+- **Seguridad Supabase:** el advisor marca 4 funciones SECURITY DEFINER ejecutables por `anon` y 16 por `authenticated`; son revisión pendiente, no se han cambiado. El advisor de rendimiento marca 15 FK sin índice y 8 índices no usados; dejarlo fuera de la aprobación de SMS salvo que afecte al flujo.
+- **Validación local:** 19 comprobaciones estructurales del cliente pasan y `node --check` pasa para `docs/rider.js`, `docs/track.js`, `docs/live.js` y `docs/demo.js`. Typecheck de backoffice/rider y build no ejecutan: dependencias no disponibles (`tsc: not found`, `next: not found`); `npm install` se interrumpió sin completar. No hay workflow CI ni E2E asociado al commit auditado.
+- **No verificado:** SMS real/entrega móvil, secretos de Twilio, reintentos, claims concurrentes, E2E, GPS, arqueo y rollback funcional. Requieren primero corregir la línea base, instalar dependencias y preparar fixtures aislados.
