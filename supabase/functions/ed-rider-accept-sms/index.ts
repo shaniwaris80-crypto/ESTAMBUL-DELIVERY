@@ -45,7 +45,16 @@ Deno.serve(async(req:Request)=>{
    const enabled=env("ESTAMBUL_MESSAGING_ENABLED")==="true";
    const configuredProvider=Boolean(env("TWILIO_ACCOUNT_SID")&&env("TWILIO_AUTH_TOKEN")&&toE164(env("TWILIO_SMS_FROM")));
    const service=Boolean(env("SUPABASE_SERVICE_ROLE_KEY"));
-   return json({ready:enabled&&configuredProvider&&service,
+   const whatsappFrom=env("TWILIO_WHATSAPP_FROM");
+   const whatsappSid=env("TWILIO_WHATSAPP_CONTENT_SID");
+   const whatsappReady=env("ED_WHATSAPP_AUTO_ENABLED")==="true"&&
+      Boolean(env("TWILIO_ACCOUNT_SID")&&env("TWILIO_AUTH_TOKEN")&&service)&&
+      /^whatsapp:\+[1-9]\d{7,14}$/.test(whatsappFrom)&&/^HX[0-9a-fA-F]{32}$/.test(whatsappSid);
+   return json({whatsapp:{configured:whatsappReady,
+      reason:!env("TWILIO_WHATSAPP_CONTENT_SID")?"template_missing":
+       env("ED_WHATSAPP_AUTO_ENABLED")!=="true"?"disabled":
+       !whatsappReady?"provider_not_configured":"configuration_present_approval_not_verified"},
+    ready:enabled&&configuredProvider&&service,
     reason:!enabled?"disabled":!configuredProvider?"provider_not_configured":!service?"dispatch_unavailable":"configured",
     note:"Configuración verificada; recepción del SMS no comprobada."});
   }catch{return json({error:"No se pudo consultar la configuración del SMS"},503);}
@@ -86,16 +95,48 @@ Deno.serve(async(req:Request)=>{
      !["asignado","recogido","en_ruta"].includes(order.status)){
     return json({...result,sms_status:"permission_or_order_error"});
   }
-  if(!order.notifications_consent||order.notification_channel!=="sms"){
+  const channel=order.notification_channel==="whatsapp"?"whatsapp":"sms";
+  if(!order.notifications_consent||
+     !["sms","whatsapp"].includes(String(order.notification_channel||""))){
     return json({...result,sms_status:"sms_not_authorized"});
   }
   const to=toE164(order.customer_phone);
   if(!to)return json({...result,sms_status:"invalid_phone"});
-  if(env("ESTAMBUL_MESSAGING_ENABLED")!=="true"){
+  if(channel==="sms"&&env("ESTAMBUL_MESSAGING_ENABLED")!=="true"){
     return json({...result,sms_status:"provider_disabled"});
   }
-  const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN"),from=env("TWILIO_SMS_FROM");
-  if(!sid||!secret||!toE164(from))return json({...result,sms_status:"provider_not_configured"});
+  if(channel==="whatsapp"&&env("ED_WHATSAPP_AUTO_ENABLED")!=="true"){
+    return json({...result,sms_status:"whatsapp_manual_only",channel});
+  }
+  const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN");
+  const from=channel==="whatsapp"?env("TWILIO_WHATSAPP_FROM"):env("TWILIO_SMS_FROM");
+  const contentSid=env("TWILIO_WHATSAPP_CONTENT_SID");
+  if(!sid||!secret||channel==="sms"&&!toE164(from))
+    return json({...result,sms_status:"provider_not_configured",channel});
+  if(channel==="whatsapp"&&(!/^whatsapp:\+[1-9]\d{7,14}$/.test(from)||
+      !/^HX[0-9a-fA-F]{32}$/.test(contentSid))){
+    return json({...result,sms_status:"whatsapp_not_configured",channel});
+  }
+  // Catch the exact Twilio 21655 class (missing/wrong-account Content SID)
+  // BEFORE spending the permanent attempt claim. Also require WhatsApp approval.
+  if(channel==="whatsapp"){
+    const authorization="Basic "+btoa(sid+":"+secret);
+    try{
+      const template=await fetch("https://content.twilio.com/v1/Content/"+contentSid,{
+        headers:{Authorization:authorization},signal:AbortSignal.timeout(6000)
+      });
+      if(!template.ok)return json({...result,sms_status:"whatsapp_template_not_found",channel});
+      const details=await template.json() as {account_sid?:string};
+      if(details.account_sid&&details.account_sid!==sid)
+        return json({...result,sms_status:"whatsapp_template_not_found",channel});
+      const approval=await fetch("https://content.twilio.com/v1/Content/"+contentSid+
+        "/ApprovalRequests",{headers:{Authorization:authorization},signal:AbortSignal.timeout(6000)});
+      if(!approval.ok)return json({...result,sms_status:"whatsapp_approval_unverified",channel});
+      const approvalData=await approval.json() as {whatsapp?:{status?:string}};
+      if(approvalData.whatsapp?.status!=="approved")
+        return json({...result,sms_status:"whatsapp_template_unapproved",channel});
+    }catch{return json({...result,sms_status:"whatsapp_approval_unverified",channel});}
+  }
   // The permanent dispatch claim MUST be committed before contacting Twilio:
   // network timeouts may be ambiguous, so never automatically retry.
   const service=env("SUPABASE_SERVICE_ROLE_KEY");
@@ -103,13 +144,21 @@ Deno.serve(async(req:Request)=>{
   const audit=createClient(supabaseUrl,service,{
     auth:{persistSession:false,autoRefreshToken:false}
   });
-  const {data:claimed,error:claimError}=await audit.rpc("ed_claim_one_tracking_sms",{p_order_id:orderId});
+  const {data:claimed,error:claimError}=channel==="whatsapp"
+    ?await audit.rpc("ed_claim_one_tracking_message",{p_order_id:orderId,p_channel:channel})
+    :await audit.rpc("ed_claim_one_tracking_sms",{p_order_id:orderId});
   if(claimError)return json({...result,sms_status:"dispatch_unavailable"});
   if(claimed!==true)return json({...result,sms_status:"already_sent_or_attempted"});
   const form=new URLSearchParams();
-  form.set("To",to);form.set("From",from);
-  form.set("Body","Seguimiento de tu pedido #"+String(order.reference||"")+
-   " de ESTAMBUL DELIVERY:\n"+track);
+  form.set("To",channel==="whatsapp"?"whatsapp:"+to:to);form.set("From",from);
+  if(channel==="whatsapp"){
+    form.set("ContentSid",contentSid);
+    form.set("ContentVariables",JSON.stringify({"1":String(order.reference||"Pedido").slice(0,100),
+      "2":track}));
+  }else{
+    form.set("Body","Seguimiento de tu pedido #"+String(order.reference||"")+
+      " de ESTAMBUL DELIVERY:\n"+track);
+  }
   let success=false,messageSid="",providerError="";
   try{
    const response=await fetch("https://api.twilio.com/2010-04-01/Accounts/"+
@@ -134,13 +183,17 @@ Deno.serve(async(req:Request)=>{
     await audit.rpc("ed_finish_one_tracking_sms",{
       p_order_id:orderId,p_accepted:success,p_provider_sid:messageSid||null
     });
-    await audit.rpc("ed_log_tracking_sms",{
+    // Keep legacy SMS receipts as SMS only. WhatsApp is recorded in the shared
+    // once-per-order dispatch table with channel and Twilio message SID.
+    if(channel==="sms")await audit.rpc("ed_log_tracking_sms",{
       p_order_id:orderId,p_token:token,p_success:success,
       p_provider_sid:messageSid||null,p_error:providerError||null
     });
   }catch{/* The already-claimed attempt stays spent, avoiding a duplicate SMS. */}
-  if(success)return json({...result,sms_status:"provider_accepted"});
-  return json({...result,sms_status:"provider_rejected"});
+  if(success)return json({...result,sms_status:channel==="whatsapp"?
+    "whatsapp_provider_accepted":"provider_accepted",channel});
+  return json({...result,sms_status:channel==="whatsapp"?
+    "whatsapp_provider_rejected":"provider_rejected",channel});
  }catch{
   return json({error:"Error al aceptar el pedido o preparar su seguimiento"},503);
  }
