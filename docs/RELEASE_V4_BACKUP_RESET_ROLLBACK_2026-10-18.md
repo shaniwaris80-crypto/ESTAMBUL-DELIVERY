@@ -6,6 +6,9 @@ Fecha de preparación: 18 de octubre de 2026
 - Código frontend anterior respaldado desde commit `b07a17bf07100e239f15d65712ffb0c5c2130fc8` en rama `backup/estambul-before-pro-v4-20261018`.
 - Edge Functions desplegadas respaldadas en `backup-supabase-edge/` en la misma rama: avisos v12, aceptación con SMS v11, sincronización Last.app v6.
 - El respaldo anterior no contiene los datos de Supabase ni asegura la restauración de esquemas, usuarios ni conversaciones.
+- **Verificación real 2026-10-18:** la organización Supabase que aloja `ESTAMBUL DELIVERY` usa **Free / tier_free**, por lo que no incluye backups automáticos de restauración; `list_branches` no tiene branches de staging. No hay copia de datos restaurable confirmada. NO PUBLICAR ni aplicar migraciones en este estado.
+- Antes de cualquier despliegue, obtener un volcado `pg_dump`/Supabase CLI y guardarlo cifrado fuera del repositorio o habilitar y verificar backups con una suscripción aprobada expresamente por el titular. La copia debe probarse en un entorno separado, evitando exportar información privada por chat o GitHub.
+- En producción, no crear una rama de Supabase que suponga cargos sin aprobar el presupuesto y no almacenar datos personales del restaurante en artefactos públicos.
 - Supabase producción: `wfrloqblbflltrjwdfmd`. Se consultó en modo lectura y NO se ejecutaron migraciones ni resets.
 - Auditoría previa: 67 pedidos, 18 entregados, 49 pendientes; 1 entregado sin asiento en cierre de caja. La cifra cambia con el reparto, así que volver a verificar antes del reinicio.
 - No hay rama de desarrollo Supabase disponible. No crear una rama o proyecto con coste sin aprobación explícita del usuario.
