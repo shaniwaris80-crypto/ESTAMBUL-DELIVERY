@@ -232,6 +232,7 @@ function renderGpsPositions(){
   const age=now-Date.parse(p.updated_at);
   return Number.isFinite(age)&&age>=0&&age<=45000;
  });
+ window.ESTAMBUL_VISUAL_MAP?.update(active,riders);
  el("gpsAdminCount").textContent=active.length+" compartiendo";
  el("gpsRiderList").innerHTML=riders.map(r=>{
   const p=active.find(x=>x.rider_id===r.id);
