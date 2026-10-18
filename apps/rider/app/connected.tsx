@@ -206,7 +206,7 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
     <Pressable disabled={order.status==="en_ruta"} accessibilityRole="checkbox" accessibilityState={{checked:manual}}
       onPress={()=>setManual(v=>!v)} style={{flexDirection:"row",gap:10,alignItems:"center",backgroundColor:"#fff",padding:12,borderRadius:10}}>
      <Text style={{fontSize:22,color:"#14856a"}}>{manual?"☑":"□"}</Text>
-     <Text style={{fontSize:12,fontWeight:"750",color:"#173c58",flex:1}}>He revisado ticket y bolsas con cocina</Text>
+     <Text style={{fontSize:12,fontWeight:"700",color:"#173c58",flex:1}}>He revisado ticket y bolsas con cocina</Text>
     </Pressable>
    </>}
   </View>:null}
