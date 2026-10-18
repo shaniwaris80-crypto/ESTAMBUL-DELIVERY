@@ -25,6 +25,8 @@ git rev-parse --abbrev-ref HEAD
 
 El último comando debe mostrar `pr-17-staging`; `git status --short` debe estar vacío. No hacer push de esta rama.
 
+Registrar el commit con `git rev-parse HEAD` en la evidencia. El árbol actual del PR contiene dos archivos con versión `016` (`016_assign_waiting_last_orders_on_rider_online.sql` y `016_single_sms_skip_secondary.sql`) y migraciones hasta `023`. **Este conflicto debe bloquear cualquier `db push`.** En la rama del PR, renombrar la migración nueva a `024_single_sms_skip_secondary.sql`, comprobar que no quedan versiones duplicadas y actualizar el PR antes de ejecutar la fase de staging. No renumerar ni editar `main`.
+
 Definir localmente los dos refs conocidos (no poner contraseñas ni tokens en el terminal compartido):
 
 ```sh
@@ -51,7 +53,14 @@ supabase migration list --linked
 supabase db push --dry-run --linked
 ```
 
-**Criterio para continuar:** el proyecto enlazado es el staging descartable; la migración 015 ya figura aplicada y el único cambio pendiente es `016_single_sms_skip_secondary.sql`. Si falta cualquier migración anterior o aparece otro cambio, detenerse y corregir el staging; no aplicar una cola de cambios desconocida.
+Antes del dry-run, detectar versiones duplicadas localmente:
+
+```sh
+find supabase/migrations -maxdepth 1 -type f -name '*.sql' -printf '%f\n' \
+  | sed -E 's/^([0-9]+)_.*/\1/' | sort | uniq -d
+```
+
+La salida debe estar vacía. **Con el árbol del PR consultado ahora, la salida es `016`, por lo que hay que detenerse aquí.** Tras corregir el nombre en la rama del PR, staging debe tener migraciones 001–023 aplicadas y el dry-run debe mostrar únicamente `024_single_sms_skip_secondary.sql`. Si falta cualquier migración anterior o aparece otro cambio, detenerse y corregir el staging; no aplicar una cola de cambios desconocida.
 
 Aplicar solo después del dry-run revisado:
 
@@ -60,7 +69,7 @@ supabase db push --linked
 supabase migration list --linked
 ```
 
-La segunda lista debe mostrar 016 aplicada. La migración añade la función `public.ed_skip_secondary_sms(uuid)`; no actualiza registros existentes.
+La segunda lista debe mostrar 024 aplicada. La migración añade la función `public.ed_skip_secondary_sms(uuid)`; no actualiza registros existentes.
 
 Comprobaciones SQL en el SQL Editor del **proyecto staging confirmado**:
 
@@ -172,6 +181,7 @@ No editar a mano `supabase_migrations.schema_migrations`. La migración 016 no i
 ## Configuración y documentación que todavía faltan
 
 - [ ] Ref separado y confirmado para staging; acceso a un proyecto descartable.
+- [ ] Resolver la colisión de versión: renombrar la migración nueva de 016 a 024 en la rama del PR y confirmar que no hay versiones locales duplicadas.
 - [ ] Fixtures sintéticos y script de creación/limpieza para dos pedidos SMS y un pedido efectivo.
 - [ ] Transporte mock de Twilio con bloqueo de red externa; ninguna credencial real.
 - [ ] Recuperación segura y alertas para filas `sending` atascadas; política explícita de reintentos.
