@@ -1,0 +1,31 @@
+name: Real design parity preview
+on:
+  push:
+    branches:
+      - feature/preview-real-ui-parity-20261018
+  pull_request:
+    paths:
+      - 'preview/**'
+      - scripts/test-preview-parity.mjs
+      - docs/live.js
+      - docs/rider.js
+      - live.html
+      - rider.html
+      - track.html
+permissions:
+  contents: read
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check preview JavaScript syntax
+        run: |
+          node --check preview/demo.js
+          node --check scripts/test-preview-parity.mjs
+      - name: Real code parity
+        run: node --test scripts/test-preview-parity.mjs
