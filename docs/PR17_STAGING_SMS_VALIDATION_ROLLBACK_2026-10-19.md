@@ -78,8 +78,8 @@ npm install --no-audit --no-fund
 node scripts/check-customer-experience.mjs
 node --check docs/rider.js
 node --check docs/track.js
-node --check supabase/functions/ed-send-notifications/index.ts
-node --check supabase/functions/ed-rider-accept-sms/index.ts
+deno check supabase/functions/ed-send-notifications/index.ts
+deno check supabase/functions/ed-rider-accept-sms/index.ts
 npm run typecheck:backoffice
 npm run typecheck:rider
 npm run build:backoffice
