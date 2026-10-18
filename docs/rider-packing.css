@@ -1,0 +1,14 @@
+/* Pro packing checklist, isolated from existing order/payment flows. */
+.order-packing{background:#f4f9fc;border:1px solid #c9d9e8;border-radius:15px;padding:15px 14px;margin:14px 0;display:grid;gap:10px}
+.packing-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:7px;border-bottom:1px solid #dce6ef}
+.packing-heading strong{font-size:12px;letter-spacing:.045em;color:#133350}.packing-heading span{white-space:nowrap;font-size:11px;color:#607c94;font-weight:800}
+.packing-item,.packing-manual{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px;background:#fff;border:1px solid #dce5f0;cursor:pointer;min-width:0;color:#18364f}
+.packing-item input,.packing-manual input{flex:0 0 23px;height:23px;width:23px;margin:0;accent-color:#188c74;cursor:pointer}
+.packing-item span{min-width:0;display:grid;gap:4px}.packing-item strong{font-size:14px;line-height:1.4;overflow-wrap:anywhere}.packing-item small{font-size:12px;line-height:1.45;color:#63798c}
+.packing-item:has(input:checked){background:#ebf8f3;border-color:#9dd8c3}.packing-item:has(input:checked) strong{color:#146e56}
+.packing-progress{font-size:12px;font-weight:850;color:#1b735f;background:#e7f4ee;border-radius:9px;padding:9px 12px}
+.packing-missing{margin:0;font-weight:750;font-size:12px;line-height:1.55;color:#985f15;background:#fff2df;border:1px solid #f6d4a0;padding:11px;border-radius:9px}
+.packing-manual{background:#fff9ee;border-color:#f0d7aa;font-weight:750;font-size:12px;line-height:1.55}
+.packing-item:focus-within,.packing-manual:focus-within{outline:3px solid #65b9a5;outline-offset:2px}
+@media(min-width:720px){.order-packing{padding:18px}.packing-item{padding:15px}}
+@media(prefers-reduced-motion:reduce){.order-packing{scroll-behavior:auto}}
