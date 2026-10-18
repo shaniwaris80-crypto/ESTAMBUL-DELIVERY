@@ -88,7 +88,7 @@ test("waiting copy correctly describes all real order states",()=>{
 test("ETA only shows server-supplied values; no invented waiting duration",()=>{
  assert.match(trackJs,/data\.eta_minutes!=null&&Number\.isFinite\(eta\)&&eta>=0/);
  assert.match(trackJs,/No mostramos un tiempo inventado/);
- assert.match(trackJs,/canEstimate\?/);
+ assert.match(trackJs,/canEstimate\s*\?/);
  assert.doesNotMatch(read("docs/track-state.js"),/eta_minutes:|fetch\(|setInterval/);
 });
 test("customer live map requires server-provided opt-in live location",()=>{
