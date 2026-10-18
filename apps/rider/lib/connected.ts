@@ -78,7 +78,7 @@ export async function loadConnected():Promise<ConnectedState>{
  try{
   const epochs=await request("/rest/v1/ed_operations_epoch?select=started_at&account_id=eq."+
    membership.account_id+"&limit=1") as {started_at:string}[];
-  if(epochs?.[0]?.started_at)epochFilter="&created_at=gte."+encodeURIComponent(epochs[0].started_at);
+  if(epochs?.[0]?.started_at)epochFilter="&or=(created_at.gte."+encodeURIComponent(epochs[0].started_at)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))";
  }catch{/* Existing orders still load if the optional reset table is unavailable. */}
  const orders=await request("/rest/v1/ed_orders?select=id,reference,customer_name,customer_phone,notes,destination,payment_method,channel,status,rider_id,lat,lng,amount,created_at&account_id=eq."+membership.account_id+"&rider_id=eq."+rider.id+epochFilter+"&order=created_at.desc&limit=100") as RiderOrder[];
  if(connectedItemFeature&&orders.length){
