@@ -2,7 +2,7 @@ import { useCallback,useEffect,useState } from "react";
 import { Alert, ActivityIndicator, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
-import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
+import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, registerRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
 
 const palette={dark:"#15271f",primary:"#1b7452",green:"#147c55",muted:"#697a73",bg:"#f4f6f3",border:"#e0e8e0"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
@@ -59,6 +59,7 @@ function routeLinks(orders:RiderOrder[]):string[]{
 }
 export default function Connected(){
  const [email,setEmail]=useState(""),[password,setPassword]=useState("");
+ const [mode,setMode]=useState<"login"|"signup">("login"),[notice,setNotice]=useState("");
  const [signed,setSigned]=useState(false),[data,setData]=useState<ConnectedState|null>(null);
  const [busy,setBusy]=useState(false),[error,setError]=useState("");
  const refresh=useCallback(async()=>{const d=await loadConnected();setData(d);setSigned(true);setError("");},[]);
@@ -67,7 +68,12 @@ export default function Connected(){
   const id=setInterval(()=>{if(active&&signed&&!busy)void refresh().catch(e=>setError(e instanceof Error?e.message:"Sin conexión"));},5000);
   return ()=>{active=false;clearInterval(id)};
  },[refresh,signed,busy]);
- async function doLogin(){if(busy)return;setBusy(true);try{await loginRider(email.trim(),password);setPassword("");await refresh();}catch(e){setError(e instanceof Error?e.message:"Error al entrar");}finally{setBusy(false)}}
+ async function doLogin(){if(busy)return;setBusy(true);setError("");setNotice("");try{await loginRider(email.trim(),password);setPassword("");await refresh();}catch(e){setError(e instanceof Error?e.message:"Error al entrar");}finally{setBusy(false)}}
+ async function doSignup(){if(busy)return;setBusy(true);setError("");setNotice("");try{
+  const result=await registerRider(email.trim(),password);setPassword("");
+  if(result.sessionCreated){await refresh();}
+  else setNotice("Cuenta creada. Confirma el correo y luego vuelve aquí para iniciar sesión. Solo los correos invitados pueden activar una cuenta Rider.");
+ }catch(e){setError(e instanceof Error?e.message:"No se pudo crear la cuenta");}finally{setBusy(false)}}
  async function operate(fn:()=>Promise<void>){if(busy)return;setBusy(true);try{await fn();await refresh();}catch(e){Alert.alert("Operación no realizada",e instanceof Error?e.message:"Error");}finally{setBusy(false)}}
  async function logout(){await logoutRider();setSigned(false);setData(null);setPassword("");}
  const orders=suggestRoute(data?.orders.filter(o=>!["entregado","cancelado"].includes(o.status))||[]);
@@ -76,10 +82,12 @@ export default function Connected(){
  <View style={s.top}><Pressable onPress={()=>router.replace("/demo")}><Text style={s.back}>‹ Demo</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
  <ScrollView contentContainerStyle={s.body}>
  {!isConnectedConfigured?<View style={s.card}><Text style={s.title}>Pendiente de configurar</Text><Text style={s.help}>Debes configurar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY para activar las cuentas y pedidos compartidos.</Text></View>
- :!signed?<View style={s.card}><Text style={s.title}>Iniciar sesión</Text><Text style={s.help}>Usa tu cuenta individual de rider de pruebas.</Text>
- <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" autoComplete="email" value={email} onChangeText={setEmail} placeholder="Correo del rider"/>
- <TextInput style={s.input} secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Contraseña"/>
- <Pressable disabled={busy} style={s.button} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Entrando...":"Entrar"}</Text></Pressable></View>
+ :!signed?<View style={s.card}><Text style={s.title}>{mode==="login"?"Iniciar sesión":"Crear cuenta Rider"}</Text><Text style={s.help}>{mode==="login"?"Usa el correo invitado y confirmado para tu cuenta Rider.":"Regístrate con el correo invitado. Supabase puede pedirte confirmar el correo antes del primer acceso."}</Text>
+ <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" autoComplete="email" textContentType="emailAddress" value={email} onChangeText={setEmail} placeholder="Correo del rider"/>
+ <TextInput style={s.input} secureTextEntry autoComplete={mode==="login"?"password":"new-password"} textContentType={mode==="login"?"password":"newPassword"} value={password} onChangeText={setPassword} placeholder={mode==="login"?"Contraseña":"Nueva contraseña (mínimo 10 caracteres)"}/>
+ {notice?<Text style={s.notice}>{notice}</Text>:null}
+ <Pressable disabled={busy} style={s.button} onPress={()=>void(mode==="login"?doLogin():doSignup())}><Text style={s.buttonText}>{busy?(mode==="login"?"Entrando...":"Creando..."):mode==="login"?"Entrar":"Crear cuenta"}</Text></Pressable>
+ <Pressable disabled={busy} onPress={()=>{setMode(mode==="login"?"signup":"login");setError("");setNotice("");}} style={{padding:12,alignItems:"center"}}><Text style={s.linkText}>{mode==="login"?"¿Primera vez? Crear cuenta Rider":"Ya tengo cuenta · Iniciar sesión"}</Text></Pressable></View>
  :<><View style={s.card}><Text style={s.eyebrow}>MI CUENTA</Text><Text style={s.title}>{data?.rider.display_name||"Cargando..."}</Text><Text style={s.help}>{orders.length} entregas pendientes · sincronización cada 5 s</Text>
  <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Disponible · Desconectar":"○ Conectarme"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Salir</Text></Pressable></View></View>
  {links.length>0?<View style={s.card}>
@@ -142,5 +150,5 @@ const s=StyleSheet.create({
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
  outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b8cabb",alignItems:"center",justifyContent:"center"},
  outlineText:{color:palette.green,fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
- error:{backgroundColor:"#fde7e7",color:"#9b3838",padding:13,borderRadius:9},footer:{textAlign:"center",fontSize:10,color:"#8b9b8e",marginTop:17}
+ notice:{backgroundColor:"#eaf1eb",color:"#1b7452",padding:13,borderRadius:9,marginBottom:10,fontSize:12,lineHeight:18},linkText:{color:"#1b7452",fontSize:12,fontWeight:"800"},error:{backgroundColor:"#fde7e7",color:"#9b3838",padding:13,borderRadius:9},footer:{textAlign:"center",fontSize:10,color:"#8b9b8e",marginTop:17}
 })
