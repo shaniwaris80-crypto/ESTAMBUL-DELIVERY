@@ -7,7 +7,7 @@ test("V4 visual theme is restored on the real pages while operational flows stay
  for(const [page,v4css,v5css] of [[live,"live-pro-v4.css","visual-backoffice-v5.css"],[rider,"rider-pro-v4.css","visual-rider-v5.css"],[track,"track-pro-v2.css","visual-client-v5.css"]]){
   assert.doesNotMatch(page,/class="ed-visual-v5"/);
   assert.ok(page.includes(v4css));assert.ok(!page.includes(v5css));
-  assert.match(page,/docs\\/icon.svg/);
+  assert.ok(page.includes("docs/icon.svg"));
  }
  assert.match(read("docs/icon.svg"),/<svg/);
 });
