@@ -121,3 +121,15 @@ button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,te
 .order-number{font-variant-numeric:tabular-nums;letter-spacing:.006em}
 .mode-tag{background:#2a5039;color:#ddf7df;border-color:#4d7657}
 @media(max-width:380px){#riderSyncHealth{font-size:9px}}
+
+
+/* Paleta carbón, lima y ámbar · 2026 */
+:root{--navy:#171d1a;--blue:#527544;--orange:#dfa52f;--green:#4b8746;--muted:#707b73;--light:#f5f6f1;--line:#e4e8df;--dark:#202923;--v2-ink:#202923;--v2-green:#4b8746;--v2-deep:#171d1a;--v2-border:#e1e6dd}
+body{background:linear-gradient(180deg,#edf1e8 0,#f5f6f1 320px,#f8f9f6 100%);color:#202923}
+.topbar{background:#171d1a;border-bottom-color:#313a32}
+.mark{background:#b8e45a;color:#1b281e;box-shadow:inset 0 0 0 1px #a5ce50}
+.welcome{background:radial-gradient(circle at 92% 15%,rgba(184,228,90,.2),transparent 38%),linear-gradient(135deg,#171d1a,#354334)}
+.actions .accept-action,.actions button.guest-share-action.on,.gps-toggle,.sound-primary,.route-optimize,.day-close-review,.day-close-final{background:#4b8746}
+.toggle[aria-pressed=true]{background:#4b8746}
+.v2-rider-nav a:first-child{background:#222c24;border-color:#222c24}
+button:focus-visible,a:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible{outline-color:#a8d94f}
