@@ -175,3 +175,15 @@ td small{color:#728674}
 
 /* Human-readable LastPOS / GloriaFood code, full immutable reference beneath. */
 #ordersArea .ops-full-ref{display:block;font-size:10px;font-weight:450;color:#8c9d8e;overflow-wrap:anywhere;line-height:1.4;margin:4px 0}
+
+
+/* Paleta carbón, lima y ámbar · 2026 */
+:root{--navy:#171d1a;--text:#202923;--muted:#707b73;--line:#e4e8df;--blue:#527544;--orange:#dfa52f;--green:#4b8746}
+body{background:linear-gradient(180deg,#edf1e8 0,#f6f7f2 340px,#f8f9f6 100%);color:#202923}
+.bar{background:#171d1a;border-bottom-color:#313a32}
+.brand-icon{background:#b8e45a;color:#1b281e}
+.app-title{background:radial-gradient(circle at 91% 20%,rgba(184,228,90,.18),transparent 32%),linear-gradient(125deg,#171d1a,#354334)}
+.v2-admin-nav a:first-child,.ops-insight[aria-pressed=true]{background:#222c24;border-color:#222c24}
+.stat:first-child{background:#f0f6dc;color:#344b27;border-color:#dbe8b4}
+.btn{background:#222c24}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a8d94f;outline-offset:3px}
