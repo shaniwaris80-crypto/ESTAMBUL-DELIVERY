@@ -1,0 +1,49 @@
+name: Last.app recovery and retention
+on:
+  push:
+    branches: [rebuild/staging-first]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: edv9_recovery_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: edv9_recovery_test
+      PGUSER: postgres
+      PGPASSWORD: synthetic_ci_only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Preserve original Last.app integration
+        run: python3 scripts/verify_lastapp_preservation.py
+      - name: All contract, HTTP, queue and recovery tests
+        run: node --test integrations/lastapp/isolation/tests/*.test.mjs integrations/lastapp/isolation/queue/tests/*.test.mjs integrations/lastapp/isolation/recovery/tests/*.test.mjs
+      - name: Generate migration with pinned CLI
+        run: |
+          npx --yes supabase@2.121.0 migration new --help
+          node integrations/lastapp/isolation/recovery/render.mjs rknxqlijcgpbecoophva "$RUNNER_TEMP/edv9-recovery"
+      - name: Install in disposable PostgreSQL
+        run: |
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN;'
+          psql -X -v ON_ERROR_STOP=1 -c "SET ed_last_stage.bootstrap='ISOLATED_TEST_DATABASE'" -f integrations/lastapp/isolation/schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/queue/schema.sql
+          psql -X -v ON_ERROR_STOP=1 -f "$(cat "$RUNNER_TEMP/edv9-recovery/migration-path.txt")"
+      - name: Recovery, retained deduplication and permission tests
+        run: psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/recovery/tests/database.sql
