@@ -71,46 +71,81 @@ Deno.serve(async(req:Request)=>{
   if(env("ESTAMBUL_MESSAGING_ENABLED")!=="true"){
     return json({...result,sms_status:"provider_disabled"});
   }
-  const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN"),from=env("TWILIO_SMS_FROM");
-  if(!sid||!secret||!toE164(from))return json({...result,sms_status:"provider_not_configured"});
+  const sid=env("TWILIO_ACCOUNT_SID"),secret=env("TWILIO_AUTH_TOKEN");
+  const from=env("TWILIO_SMS_FROM"),callbackUrl=env("TWILIO_STATUS_CALLBACK_URL");
+  const service=env("SUPABASE_SERVICE_ROLE_KEY");
+  if(!sid||!secret||!toE164(from)||!service)
+    return json({...result,sms_status:"provider_not_configured"});
+  let callback:URL;
+  try{callback=new URL(callbackUrl);}catch{return json({...result,sms_status:"status_callback_not_configured"});}
+  let projectHost="";
+  try{projectHost=new URL(supabaseUrl).hostname;}catch{}
+  if(callback.protocol!=="https:"||callback.hostname!==projectHost||
+     callback.pathname!=="/functions/v1/ed-twilio-status"||callback.search||callback.hash)
+    return json({...result,sms_status:"status_callback_not_configured"});
+
   const form=new URLSearchParams();
   form.set("To",to);form.set("From",from);
+  form.set("StatusCallback",callbackUrl);
   form.set("Body","Seguimiento de tu pedido #"+String(order.reference||"")+
    " de ESTAMBUL DELIVERY:\n"+track);
-  let success=false,messageSid="",providerError="";
-  try{
-   const response=await fetch("https://api.twilio.com/2010-04-01/Accounts/"+
-      encodeURIComponent(sid)+"/Messages.json",{
-     method:"POST",
-     headers:{"Authorization":"Basic "+btoa(sid+":"+secret),
-      "Content-Type":"application/x-www-form-urlencoded"},
-     body:form.toString(),
-     // Bound request time; an ambiguous timeout is recorded as a failure for manual review.
-     signal:AbortSignal.timeout(12000)
-   });
-   const raw=await response.text();
-   let data:Record<string,unknown>={};
-   try{data=raw?JSON.parse(raw):{}}catch{}
-   if(!response.ok){
+
+  let success=false,messageSid="",providerError="",deliveryStatus="provider_rejected",attempts=0;
+  for(let attempt=1;attempt<=2;attempt++){
+   attempts=attempt;
+   try{
+    const response=await fetch("https://api.twilio.com/2010-04-01/Accounts/"+
+       encodeURIComponent(sid)+"/Messages.json",{
+      method:"POST",
+      headers:{"Authorization":"Basic "+btoa(sid+":"+secret),
+       "Content-Type":"application/x-www-form-urlencoded"},
+      body:form.toString(),
+      // Only explicit Twilio rate limiting is safe to retry. Network/5xx outcomes stay manual.
+      signal:AbortSignal.timeout(8000)
+    });
+    const raw=await response.text();
+    let data:Record<string,unknown>={};
+    try{data=raw?JSON.parse(raw):{}}catch{}
+    if(response.ok){
+     messageSid=String(data.sid||"");
+     if(messageSid){
+      success=true;deliveryStatus="provider_accepted";
+     }else{
+      deliveryStatus="unknown";
+      providerError="Twilio returned success without a message SID";
+     }
+     break;
+    }
+    const code=Number(data.code||0);
+    if(response.status===429&&code===20429&&attempt===1){
+     providerError="Twilio rate limited the first attempt; one safe retry was made";
+     await new Promise(resolve=>setTimeout(resolve,350));
+     continue;
+    }
     providerError="Twilio error "+response.status+" ("+String(data.code||"unknown")+")";
-   }else{
-    success=true;messageSid=String(data.sid||"");
+    deliveryStatus=response.status>=500?"unknown":"provider_rejected";
+    break;
+   }catch{
+    providerError="Twilio timeout or network error; outcome unknown";
+    deliveryStatus="unknown";
+    break;
    }
-  }catch{
-   providerError="Twilio connection error";
   }
-  const service=env("SUPABASE_SERVICE_ROLE_KEY");
-  if(service){
-   const audit=createClient(supabaseUrl,service,{
-    auth:{persistSession:false,autoRefreshToken:false}
-   });
-   await audit.rpc("ed_log_tracking_sms",{
-    p_order_id:orderId,p_token:token,p_success:success,
-    p_provider_sid:messageSid||null,p_error:providerError||null
-   });
+
+  const audit=createClient(supabaseUrl,service,{
+   auth:{persistSession:false,autoRefreshToken:false}
+  });
+  const {error:auditError}=await audit.rpc("ed_log_tracking_sms",{
+   p_order_id:orderId,p_token:token,p_success:success,
+   p_provider_sid:messageSid||null,p_error:providerError||null,
+   p_attempt_count:attempts,p_delivery_status:deliveryStatus
+  });
+  if(auditError){
+   return json({...result,sms_status:success?"provider_accepted_audit_pending":"audit_error"});
   }
   if(success)return json({...result,sms_status:"provider_accepted"});
-  return json({...result,sms_status:"provider_rejected"});
+  if(deliveryStatus==="unknown")return json({...result,sms_status:"provider_outcome_unknown"});
+  return json({...result,sms_status:attempts===2?"provider_retry_exhausted":"provider_rejected"});
  }catch{
   return json({error:"Error al aceptar el pedido o preparar su seguimiento"},503);
  }
