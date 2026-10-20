@@ -1,4 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
+import { classifyTwilioResponse, shouldRetryTwilioResponse } from "../_shared/sms-policy.mjs";
 
 const allowedOrigin="https://shaniwaris80-crypto.github.io";
 const trackBase="https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/track.html";
@@ -106,24 +107,23 @@ Deno.serve(async(req:Request)=>{
     const raw=await response.text();
     let data:Record<string,unknown>={};
     try{data=raw?JSON.parse(raw):{}}catch{}
-    if(response.ok){
-     messageSid=String(data.sid||"");
-     if(messageSid){
-      success=true;deliveryStatus="provider_accepted";
-     }else{
-      deliveryStatus="unknown";
-      providerError="Twilio returned success without a message SID";
-     }
-     break;
-    }
     const code=Number(data.code||0);
-    if(response.status===429&&code===20429&&attempt===1){
+    const outcome=classifyTwilioResponse({
+     ok:response.ok,httpStatus:response.status,providerCode:code,
+     messageSid:String(data.sid||"")
+    });
+    if(shouldRetryTwilioResponse(response.status,code,attempt)){
      providerError="Twilio rate limited the first attempt; one safe retry was made";
      await new Promise(resolve=>setTimeout(resolve,350));
      continue;
     }
-    providerError="Twilio error "+response.status+" ("+String(data.code||"unknown")+")";
-    deliveryStatus=response.status>=500?"unknown":"provider_rejected";
+    deliveryStatus=outcome.status;
+    success=outcome.status==="provider_accepted";
+    messageSid=success?outcome.messageSid||"":"";
+    if(!response.ok)
+     providerError="Twilio error "+response.status+" ("+String(data.code||"unknown")+")";
+    else if(!success)
+     providerError="Twilio returned success without a valid message SID";
     break;
    }catch{
     providerError="Twilio timeout or network error; outcome unknown";
