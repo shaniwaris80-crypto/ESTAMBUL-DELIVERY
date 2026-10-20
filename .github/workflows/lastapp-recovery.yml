@@ -46,4 +46,6 @@ jobs:
           psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/queue/schema.sql
           psql -X -v ON_ERROR_STOP=1 -f "$(cat "$RUNNER_TEMP/edv9-recovery/migration-path.txt")"
       - name: Recovery, retained deduplication and permission tests
-        run: psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/recovery/tests/database.sql
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/recovery/tests/database.sql
+          psql -X -v ON_ERROR_STOP=1 -f integrations/lastapp/isolation/recovery/tests/hardening.sql

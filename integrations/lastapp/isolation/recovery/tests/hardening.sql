@@ -1,0 +1,38 @@
+BEGIN;
+DO $$
+DECLARE loc uuid=gen_random_uuid();tid uuid=gen_random_uuid();c jsonb;r jsonb;work jsonb;
+BEGIN
+ INSERT INTO ed_last_stage.locations(location_id,organization_id,tenant_id,enabled) VALUES(loc,gen_random_uuid(),gen_random_uuid(),true);
+ INSERT INTO ed_last_stage.queue_routes(location_id,source_kind,enabled,expires_at) VALUES(loc,'synthetic',true,now()+interval '10 minutes');
+ INSERT INTO ed_last_stage.reconcile_state(location_id,enabled) VALUES(loc,true);
+ UPDATE ed_last_stage.queue_control SET enabled=true;
+ r=public.edv9_last_reconcile_page(loc,NULL,ARRAY[tid],1);
+ IF r->>'state'<>'lost_lease' OR EXISTS(SELECT 1 FROM ed_last_stage.events WHERE location_id=loc) THEN RAISE EXCEPTION 'Null lease bypass'; END IF;
+ IF public.edv9_last_reconcile_fail(loc,NULL,'worker_error',0) IS DISTINCT FROM false THEN RAISE EXCEPTION 'Null failure lease bypass'; END IF;
+ RAISE NOTICE 'PASS: absent/null leases cannot commit or fail work';
+ c=public.edv9_last_reconcile_begin(loc);
+ UPDATE ed_last_stage.reconcile_state SET next_offset=900 WHERE location_id=loc;
+ r=public.edv9_last_reconcile_page(loc,(c->>'lease_token')::uuid,ARRAY[tid],100);
+ IF r->>'state'<>'truncated' OR (SELECT last_completed_at IS NOT NULL FROM ed_last_stage.reconcile_state WHERE location_id=loc) THEN RAISE EXCEPTION 'Cap falsely marked completed'; END IF;
+ RAISE NOTICE 'PASS: page cap explicitly reports incomplete coverage';
+ UPDATE ed_last_stage.locations SET next_request_at='-infinity' WHERE location_id=loc;
+ work=public.edv9_last_queue_claim(loc);
+ PERFORM public.edv9_last_complete(work->>'event_id',(work->>'lease_token')::uuid,jsonb_build_object('id',tid,'locationId',loc,'pickupType','ownDelivery','delivery','{}'::jsonb));
+ UPDATE ed_last_stage.snapshots SET raw_redacted_at=now()-interval '1 day' WHERE location_id=loc;
+ UPDATE ed_last_stage.reconcile_state SET next_poll_at='-infinity' WHERE location_id=loc;
+ UPDATE ed_last_stage.locations SET next_request_at='-infinity' WHERE location_id=loc;
+ c=public.edv9_last_reconcile_begin(loc);PERFORM public.edv9_last_reconcile_page(loc,(c->>'lease_token')::uuid,ARRAY[tid],1);
+ UPDATE ed_last_stage.locations SET next_request_at='-infinity' WHERE location_id=loc;
+ work=public.edv9_last_queue_claim(loc);
+ PERFORM public.edv9_last_complete(work->>'event_id',(work->>'lease_token')::uuid,jsonb_build_object('id',tid,'locationId',loc,'pickupType','ownDelivery','delivery',jsonb_build_object('address','synthetic refresh')));
+ IF (SELECT raw_redacted_at IS NOT NULL FROM ed_last_stage.snapshots WHERE location_id=loc) THEN RAISE EXCEPTION 'Rehydrated data keeps redacted marker'; END IF;
+ RAISE NOTICE 'PASS: a new snapshot can be cleaned again after its retention period';
+ UPDATE ed_last_stage.locations SET enabled=false WHERE location_id=loc;
+ UPDATE ed_last_stage.queue_routes SET enabled=false,expires_at=now()-interval '1 day' WHERE location_id=loc;
+ UPDATE ed_last_stage.snapshots SET fetched_at=now()-interval '10 days' WHERE location_id=loc;
+ UPDATE ed_last_stage.retention_control SET synthetic_enabled=true;
+ r=ed_last_stage.redact_expired_synthetic(true);
+ IF (r->>'snapshots')::int<>1 OR (SELECT raw->>'retained_stub' FROM ed_last_stage.snapshots WHERE location_id=loc)<>'true' THEN RAISE EXCEPTION 'Expired synthetic snapshot was not redacted'; END IF;
+ RAISE NOTICE 'PASS: expired synthetic snapshot becomes a non-dispatchable stub';
+END $$;
+ROLLBACK;

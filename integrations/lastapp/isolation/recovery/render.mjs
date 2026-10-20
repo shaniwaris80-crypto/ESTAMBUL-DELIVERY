@@ -10,6 +10,8 @@ if(readdirSync(join(dir,'supabase/migrations')).length)throw Error('Refusing non
 const child=spawnSync('npx',['--yes','supabase@2.121.0','migration','new','edv9_last_recovery_retention'],{cwd:dir,stdio:'inherit'});
 if(child.status!==0)throw Error('CLI failed');
 const names=readdirSync(join(dir,'supabase/migrations'));if(names.length!==1)throw Error('Unexpected CLI output');
-const source=readFileSync(join(dirname(fileURLToPath(import.meta.url)),'schema.sql'));
+const here=dirname(fileURLToPath(import.meta.url));
+const base=readFileSync(join(here,'schema.sql'),'utf8');if(!base.endsWith('COMMIT;\n'))throw Error('Unexpected schema envelope');
+const source=base.slice(0,-'COMMIT;\n'.length)+readFileSync(join(here,'hardening.sql'),'utf8')+'COMMIT;\n';
 const path=join(dir,'supabase/migrations',names[0]);writeFileSync(path,source);writeFileSync(join(dir,'migration-path.txt'),path+'\n');
 console.log('GENERATED_MIGRATION='+names[0]);console.log('MIGRATION_SHA256='+createHash('sha256').update(source).digest('hex'));
