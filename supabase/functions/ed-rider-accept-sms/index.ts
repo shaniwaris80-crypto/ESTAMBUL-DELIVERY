@@ -1,5 +1,10 @@
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
-import { classifyTwilioResponse, shouldRetryTwilioResponse } from "../_shared/sms-policy.mjs";
+const shouldRetryTwilioResponse=(httpStatus:number,providerCode:number,attempt:number)=>httpStatus===429&&Number(providerCode)===20429&&attempt===1;
+const classifyTwilioResponse=({ok,httpStatus,messageSid}:{ok:boolean;httpStatus:number;messageSid:string})=>{
+ if(ok&&/^SM[0-9a-fA-F]{32}$/.test(messageSid))return {status:"provider_accepted",messageSid};
+ if(ok||httpStatus>=500)return {status:"unknown",messageSid:null};
+ return {status:"provider_rejected",messageSid:null};
+};
 
 const allowedOrigin="https://shaniwaris80-crypto.github.io";
 const trackBase="https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/track.html";
