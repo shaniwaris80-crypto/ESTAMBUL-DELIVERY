@@ -135,3 +135,16 @@ Al volver online, empieza un **nuevo turno separado**, con efectivo contado y ob
 La app Expo abre directamente el acceso Rider conectado (`/connected`). La demostración ficticia queda separada en `/demo`, accesible desde el enlace «Demo» de la pantalla conectada. La autenticación usa Supabase configurado para el build; si faltan la URL y la clave publicable, la pantalla indica que el backend está pendiente de configuración. No introducir credenciales ni datos de clientes en Git.
 
 Esta modificación organiza el arranque de la app; no crea por sí sola un APK/IPA ni activa GPS en segundo plano, notificaciones push o sincronización de pedidos reales. Para distribuir una build se necesitan credenciales Expo/EAS, firma de Apple para iOS y pruebas internas en dispositivos.
+
+
+## Alta de Rider invitado en la app nativa
+
+En staging hay una cuenta de prueba, seis fichas Rider desactivadas y seis invitaciones privadas asociadas a sus correos. No se guardan esos correos ni contraseñas en GitHub.
+
+1. Configurar `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY` en el entorno de build de staging.
+2. Abrir la app nativa y pulsar **Crear cuenta Rider**.
+3. Cada Rider escribe el correo que recibió como invitación y crea su propia contraseña única de al menos 10 caracteres.
+4. Si Supabase exige confirmación, abrir el correo de verificación y después volver a la app para **Iniciar sesión**.
+5. La app vincula la cuenta solo si el correo confirmado coincide con una invitación privada. Los correos no invitados no reciben acceso de Rider.
+
+No reutilizar contraseñas compartidas que se hayan pegado en chats. Este flujo no ha sido probado en dispositivo: staging todavía tiene cero usuarios Auth y no se ha generado una build.
