@@ -23,7 +23,7 @@ const cases = [
   ['SMS integration only sends with customer authorization', sms.includes('order.notifications_consent') && sms.includes('order.notification_channel!=="sms"')],
   ['Route panel is present and optional', customer.includes('id="routePanel"') && customer.includes('hidden')],
   ['Route details require server validation and freshness', track.includes('route.validated===true') && track.includes('Date.now()-routeTime<120000')],
-  ['Twilio network call has a bounded timeout', sms.includes('signal:AbortSignal.timeout(12000)')],
+  ['Twilio network call has a bounded timeout', sms.includes('signal:AbortSignal.timeout(8000)')],
   ['Twilio remains controlled by server-side feature flag', sms.includes('ESTAMBUL_MESSAGING_ENABLED')],
   ['Revoked token clears previously rendered private map', track.includes('current=null;') && track.includes('el("orderContent").hidden=true;')],
   ['Stale live map is hidden on connection loss', track.includes('A failed poll must not leave an old GPS marker') && track.includes('el("liveMapPanel").hidden=true')],
