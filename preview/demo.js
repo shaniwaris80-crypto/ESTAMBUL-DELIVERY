@@ -79,6 +79,18 @@ function render(){
   el("proAvailableRiders").textContent=String(riders.filter(r=>r.active&&r.online&&r.user_id).length);
   el("proWaitingOrders").textContent=String(open.filter(o=>o.channel!=="test"&&o.status!=="en_ruta").length);
   el("proSyncLabel").textContent=lastReloadAt?new Date(lastReloadAt).toLocaleTimeString("es-ES"):"Esperando…";
+  const spotlight=open.filter(o=>o.channel!=="test").slice(0,5);
+  el("opsSpotlightOrders").innerHTML=spotlight.length?spotlight.map(o=>{
+   const riderLabel=riders.find(r=>r.id===o.rider_id)?.display_name||"Sin Rider · asignar desde LastPOS";
+   const pay=Number(o.amount)>0?Number(o.amount).toLocaleString("es-ES",{style:"currency",currency:"EUR"}):"Importe pendiente";
+   return '<article class="ed-spotlight-order"><div class="ed-spotlight-icon" aria-hidden="true">🥙</div>'+
+    '<div class="ed-spotlight-info"><span class="ed-spotlight-code">#'+esc(o.reference)+
+    ' <small>'+esc(chan[o.channel]||o.channel)+'</small></span><strong>'+esc(o.customer_name||"Cliente")+
+    '</strong><p>'+esc(o.destination||"Dirección no indicada")+'</p>'+
+    '<small class="ed-spotlight-rider">🛵 '+esc(riderLabel)+'</small></div>'+
+    '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
+    '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
+  }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
   const rosterSlots=Array.from({length:5},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
@@ -133,7 +145,6 @@ function render(){
   }).join("")||'<p>No hay pedidos asignados a este rider.</p>';
  }
 }
-
   document.querySelector("#loading")?.setAttribute("hidden","");
   el("noConfig").hidden=true;el("loginSection").hidden=true;el("appSection").hidden=false;el("staffView").hidden=false;
   el("accountLabel").textContent="DEMOSTRACIÓN · ESTAMBUL";el("connection").textContent="DEMO · SIN CONEXIÓN";
@@ -181,7 +192,7 @@ function render(){
  const channelNames={test:"Prueba",lastapp:"Last.app",uber:"Uber Eats",justeat:"Just Eat"};
  const allowedNext={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
  const nextNames={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
- const paymentDrafts=new Map(),locationShares=new Map();
+ const paymentDrafts=new Map(),locationShares=new Map(),smsOutcomes=new Map();
  const locationSharingAvailable=true;
  const canShareFollowup=()=>false;
  const waitMinutes=o=>Math.max(0,Math.round((Date.now()-Date.parse(o.created_at))/60000));
@@ -248,7 +259,7 @@ function renderOrder(order,isPriority=false) {
            canShareFollowup(order)?" · WhatsApp manual":"")+'</button>'
         :progressAction)+guestButton+
       (order.accepted_at&&["asignado","recogido","en_ruta"].includes(order.status)
-        ?'<span class="one-link-note">✓ Enlace inicial enviado · sin SMS por estados</span>':'');
+        ?'<span class="one-link-note">Pedido aceptado · SMS no verificado · sin mensajes adicionales por estados</span>':'');
   return '<article class="order-card '+(isPriority?"priority-order":"active-order")+'">'+
     '<div class="order-top"><div><span class="order-number">#'+escapeText(displayOrderCode(order))+
     '</span><span class="channel">'+escapeText(channelNames[order.channel]||order.channel)+
@@ -260,6 +271,7 @@ function renderOrder(order,isPriority=false) {
     '<div class="client-label client-label-gap">DIRECCIÓN DE ENTREGA</div>'+
     '<p class="destination">📍 '+escapeText(order.destination)+'</p>'+
     (order.notes?'<div class="delivery-notes"><strong>📝 Instrucciones</strong><p>'+escapeText(order.notes)+'</p></div>':'')+
+    (smsOutcomes.has(order.id)?'<div class="sms-delivery-notice '+(smsOutcomes.get(order.id).ok?'ok':'warn')+'" role="status">'+escapeText(smsOutcomes.get(order.id).message)+'</div>':'')+
     (itemController?.render(order)||"")+
     '<div class="payment-panel '+(order.payment_method==="efectivo"?"cash":order.payment_method==="tarjeta"?"card":"unknown")+'">'+
     '<span class="payment-title">'+escapeText(order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR")+'</span>'+
@@ -268,7 +280,6 @@ function renderOrder(order,isPriority=false) {
     paymentConfirmation+
     '<div class="actions">'+actions+'</div></article>';
 }
-
 
  let showHistory=false;
  $("loading").hidden=true;$("login").hidden=true;$("dashboard").hidden=false;
@@ -316,6 +327,9 @@ function renderOrder(order,isPriority=false) {
  });
  $("toggleHistory").addEventListener("click",()=>{showHistory=!showHistory;draw();});
  $("refreshButton").addEventListener("click",()=>{draw();notice("Sincronización simulada; no se consultó LastPOS.");});
+ $("smsHealthPanel").classList.add("sms-ready");
+ $("smsHealthStatus").textContent="SMS simulado: esta vista nunca conecta con Twilio.";
+ $("checkSmsHealth").addEventListener("click",()=>notice("No se realiza ningún envío ni verificación real en la demostración."));
  $("availabilityButton").addEventListener("click",()=>{const x=$("onlineLabel");const online=x.textContent!=="Estoy disponible";x.textContent=online?"Estoy disponible":"No disponible";$("onlineLight").classList.toggle("active",online);notice("Disponibilidad ficticia.");});
  $("toggleGps").addEventListener("click",()=>notice("GPS desactivado en la previsualización."));
  $("reviewDay").addEventListener("click",()=>{$("dayClosePanel").hidden=!$("dayClosePanel").hidden;$("dayCloseTotals").textContent="Arqueo simulado · efectivo 16,50 € · tarjeta 20,00 €";});
