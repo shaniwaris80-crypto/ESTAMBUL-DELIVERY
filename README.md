@@ -2,25 +2,32 @@
 
 Rama: `rebuild/staging-first`. PR #34 en borrador. No fusionado a `main`.
 
-## Estado actual: núcleo HTTP desplegado y probado en staging
+## Estado actual: núcleo HTTP y cola automática desplegados en staging
 
-Se ha desplegado **únicamente** `edv9-last-gateway` en el proyecto existente
-**ESTAMBUL DELIVERY STAGING**, separado del proyecto de producción.
-El esquema nuevo `ed_last_stage` y sus seis RPC de backend están instalados allí.
-No se han sustituido las funciones originales, modificado el webhook externo de
-Last.app, activado SMS ni publicado las nuevas aplicaciones.
+En **ESTAMBUL DELIVERY STAGING** están instalados `edv9-last-gateway`,
+`edv9-last-queue` y el esquema privado `ed_last_stage`. La cola revisa trabajos
+pendientes cada minuto; recupera reintentos y leases vencidas, sin otro webhook.
+Las funciones originales Last.app y producción no se han reemplazado.
 
-La prueba integrada ejecutada en Supabase utiliza Edge Runtime y PostgREST reales,
-pero **simula Last.app y sus solicitudes de webhook dentro del arnés de prueba**.
-Resultado: un evento, un snapshot, un procesamiento, rechazo de autenticación
-incorrecta y rechazo de reutilización de la clave de prueba. Los datos son ficticios.
-Las 56 pruebas Node (30 de contrato y 26 HTTP) y la instalación SQL en CI pasaron.
+**La conexión real de sandbox NO está activada.** El diagnóstico Edge confirma
+`sandbox_token_present=false`, `sandbox_enabled=false` y cero localizaciones
+sandbox aprobadas. No se reutilizan credenciales ni webhook de producción.
 
-La recepción externa del módulo nuevo está deshabilitada: requiere configuración
-explícita del sandbox y validación con Last.app. No confundir un servicio desplegado
-y una prueba sintética superada con una suscripción Last.app real funcionando.
+Prueba remota de cola: tres eventos ficticios, uno con fallo temporal y otro con
+trabajo abandonado. El cron real de las 20:29 UTC del 20 de octubre de 2026 recuperó
+los tres: tres snapshots, intentos 2/1/2, cero lecturas de Last.app y cero SMS.
+Los componentes cron/HTTPS/Edge/PostgREST/PostgreSQL fueron reales; Last.app fue
+simulado mediante fixtures. Las rutas sintéticas quedaron deshabilitadas al terminar.
 
-Detalles, evidencia y límites: [staging](integrations/lastapp/isolation/staging/README.md).
+Se ejecutaron 71 pruebas Node (56 anteriores y 15 de cola), con cero fallos;
+las pruebas SQL y los cuatro workflows también pasaron sobre el código revisado.
+Un aviso nuevo por la ubicación de pg_net fue corregido en staging y el servicio
+volvió a responder HTTP 200. Persisten avisos de seguridad heredados, ajenos al
+módulo nuevo; no se declara todo el proyecto libre de avisos.
+
+Evidencia exacta: [verificación de la cola](integrations/lastapp/isolation/queue/STAGING_VERIFICATION.md).
+Detalles: [núcleo HTTP](integrations/lastapp/isolation/staging/README.md) y
+[cola durable](integrations/lastapp/isolation/queue/README.md).
 
 ## Fase 1: código antiguo retirado de esta rama
 
@@ -30,35 +37,38 @@ migraciones históricas en `supabase/migrations` y `docs/LAST_APP_INTEGRATION.md
 Estas migraciones no se ejecutaron para instalar el esquema nuevo.
 Eliminar archivos Git no desactiva funciones externas ya desplegadas.
 
-## Fase 2 y 3: núcleo separado y adaptadores
+## Fases 2–4: módulos separados
 
-`integrations/lastapp/isolation/contract.mjs`: datos y procesamiento independientes.
-`schema.sql`: bootstrap de CI que sigue rechazando tablas legacy.
-`http.mjs`: autenticación HTTP, lectura Last.app GET acotada y adaptador RPC.
-`staging/`: despliegue aditivo separado, prueba sintética de un solo uso y evidencia.
+- `integrations/lastapp/isolation/contract.mjs`: normalización y procesamiento independientes.
+- `schema.sql`: bootstrap de CI, no ejecutar junto a tablas legacy.
+- `http.mjs` y `staging/`: autenticación, lectura acotada de Last.app, RPC y despliegue de pruebas.
+- `queue/`: procesamiento periódico, permisos, tickets de un uso, límites, fixtures y evidencia.
 
-La instalación aditiva de staging permite coexistir con las tablas anteriores, sin
-referenciarlas ni alterarlas. El núcleo nuevo no crea riders, pedidos operativos,
-arqueos, chat ni mensajes. Los datos del courier no se convierten en autoasignaciones.
-Los importes desconocidos siguen siendo desconocidos; pago preferido no significa
-cobro confirmado; CLOSED no significa DELIVERED.
+La instalación aditiva de staging permite coexistir con las tablas anteriores sin
+referenciarlas ni alterarlas. No crea riders, pedidos operativos, arqueos, chat ni
+mensajes. Las asignaciones siguen siendo manuales en Last.app. Importe desconocido
+no equivale a cero; método preferido no confirma cobro; CLOSED no significa DELIVERED.
 
 ## Verificaciones
 
 ```sh
 python3 -m unittest discover -s tests -v
 python3 scripts/verify_lastapp_preservation.py
-node --test integrations/lastapp/isolation/tests/contract.test.mjs integrations/lastapp/isolation/tests/http.test.mjs
+node --test integrations/lastapp/isolation/tests/*.test.mjs integrations/lastapp/isolation/queue/tests/*.test.mjs
 ```
 
-Los tres workflows comprueban integridad, contrato/concurrencia y HTTP/migración.
-No despliegan a Supabase ni contienen secretos de negocio. Consultar las ejecuciones
-para el commit concreto; tener tests escritos no demuestra que hayan pasado.
+Los workflows solo comprueban: no despliegan ni usan secretos remotos de negocio.
+Consultar las ejecuciones del commit concreto. No ejecutar `supabase db push` desde
+la carpeta legacy. La cola puede pausarse mediante su control privado, sin borrar datos.
 
-## Pendientes antes de activar datos reales
+## Pendientes antes de datos reales y aplicación nueva
 
-Validar sandbox, token y localización Last.app; registrar separadamente el nuevo
-webhook sin cambiar producción; completar drenaje periódico/reintentos de la cola,
-polling/reconciliación y retención/purga. Después conectar los módulos operativos.
-Aún no hay Back Office nuevo, Rider App nueva ni envío SMS verificado.
-No ejecutar `supabase db push` desde la carpeta de migraciones legacy.
+Configurar la credencial y localización sandbox; suscripción de webhook separada;
+política de retención/purga de payloads y polling/reconciliación para pedidos cuyos
+eventos nunca lleguen. La cola recupera solo trabajos ya recibidos, no descubre
+pedidos desconocidos. La limpieza diaria actual solo alcanza informes de scheduler
+caducados de más de siete días. No borra pedidos ni eventos.
+
+Aún no hay Back Office nuevo, Rider App nueva, seguimiento nuevo ni SMS real verificado.
+Los seis riders legacy de staging siguen conservados. No se han modificado cuentas,
+secretos, base de datos ni webhook de producción.
