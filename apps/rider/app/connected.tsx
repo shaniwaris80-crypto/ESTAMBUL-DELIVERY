@@ -73,7 +73,7 @@ export default function Connected(){
  const orders=suggestRoute(data?.orders.filter(o=>!["entregado","cancelado"].includes(o.status))||[]);
  const links=orders.length>=2?routeLinks(orders):[];
  return <SafeAreaView style={s.safe}>
- <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Demo</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
+ <View style={s.top}><Pressable onPress={()=>router.replace("/demo")}><Text style={s.back}>‹ Demo</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
  <ScrollView contentContainerStyle={s.body}>
  {!isConnectedConfigured?<View style={s.card}><Text style={s.title}>Pendiente de configurar</Text><Text style={s.help}>Debes configurar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY para activar las cuentas y pedidos compartidos.</Text></View>
  :!signed?<View style={s.card}><Text style={s.title}>Iniciar sesión</Text><Text style={s.help}>Usa tu cuenta individual de rider de pruebas.</Text>
