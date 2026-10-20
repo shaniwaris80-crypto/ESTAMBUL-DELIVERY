@@ -1,3 +1,13 @@
+> **Actualización 20-10-2026 — este estado sustituye las referencias históricas de abajo cuando discrepen.**  
+> PR 17 sigue abierto como borrador. Los cambios de este turno se hicieron solo en `feature/customer-experience-pro-v1`; no se fusionó ni se desplegó la web.
+>
+> - Proyecto confirmado: **ESTAMBUL DELIVERY STAGING** (`rknxqlijcgpbecoophva`), estado activo. Tiene registradas las migraciones 001–024, la de asignación manual `20261019110628_dashboard_assignment` y `20261019113113_ed_rider_accept_tracking`. La migración 016 aparece aplicada; la política posterior conserva la asignación manual de Last.app/Dashboard.
+> - La rama ahora incluye el archivo fuente `20261019113113_ed_rider_accept_tracking.sql`, sincronizado con la RPC presente en staging. No volver a aplicar esa versión ni ejecutar un `db push` sin revisar primero el plan de migraciones.
+> - `ed-rider-accept-sms` está activa en staging, versión 1, con verificación JWT activada. Solo la primera aceptación crea el token y llama al proveedor; las llamadas posteriores se bloquean para evitar duplicados.
+> - **SMS aún no verificado como entregado:** el código registra `provider_accepted` o `provider_rejected`; no hay callback que confirme `delivered`. Tampoco hay reintento automático tras rechazo o timeout. Un timeout es ambiguo y reenviar podría duplicar el SMS; debe resolverse con una cola/outbox idempotente, estado del proveedor y mock local sin salida de red antes de activar reintentos.
+> - Verificación de solo lectura realizada ahora: 0 pedidos, 0 riders, 0 filas en cola y 0 recibos SMS en staging. No se invocó Twilio ni se enviaron SMS/WhatsApp. Mantener `ESTAMBUL_MESSAGING_ENABLED=false` mientras se prueban fixtures y mocks.
+> - Build, typecheck, E2E, concurrencia real con fixtures, `skipped`, rechazo/timeout, GPS y arqueo siguen pendientes de ejecutar. Este documento es una guía; no declara esas pruebas aprobadas.
+>
 # PR 17 — procedimiento reproducible de validación en staging
 
 Estado al preparar este runbook: PR 17 abierto, en borrador y sin fusionar. Este documento es un plan de ejecución; **no afirma que las pruebas estén hechas**.
