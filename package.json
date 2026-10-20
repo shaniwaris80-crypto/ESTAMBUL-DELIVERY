@@ -12,7 +12,8 @@
     "build:backoffice": "npm run build -w @estambul/backoffice",
     "typecheck:backoffice": "npm run typecheck -w @estambul/backoffice",
     "typecheck:rider": "npm run typecheck -w @estambul/rider",
-    "check:demo": "node --check docs/demo.js && node --check docs/sw.js"
+    "check:demo": "node --check docs/demo.js && node --check docs/sw.js",
+    "test:sms-policy": "node --test scripts/test-sms-policy.mjs"
   },
   "engines": {
     "node": ">=20"
