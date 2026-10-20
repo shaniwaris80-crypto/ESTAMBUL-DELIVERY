@@ -42,6 +42,16 @@ async function request(path:string,options:RequestInit={}):Promise<any>{
  }
  return parse(resp);
 }
+export async function registerRider(email:string,password:string):Promise<{sessionCreated:boolean}>{
+ if(!isConnectedConfigured)throw new Error("No está configurado Supabase.");
+ if(password.length<10)throw new Error("Usa una contraseña nueva de al menos 10 caracteres.");
+ const data=await parse(await fetch(base+"/auth/v1/signup",{method:"POST",headers:configHeaders(),body:JSON.stringify({email,password})}));
+ if(data.access_token&&data.refresh_token){
+  await persist({access_token:data.access_token,refresh_token:data.refresh_token,expires:Date.now()+data.expires_in*1000});
+  return {sessionCreated:true};
+ }
+ return {sessionCreated:false};
+}
 export async function loginRider(email:string,password:string){
  if(!isConnectedConfigured)throw new Error("No está configurado Supabase.");
  const data=await parse(await fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:configHeaders(),body:JSON.stringify({email,password})}));
