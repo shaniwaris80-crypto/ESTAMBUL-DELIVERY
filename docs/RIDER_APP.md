@@ -128,3 +128,10 @@ Al volver online, empieza un **nuevo turno separado**, con efectivo contado y ob
 - **Rider:** pulsar **💬 Enviar arqueo por WhatsApp normal** desde la vista del arqueo. Se abre WhatsApp con todo el texto precargado; hay que seleccionar destinatario y pulsar Enviar. También se mantiene Copiar arqueo.
 - **Administrador:** en cada pedido hay un botón **💬 WhatsApp** que abre el chat al teléfono internacional registrado con número de pedido y estado actual precargados. Antes hay que guardar teléfono, canal WhatsApp y permiso del cliente en Editar pedido. El botón queda deshabilitado si no hay autorización.
 - **No es envío automático**: abrir un enlace WhatsApp `api.whatsapp.com/send` no equivale a enviar, ni permite confirmar recepción. La cola Twilio sigue montada pero desactivada hasta que se apruebe un proveedor y los remitentes.
+
+
+## Inicio de la app nativa (Android / iPhone)
+
+La app Expo abre directamente el acceso Rider conectado (`/connected`). La demostración ficticia queda separada en `/demo`, accesible desde el enlace «Demo» de la pantalla conectada. La autenticación usa Supabase configurado para el build; si faltan la URL y la clave publicable, la pantalla indica que el backend está pendiente de configuración. No introducir credenciales ni datos de clientes en Git.
+
+Esta modificación organiza el arranque de la app; no crea por sí sola un APK/IPA ni activa GPS en segundo plano, notificaciones push o sincronización de pedidos reales. Para distribuir una build se necesitan credenciales Expo/EAS, firma de Apple para iOS y pruebas internas en dispositivos.
