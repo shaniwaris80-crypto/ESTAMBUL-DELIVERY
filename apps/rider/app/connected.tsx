@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
 
-const palette={dark:"#14253b",orange:"#ee9848",green:"#199874",muted:"#7890a4",bg:"#f3f6fa"};
+const palette={dark:"#15271f",orange:"#1b7452",green:"#147c55",muted:"#697a73",bg:"#f4f6f3",border:"#e0e8e0",soft:"#eaf1eb",lime:"#d7f1ae"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const nextLabel:{[key:string]:string}={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
 function waiting(order:RiderOrder):number{
@@ -133,14 +133,14 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
 }
 const s=StyleSheet.create({
  safe:{flex:1,backgroundColor:palette.bg},top:{backgroundColor:palette.dark,padding:18,paddingTop:24,flexDirection:"row",alignItems:"center",gap:20},
- back:{color:"#bdcde0",fontSize:15},brand:{color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:.6},topSub:{color:"#bdcde0",fontSize:10,letterSpacing:1,marginTop:4},
- body:{padding:16,paddingBottom:50},card:{backgroundColor:"#fff",borderColor:"#e0e7ee",borderWidth:1,borderRadius:15,padding:19,marginBottom:12},
- eyebrow:{fontSize:10,color:"#7593ab",fontWeight:"800",marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
+ back:{color:"#c4dc9a",fontSize:15},brand:{color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:.6},topSub:{color:"#c4dc9a",fontSize:10,letterSpacing:1,marginTop:4},
+ body:{padding:16,paddingBottom:50},card:{backgroundColor:"#fff",borderColor:palette.border,borderWidth:1,borderRadius:15,padding:19,marginBottom:12},
+ eyebrow:{fontSize:10,color:"#697a73",fontWeight:"800",marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
  help:{color:palette.muted,fontSize:13,lineHeight:21,marginBottom:15},
- input:{backgroundColor:"#fff",padding:14,borderRadius:9,borderColor:"#dbe3eb",borderWidth:1,marginVertical:7},
+ input:{backgroundColor:"#fff",padding:14,borderRadius:9,borderColor:palette.border,borderWidth:1,marginVertical:7},
  button:{backgroundColor:palette.orange,padding:13,borderRadius:9,alignItems:"center",justifyContent:"center"},
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
- outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b4c9df",alignItems:"center",justifyContent:"center"},
- outlineText:{color:"#3474a9",fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
- error:{backgroundColor:"#fde7e7",color:"#9b3838",padding:13,borderRadius:9},footer:{textAlign:"center",fontSize:10,color:"#94a3b3",marginTop:17}
+ outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b8cabb",alignItems:"center",justifyContent:"center"},
+ outlineText:{color:palette.green,fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
+ error:{backgroundColor:"#fde7e7",color:"#9b3838",padding:13,borderRadius:9},footer:{textAlign:"center",fontSize:10,color:"#8b9b8e",marginTop:17}
 })
