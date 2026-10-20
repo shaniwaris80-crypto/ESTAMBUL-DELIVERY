@@ -197,3 +197,10 @@ body{background:var(--light);color:var(--dark);font-family:Inter,ui-sans-serif,-
 .payment-confirmation span {font-size:.83rem;font-weight:800;letter-spacing:.02em;}
 .payment-confirmation select {width:100%;min-height:46px;padding:9px;border:1px solid #718197;border-radius:8px;background:var(--paper,#fff);color:var(--ink,#122238);font:inherit;font-weight:700;}
 .payment-confirmation small {font-size:.74rem;opacity:.87;}
+
+
+/* ESTAMBUL DELIVERY · palette 2026 */
+:root{--navy:#17211e;--blue:#27352e;--orange:#d99b2b;--green:#238b59;--muted:#6c7b71;--light:#f3f6f1;--line:#e1e8df;--dark:#1b2923}
+body{background:#f3f6f1;color:#1b2923}
+.topbar{background:#17211e}
+button:focus-visible,input:focus-visible{outline-color:#a8d95b}
