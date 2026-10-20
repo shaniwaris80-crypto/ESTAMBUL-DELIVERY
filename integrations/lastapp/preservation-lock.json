@@ -1,0 +1,17 @@
+{
+  "phase": "repository-cleanup-only",
+  "source_commit": "0f407f2d48145b69c99c4f46643fb2ca13378e32",
+  "observed_main_commit": "ba3863c654e4535af64d715c405bb854bfef7db8",
+  "protected_blobs": {
+    "supabase/functions/ed-last-webhook/index.ts": "0681b4126f448453fb38a815b40439d32589b1e6",
+    "supabase/functions/ed-last-auto-sync/index.ts": "bdc2790d4f2e1915b4aa2b3617923c72620d1b23",
+    "docs/LAST_APP_INTEGRATION.md": "2907c42a3d479a95275fd6d703acc9bb29b29b16"
+  },
+  "protected_trees": {
+    "supabase/migrations": "7106f2df35ee60e16e90983fa4f45a25f65bea8d"
+  },
+  "cleanup_function_allowlist": ["ed-last-auto-sync", "ed-last-webhook"],
+  "sql_history_file_count": 23,
+  "runtime_tested": false,
+  "production_changes_authorized_by_this_cleanup": false
+}

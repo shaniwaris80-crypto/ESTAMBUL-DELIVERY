@@ -1,0 +1,17 @@
+import {readFileSync,writeFileSync,mkdirSync,readdirSync} from 'node:fs';
+import {dirname,join,resolve} from 'node:path';
+import {fileURLToPath} from 'node:url';
+import {spawnSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
+const [target,output]=process.argv.slice(2);
+if(target!=='rknxqlijcgpbecoophva'||!output)throw Error('Expected inspected staging ref and empty workspace');
+const dir=resolve(output);mkdirSync(join(dir,'supabase/migrations'),{recursive:true});
+if(readdirSync(join(dir,'supabase/migrations')).length)throw Error('Refusing nonempty workspace');
+const child=spawnSync('npx',['--yes','supabase@2.121.0','migration','new','edv9_last_recovery_retention'],{cwd:dir,stdio:'inherit'});
+if(child.status!==0)throw Error('CLI failed');
+const names=readdirSync(join(dir,'supabase/migrations'));if(names.length!==1)throw Error('Unexpected CLI output');
+const here=dirname(fileURLToPath(import.meta.url));
+const base=readFileSync(join(here,'schema.sql'),'utf8');if(!base.endsWith('COMMIT;\n'))throw Error('Unexpected schema envelope');
+const source=base.slice(0,-'COMMIT;\n'.length)+readFileSync(join(here,'hardening.sql'),'utf8')+'COMMIT;\n';
+const path=join(dir,'supabase/migrations',names[0]);writeFileSync(path,source);writeFileSync(join(dir,'migration-path.txt'),path+'\n');
+console.log('GENERATED_MIGRATION='+names[0]);console.log('MIGRATION_SHA256='+createHash('sha256').update(source).digest('hex'));
