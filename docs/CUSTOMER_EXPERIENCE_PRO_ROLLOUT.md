@@ -1,8 +1,8 @@
 # Estambul Delivery PRO — Experiencia del cliente (fase 1)
-Fecha: 2026-10-14 · Rama de trabajo: `feature/customer-experience-pro-v1`
+Fecha: 2026-10-20 · Rama de trabajo: `feature/customer-experience-pro-v1`\n\n**Estado:** se aplicó la paleta y el diseño móvil del seguimiento en esta rama. La aceptación RPC y Edge Function existen en staging; faltan callback de entrega, reintentos seguros y las pruebas indicadas. PR 17 sigue en borrador.
 
 ## Objetivo
-Mejorar la experiencia del cliente sin modificar el diseño del despacho, el arqueo ni las integraciones estables. No activar comunicaciones reales desde este cambio documental.
+Rediseñar el centro de operaciones, Rider y seguimiento según las capturas, conservar Last.app intacta y cerrar una sola notificación SMS automática por pedido. Las pruebas se limitan a staging con fixtures y mock sin red; no se activa Twilio.
 
 ## Inventario verificado en el repositorio
 - Ya existe seguimiento privado por pedido mediante `track.html#token=...` y `docs/track.js`.
@@ -11,24 +11,38 @@ Mejorar la experiencia del cliente sin modificar el diseño del despacho, el arq
 - Hay formulario de valoración posterior a la entrega y chat del cliente condicionado al estado.
 - La documentación del repositorio distingue demos y conectores operativos; validar las integraciones reales en staging antes de hacer afirmaciones de producción.
 
-## Contrato único de eventos (propuesta, no desplegado)
-Unificar cambios de Last.app y GloriaFood en un evento interno:
-`source`, `source_order_id`, `account_id`, `event_id`, `event_type`, `occurred_at`, `received_at`, `payment_method_raw`, `payment_method_normalized`, `order_status`, `customer_sms_opt_in`.
+## Contrato SMS único por pedido
 
-- Conservar valor original de método de pago y distinguir `cash`, `card_on_delivery`, `prepaid_online`, `unknown` sin inventar estados.
-- Deduplicar por identificador estable de origen y evento; el mismo evento no debe generar dos SMS.
-- Procesar fuera de la petición webhook en cola durable con reintentos y dead-letter.
-- Firmas, autenticidad y autorización de webhooks deben verificarse según cada proveedor.
-- No registrar tokens privados de seguimiento ni datos completos de clientes en logs.
+La única comunicación automática prevista es **un SMS con el enlace privado cuando el Rider acepta por primera vez un pedido asignado**. No se envía otro SMS al recoger, iniciar ruta, cambiar el estado, reintentar un webhook o cerrar el arqueo.
 
-## SMS transaccionales mediante Twilio (propuesta)
-1. Pedido recibido y confirmado: solo cuando existe estado confiable del origen.
-2. Salida a reparto: enlace privado de seguimiento por pedido.
-3. Retraso significativo: aviso único por umbral configurable y reevaluación.
-4. Nunca enviar a números de prueba no autorizados; separar marketing de comunicaciones de servicio.
-5. Persistir `notification_id`, pedido, tipo, idioma, estado, referencia Twilio, intentos y errores minimizados.
-6. Procesar callbacks de estado para distinguir aceptado, enviado, entregado y fallido.
-7. Guardar credenciales Twilio exclusivamente en secretos del servidor, nunca en GitHub Pages, frontend o URL.
+- Deduplicar la aceptación mediante bloqueo transaccional por pedido, `accepted_at` y un token privado único. Aceptaciones simultáneas deben producir un enlace y un intento como máximo.
+- Exigir consentimiento de SMS, teléfono válido E.164 y pedido activo. No enviar a teléfonos de fixtures ni llamar a Last.app/GloriaFood durante estas pruebas.
+- Registrar estado mínimo y referencia del proveedor, sin cuerpo SMS, teléfono, token ni secretos en logs.
+- El callback firmado del proveedor debe actualizar el estado de forma idempotente: `provider_accepted` no equivale a `delivered`.
+- Reintentar solo rechazos definitivos que confirmen que el proveedor no creó el mensaje, con límite y deduplicación por pedido. Un timeout o respuesta ambigua queda en revisión manual; reenviar automáticamente podría duplicar el SMS.
+- Credenciales Twilio solo en secretos del servidor. El flag de mensajería permanece apagado en staging.
+
+## Experiencia visual inspirada en las capturas
+
+- En móvil, si el Rider comparte GPS reciente, mapa primero y tarjeta inferior solapada con estado, progreso y hora estimada.
+- Acciones claras para llamar al restaurante y contactar con el Rider; el mapa y el chat respetan los permisos y el estado del pedido.
+- Paleta carbón `#171d1a`, verde `#4b8746`, lima `#b8e45a`, ámbar `#dfa52f` y fondos marfil. Mantener estados de error, pago y éxito diferenciables por texto e icono además del color.
+- Last.app continúa como autoridad de asignación. Las reglas de webhook, pedidos y pagos no se alteran con el cambio de CSS.
+
+## Pruebas obligatorias en staging
+
+- [ ] Pedido sintético de Last.app y GloriaFood en fixtures aislados aparece una sola vez; no llamar a esos servicios.
+- [ ] Dos aceptaciones concurrentes del mismo pedido producen un token y un único intento SMS simulado.
+- [ ] Repetición del webhook/aceptación no crea segundo token ni mensaje.
+- [ ] Consentimiento ausente, teléfono inválido y pedido cancelado producen estado explicable y cero intentos al proveedor.
+- [ ] Mock local sin salida de red cubre aceptación, rechazo definitivo, timeout ambiguo y callback duplicado.
+- [ ] Rechazo definitivo permite solo el reintento configurado; timeout ambiguo no reenvía automáticamente.
+- [ ] `skipped` no aparece como enviado ni entregado.
+- [ ] Enlace de un pedido no permite ver otro; token caducado o revocado deja de funcionar.
+- [ ] Rider sin compartir GPS, GPS antiguo, entrega/cancelación y permiso retirado no exponen posición.
+- [ ] Efectivo, tarjeta y prepago se conservan; asignar, cancelar o cerrar arqueo no duplica importes.
+- [ ] Móvil sin conexión, reanudación, accesibilidad, build, typecheck y E2E se verifican antes de aprobar.
+- [ ] Rollback con fixtures revierte tokens, recibos, SMS simulados y cambios de arqueo; las filas iniciales se comparan antes/después.
 
 ## Seguridad del seguimiento
 - Token aleatorio de alta entropía, caducidad, revocación y exposición solo del pedido correspondiente.
