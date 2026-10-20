@@ -34,6 +34,16 @@ jobs:
           trap 'kill "$SERVER_PID" || true' EXIT
           for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
           PLAYWRIGHT_ENTRY="$RUNNER_TEMP/v9-browser/node_modules/playwright/index.mjs" node system-v9/tests/browser.mjs
+      - name: Retain public build and synthetic browser screenshots
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: v9-interfaces-staging
+          path: |
+            dist-v9/
+            v9-browser-evidence/
+            system-v9/STATUS.json
+          if-no-files-found: error
+          retention-days: 14
       - name: Report scope
         if: always()
         run: |
