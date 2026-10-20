@@ -4,7 +4,7 @@ import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type ConnectedState, type RiderOrder } from "../lib/connected";
 
-const palette={dark:"#15271f",orange:"#1b7452",green:"#147c55",muted:"#697a73",bg:"#f4f6f3",border:"#e0e8e0",soft:"#eaf1eb",lime:"#d7f1ae"};
+const palette={dark:"#15271f",primary:"#1b7452",green:"#147c55",muted:"#697a73",bg:"#f4f6f3",border:"#e0e8e0"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const nextLabel:{[key:string]:string}={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
 function waiting(order:RiderOrder):number{
@@ -138,7 +138,7 @@ const s=StyleSheet.create({
  eyebrow:{fontSize:10,color:"#697a73",fontWeight:"800",marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
  help:{color:palette.muted,fontSize:13,lineHeight:21,marginBottom:15},
  input:{backgroundColor:"#fff",padding:14,borderRadius:9,borderColor:palette.border,borderWidth:1,marginVertical:7},
- button:{backgroundColor:palette.orange,padding:13,borderRadius:9,alignItems:"center",justifyContent:"center"},
+ button:{backgroundColor:palette.primary,padding:13,borderRadius:9,alignItems:"center",justifyContent:"center"},
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
  outline:{padding:12,borderRadius:9,borderWidth:1,borderColor:"#b8cabb",alignItems:"center",justifyContent:"center"},
  outlineText:{color:palette.green,fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
