@@ -1,11 +1,12 @@
 import twilio from "npm:twilio@6.2.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
+import { twilioMessageStatuses } from "../_shared/sms-policy.mjs";
 
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{
   status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}
 });
 const env=(key:string)=>Deno.env.get(key)||"";
-const validStatuses=new Set(["queued","sending","sent","delivered","undelivered","failed"]);
+
 const twilioValidator=twilio as unknown as {
   validateRequest:(authToken:string,signature:string,url:string,params:Record<string,string>)=>boolean
 };
@@ -49,7 +50,7 @@ Deno.serve(async(req:Request)=>{
   const sid=params.MessageSid||params.SmsSid||"";
   const status=(params.MessageStatus||params.SmsStatus||"").toLowerCase();
   const errorCode=params.ErrorCode||"";
-  if(!/^SM[0-9a-fA-F]{32}$/.test(sid)||!validStatuses.has(status))
+  if(!/^SM[0-9a-fA-F]{32}$/.test(sid)||!twilioMessageStatuses.has(status))
     return json({error:"Invalid message status"},400);
 
   try{
