@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 const read=p=>fs.readFileSync(new URL("../"+p,import.meta.url),"utf8");
 const live=read("live.html"),rider=read("rider.html"),track=read("track.html"),ops=read("docs/live.js"),rjs=read("docs/rider.js"),map=read("docs/visual-ops-map-v5.js");
-test("V5 modifies real production pages and shared branded identity",()=>{
- for(const [page,css] of [[live,"visual-backoffice-v5.css"],[rider,"visual-rider-v5.css"],[track,"visual-client-v5.css"]]){
-  assert.match(page,/class="ed-visual-v5"/);assert.ok(page.includes(css));
-  assert.match(page,/docs\/icon.svg\?v=5/);
+test("V4 visual theme is restored on the real pages while operational flows stay intact",()=>{
+ for(const [page,v4css,v5css] of [[live,"live-pro-v4.css","visual-backoffice-v5.css"],[rider,"rider-pro-v4.css","visual-rider-v5.css"],[track,"track-pro-v2.css","visual-client-v5.css"]]){
+  assert.doesNotMatch(page,/class="ed-visual-v5"/);
+  assert.ok(page.includes(v4css));assert.ok(!page.includes(v5css));
+  assert.ok(page.includes("docs/icon.svg"));
  }
- assert.match(read("docs/icon.svg"),/moto con kebab/);
- assert.match(read("docs/visual-burgos-rider.svg"),/Burgos de noche/);
+ assert.match(read("docs/icon.svg"),/<svg/);
 });
 test("PWA uses the new motorcycle icon and updated app shell",()=>{
  assert.match(read("rider.webmanifest"),/docs\/icon.svg\?v=5/);
