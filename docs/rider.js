@@ -81,7 +81,9 @@ async function riderAcceptance(order,resend,tab){
  if(["provider_accepted","provider_accepted_audit_pending"].includes(output.sms_status)){
   if(tab&&!tab.closed)tab.close();
   $("riderShareNotice").hidden=false;
-  $("riderShareNotice").textContent=output.sms_status==="provider_accepted_audit_pending"\n   ?"Twilio aceptó el SMS, pero falló el registro local. No vuelvas a aceptar ni reenvíes; consulta el panel SMS."\n   :"✓ Pedido aceptado. Twilio aceptó el SMS con el enlace. La entrega al móvil se confirmará mediante el callback.";
+  $("riderShareNotice").textContent=output.sms_status==="provider_accepted_audit_pending"
+   ?"Twilio aceptó el SMS, pero falló el registro local. No vuelvas a aceptar ni reenvíes; consulta el panel SMS."
+   :"✓ Pedido aceptado. Twilio aceptó el SMS con el enlace. La entrega al móvil se confirmará mediante el callback.";
  }else if(order.notification_channel==="whatsapp"&&canShareFollowup(order)){
   shareTrackingByWhatsApp(order,link,tab);
  }else{
@@ -89,7 +91,11 @@ async function riderAcceptance(order,resend,tab){
   const reasons={
    provider_disabled:"El envío automático está pendiente de activar con Twilio.",
    provider_not_configured:"Faltan datos del proveedor SMS para enviar automáticamente.",
-   provider_rejected:"Twilio rechazó el envío; revisa el motivo antes de repetir.",\n   provider_retry_exhausted:"Twilio rechazó el envío y el único reintento seguro. No se volverá a enviar automáticamente.",\n   provider_outcome_unknown:"El resultado de Twilio es incierto. No se reenvía para evitar un duplicado; revisa el panel SMS.",\n   status_callback_not_configured:"Falta configurar el callback seguro de estado de Twilio.",\n   audit_error:"No se pudo registrar el resultado del SMS. No vuelvas a aceptar ni reenvíes; consulta el panel.",
+   provider_rejected:"Twilio rechazó el envío; revisa el motivo antes de repetir.",
+   provider_retry_exhausted:"Twilio rechazó el envío y el único reintento seguro. No se volverá a enviar automáticamente.",
+   provider_outcome_unknown:"El resultado de Twilio es incierto. No se reenvía para evitar un duplicado; revisa el panel SMS.",
+   status_callback_not_configured:"Falta configurar el callback seguro de estado de Twilio.",
+   audit_error:"No se pudo registrar el resultado del SMS. No vuelvas a aceptar ni reenvíes; consulta el panel.",
    invalid_phone:"El teléfono del cliente no es válido para SMS.",
    sms_not_authorized:"El cliente no tiene SMS autorizado para este pedido.",
    permission_or_order_error:"No se ha podido verificar el destinatario del SMS.",
