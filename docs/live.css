@@ -83,3 +83,11 @@ input:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid 
 @media(max-width:500px){.coordinate-fields{grid-template-columns:1fr}}
 
 .last-manual{display:block;color:#225f42;background:#eaf6ed;border:1px solid #d1e9d8;border-radius:9px;padding:7px 8px;font-size:11px;white-space:nowrap}
+
+
+/* ESTAMBUL DELIVERY · palette 2026 */
+:root{--navy:#17211e;--text:#1b2923;--muted:#68776e;--line:#e2e8e1;--blue:#207b4d;--orange:#d99b2b;--green:#238b59}
+body{background:#f3f6f1;color:#1b2923}
+.bar{background:#17211e}
+a{color:#207b4d}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #a8d95b;outline-offset:2px}
