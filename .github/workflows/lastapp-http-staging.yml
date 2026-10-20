@@ -1,0 +1,54 @@
+name: Last.app HTTP staging
+on:
+  push:
+    branches: [rebuild/staging-first]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  adapters:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: synthetic_ci_only
+          POSTGRES_DB: edv9_http_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGDATABASE: edv9_http_test
+      PGUSER: postgres
+      PGPASSWORD: synthetic_ci_only
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Preserve original integration
+        run: python3 scripts/verify_lastapp_preservation.py
+      - name: Contract and HTTP tests
+        run: node --test integrations/lastapp/isolation/tests/contract.test.mjs integrations/lastapp/isolation/tests/http.test.mjs
+      - name: Inspect pinned Supabase CLI commands
+        run: |
+          npx --yes supabase@2.121.0 --version
+          npx --yes supabase@2.121.0 --help
+          npx --yes supabase@2.121.0 migration --help
+          npx --yes supabase@2.121.0 migration new --help
+      - name: Generate additive staging migration with CLI
+        run: node integrations/lastapp/isolation/staging/render.mjs rknxqlijcgpbecoophva "$RUNNER_TEMP/edv9-http"
+      - name: Test generated migration without touching legacy sentinels
+        run: |
+          command -v psql || (sudo apt-get update && sudo apt-get install -y postgresql-client)
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE ROLE anon NOLOGIN; CREATE ROLE authenticated NOLOGIN; CREATE ROLE service_role NOLOGIN; CREATE SCHEMA private; CREATE TABLE public.ed_orders(sentinel text); CREATE TABLE private.ed_last_locations(sentinel text);'
+          psql -X -v ON_ERROR_STOP=1 -f "$(cat "$RUNNER_TEMP/edv9-http/migration-path.txt")"
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF to_regclass('public.ed_orders') IS NULL OR to_regclass('private.ed_last_locations') IS NULL THEN RAISE EXCEPTION 'Legacy sentinel changed'; END IF; END \$\$;"
+      - name: Verify backend-only access and probe database protocol
+        run: |
+          psql -X -v ON_ERROR_STOP=1 -c "DO \$\$ BEGIN IF has_function_privilege('anon','public.edv9_last_probe_begin(text)','EXECUTE') OR has_schema_privilege('authenticated','ed_last_stage','USAGE') THEN RAISE EXCEPTION 'Unsafe permissions'; END IF; END \$\$;"
+          psql -X -v ON_ERROR_STOP=1 -c "INSERT INTO ed_last_stage.probes(token_hash,expires_at) VALUES(repeat('a',64),now()+interval '5 minutes'); SET ROLE service_role; SELECT public.edv9_last_probe_begin(repeat('a',64)); DO \$\$ BEGIN IF public.edv9_last_probe_begin(repeat('a',64)) IS NOT NULL THEN RAISE EXCEPTION 'Probe can be replayed'; END IF; END \$\$;"
