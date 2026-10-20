@@ -1,0 +1,41 @@
+name: V9 application interfaces
+on:
+  push:
+    branches: [rebuild/staging-first]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  frontend:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Preserve Last.app sources
+        run: python3 scripts/verify_lastapp_preservation.py
+      - name: Syntax and domain tests
+        run: |
+          node --check system-v9/web/app.mjs
+          node --check system-v9/web/demo.mjs
+          node --test system-v9/tests/*.test.mjs
+      - name: Build staging web output
+        run: node system-v9/scripts/build.mjs
+      - name: Install isolated browser test tool
+        run: |
+          npm install --prefix "$RUNNER_TEMP/v9-browser" playwright@1.55.0
+          "$RUNNER_TEMP/v9-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Browser checks with explicit synthetic data
+        run: |
+          node system-v9/scripts/serve.mjs > "$RUNNER_TEMP/v9-server.log" 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" || true' EXIT
+          for i in $(seq 1 20); do curl -fsS http://127.0.0.1:4173/ > /dev/null && break; sleep 1; done
+          PLAYWRIGHT_ENTRY="$RUNNER_TEMP/v9-browser/node_modules/playwright/index.mjs" node system-v9/tests/browser.mjs
+      - name: Report scope
+        if: always()
+        run: |
+          echo '## V9 interface verification' >> "$GITHUB_STEP_SUMMARY"
+          echo 'UI/domain/browser tests use synthetic in-memory data. No operational API/Auth/SMS is deployed or verified by this workflow. No production deployment occurs.' >> "$GITHUB_STEP_SUMMARY"
