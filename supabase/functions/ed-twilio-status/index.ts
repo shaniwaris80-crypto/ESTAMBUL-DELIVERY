@@ -1,6 +1,6 @@
 import twilio from "npm:twilio@6.2.0";
 import { createClient } from "npm:@supabase/supabase-js@2.57.0";
-import { twilioMessageStatuses } from "../_shared/sms-policy.mjs";
+const twilioMessageStatuses=new Set(["queued","sending","sent","delivered","undelivered","failed"]);
 
 const json=(value:unknown,status=200)=>new Response(JSON.stringify(value),{
   status,headers:{"Content-Type":"application/json","Cache-Control":"no-store"}
