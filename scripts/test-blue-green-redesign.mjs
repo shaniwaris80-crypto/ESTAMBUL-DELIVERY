@@ -58,7 +58,7 @@ test("new navigation is not a simulated data source",()=>{
  const js=read("docs/ed-rider-ui.js");
  assert.doesNotMatch(js,/fetch\s*\(|setInterval\s*\(|\.status\s*=/);
  assert.match(js,/dataset\.edView/);
- assert.match(read("rider-sw.js"),/estambul-rider-shell-v29/);
+ assert.match(read("rider-sw.js"),/estambul-rider-shell-v30/);
  assert.match(read("rider-sw.js"),/ed-rider-blue-green.css/);
  const window={};
  vm.runInNewContext(read("docs/track-state.js"),{window});
@@ -109,4 +109,16 @@ test("Last health read-only RPC is staff-scoped, reports real events, never send
  assert.doesNotMatch(sql,/insert into|update public\.ed_orders|delete from|twilio/i);
  assert.match(op,/\/rest\/v1\/rpc\/ed_staff_last_health/);
  assert.match(admin,/id="edLastHealth"/);
+});
+
+test("Rider can request email recovery without saving passwords",()=>{
+ const html=read("rider.html"),rider=read("docs/rider.js");
+ assert.match(html,/id="riderForgotPassword"/);
+ assert.match(html,/id="riderPasswordRecoveryStatus"/);
+ assert.match(rider,/\/auth\/v1\/recover\?redirect_to=/);
+ assert.match(rider,/selectedRiderSlot===null/);
+ assert.match(rider,/auth\/v1\/token\?grant_type=password/);
+ assert.match(rider,/token_hash/);
+ assert.match(rider,/window\.history\.replaceState/);
+ assert.doesNotMatch(read("rider-sw.js"),/ed_orders|access_token|refresh_token|service_role/i);
 });
