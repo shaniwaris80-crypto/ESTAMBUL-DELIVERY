@@ -43,7 +43,7 @@ test("real Rider delivery still checks the real payment method and concurrent as
 });
 test("Last reported zero price gets a verification warning; no generated amount",()=>{
  assert.match(rider,/verificar importe en Last\.app/);
- assert.match(nativeUI,/Importe 0 €: verifica el total en Last\.app/);
+ assert.match(nativeUI,/€0 recorded: verify the price in Last\.app/);
  const x=analyzeLastFinance({bills:[]});
  assert.equal(x.totalCents,null);
  assert.equal(x.totalSource,"unknown");
@@ -52,7 +52,7 @@ test("prepaid/online is not misclassified as cash nor rider-collected card",()=>
  assert.match(native,/export type DeliveryCollection="efectivo"\|"tarjeta"\|"online"/);
  assert.match(native,/connectedPaymentConfirmation=process\.env\.EXPO_PUBLIC_RIDER_PAYMENT_CONFIRM_ENABLED==="true"/);
  assert.match(native,/payment_method:method==="online"\?null/);
- assert.match(nativeUI,/Ya pagado online · revisión gerente/);
+ assert.match(nativeUI,/Already paid online · manager review/);
  assert.match(nativeUI,/!collection/);
  assert.match(native,/JSON\.stringify\(collectionUpdate\(next,collection\)\)/);
  const x=analyzeLastFinance({bills:[{total:2590,payments:[{amount:2590}]}]});
