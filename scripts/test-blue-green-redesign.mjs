@@ -39,28 +39,46 @@ test("Last.app webhook, manual assignments and private tracking remain the only 
  assert.match(trackJs,/data\.eta_minutes!=null&&Number\.isFinite\(eta\)/);
  assert.match(trackJs,/el\("notFound"\)\.hidden=true;el\("orderContent"\)\.hidden=false/);
 });
-test("six independent Rider profiles supported across web and native with password gating",()=>{
+test("five independent Rider profiles supported across web and native with password gating",()=>{
  const pwa=read("docs/rider-profiles.js"),web=read("docs/rider.js"),native=read("apps/rider/lib/rider-profiles.ts");
- assert.match(pwa,/length:6/);
- assert.match(pwa,/n<=6/);
- assert.match(web,/slot>6/);
- assert.match(native,/\[1,2,3,4,5,6\]/);
- assert.match(native,/slot<=6/);
+ assert.match(pwa,/length:5/);
+ assert.match(pwa,/n<=5/);
+ assert.match(web,/slot>5/);
+ assert.match(native,/\[1,2,3,4,5\]/);
+ assert.match(native,/slot<=5/);
  assert.match(read("apps/rider/app/index.tsx"),/Redirect href="\/connected"/);
- for(let n=1;n<=6;n++)assert.match(rider,new RegExp('data-rider-slot="'+n+'"'));
+ for(let n=1;n<=5;n++)assert.match(rider,new RegExp('data-rider-slot="'+n+'"'));
  assert.match(read("apps/rider/app/connected.tsx"),/riderSlotFromName\(state\.rider\.display_name\)!==slot/);
  assert.match(read("apps/rider/app/connected.tsx"),/screen==="wallet"/);
  assert.match(read("apps/rider/app/connected.tsx"),/accessibilityRole="tab"/);
+ assert.doesNotMatch(rider,/data-rider-slot="6"/);
+ assert.match(read("docs/ed-admin.js"),/Repartidores \(5\)/);
 });
 test("new navigation is not a simulated data source",()=>{
  const js=read("docs/ed-rider-ui.js");
  assert.doesNotMatch(js,/fetch\s*\(|setInterval\s*\(|\.status\s*=/);
  assert.match(js,/dataset\.edView/);
- assert.match(read("rider-sw.js"),/estambul-rider-shell-v28/);
+ assert.match(read("rider-sw.js"),/estambul-rider-shell-v29/);
  assert.match(read("rider-sw.js"),/ed-rider-blue-green.css/);
  const window={};
  vm.runInNewContext(read("docs/track-state.js"),{window});
  const present=window.ESTAMBUL_TRACK_PRESENTATION.presentation;
  assert.equal(present("en_ruta").title,"On the way");
  assert.equal(present("entregado").progress,100);
+});
+
+test("only admin can authorize five rider emails; passwords are chosen by Riders",()=>{
+ const ops=read("docs/live.js");
+ const html=read("live.html"),preview=read("preview/backoffice.html");
+ const sql=read("supabase/migrations/024_admin_authorize_five_rider_emails.sql");
+ for(let n=1;n<=5;n++){assert.match(html,new RegExp('id="riderInviteEmail'+n+'"'));assert.match(preview,new RegExp('id="riderInviteEmail'+n+'"'));}
+ assert.match(ops,/member\?\.role!=="admin"/);
+ assert.match(ops,/ed_admin_authorize_rider_email/);
+ assert.doesNotMatch(ops,/functions\/v1\/ed-invite-riders/);
+ assert.match(sql,/m\.role='admin'/);
+ assert.match(sql,/auth\.uid\(\)/);
+ assert.match(sql,/not between 1 and 5/);
+ assert.match(sql,/revoke all on function public\.ed_admin_authorize_rider_email/);
+ assert.match(sql,/grant execute on function public\.ed_admin_authorize_rider_email\(integer,text\) to authenticated/);
+ assert.match(html,/Crear cuenta Rider/);
 });

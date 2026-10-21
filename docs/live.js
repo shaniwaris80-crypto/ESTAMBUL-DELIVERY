@@ -344,12 +344,12 @@ function render(){
     '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
     '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
   }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
-  const rosterSlots=Array.from({length:6},(_,i)=>{
+  const rosterSlots=Array.from({length:5},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
    return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
   });
-  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 6 listos";
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
   el("riderCapacity").innerHTML=rosterSlots.map(s=>
    '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
    '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+
@@ -438,22 +438,33 @@ el("loginForm").addEventListener("submit",async e=>{
 el("logout").addEventListener("click",()=>{session=null;persist();member=null;account=null;orders=[];riders=[];el("appSection").hidden=true;el("logout").hidden=true;el("loginSection").hidden=false;el("connection").textContent="Desconectado"});
 el("sendInvitations").addEventListener("click",async()=>{
  if(busy||member?.role!=="admin")return;
+ const rows=[1,2,3,4,5].map(n=>({number:n,email:el("riderInviteEmail"+n).value.trim().toLowerCase()}))
+   .filter(row=>row.email);
+ if(!rows.length){
+  el("inviteResult").textContent="Introduce al menos un correo verificado para autorizar su Rider.";
+  el("inviteResult").hidden=false;return;
+ }
+ if(rows.some(row=>!el("riderInviteEmail"+row.number).checkValidity())){
+  el("inviteResult").textContent="Revisa el formato de los correos antes de guardarlos.";
+  el("inviteResult").hidden=false;return;
+ }
+ if(!window.confirm("¿Autorizar estos "+rows.length+" correos de trabajadores para los Riders indicados? Los Riders deberán confirmar su propia cuenta."))return;
  busy=true;clearError();el("sendInvitations").disabled=true;
+ const messages=[];let saved=0;
  try{
-  if(!window.confirm("¿Aprovisionar solo invitaciones Rider ya autorizadas? Las contraseñas temporales se mostrarán una sola vez."))return;
-  const result=await query("/functions/v1/ed-invite-riders",{method:"POST",body:"{}"});
-  const lines=(result.results||[]).map(r=>
-   r.email+" — "+(r.status==="created"?"CUENTA CREADA":r.status)+(r.error?" ("+r.error+")":"")+
-   (r.temporary_password?"\nCONTRASEÑA TEMPORAL: "+r.temporary_password+"\nEnvíala de forma privada. El rider debe cambiarla al entrar.":"")
-  );
-  if(result.already_created?.length)lines.push("Cuentas ya aprovisionadas: "+result.already_created.join(", "));
-  if(!lines.length)lines.push("No hay cuentas pendientes de crear.");
-  if((result.results||[]).some(r=>r.temporary_password))lines.unshift("IMPORTANTE: guarda ahora las contraseñas en un gestor seguro. No podrás volver a verlas.");
-  el("inviteResult").textContent=lines.join("\n");
+  for(const row of rows){
+   try{
+    const result=await query("/rest/v1/rpc/ed_admin_authorize_rider_email",{
+      method:"POST",body:JSON.stringify({p_rider_number:row.number,p_email:row.email})
+    });
+    if(result?.saved===true){saved++;messages.push("Rider "+String(row.number).padStart(2,"0")+": correo autorizado");}
+    else messages.push("Rider "+String(row.number).padStart(2,"0")+": autorización no confirmada");
+   }catch(e){messages.push("Rider "+String(row.number).padStart(2,"0")+": "+String(e?.message||"No se pudo autorizar").slice(0,170));}
+  }
+  messages.push(saved+" de "+rows.length+" correos guardados. Cada Rider debe crear su cuenta y confirmar su correo desde la App Rider.");
+  el("inviteResult").textContent=messages.join("\n");
   el("inviteResult").hidden=false;
- }catch(e){el("inviteResult").textContent="No se pudieron crear las cuentas: "+(e.message||String(e))+
-  ". Revisa el estado del proyecto y los permisos del administrador en Supabase.";el("inviteResult").hidden=false;}
- finally{busy=false;el("sendInvitations").disabled=false;}
+ }finally{busy=false;el("sendInvitations").disabled=false;}
 });
 
 el("brandForm").addEventListener("submit",e=>{

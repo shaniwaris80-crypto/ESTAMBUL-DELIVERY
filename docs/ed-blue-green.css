@@ -59,7 +59,7 @@ body.ed-admin .ed-spotlight-list strong{color:var(--ed-ink)!important}
 body.ed-admin .ed-spotlight-list small,body.ed-admin .ed-spotlight-list p{color:#6f8394!important}
 .ed-fleet{margin-top:10px;padding:15px;background:#102b41;color:#e4f0f4;border-radius:8px}
 .ed-fleet-heading{display:flex;align-items:center;gap:16px;margin-bottom:12px}.ed-fleet-heading strong{font-size:15px;color:#fff}.ed-fleet-heading span{font-size:11px;color:#90adbd}
-.ed-fleet-cards{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px}
+.ed-fleet-cards{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
 .ed-fleet-rider{border:1px solid #244b60;background:#173950!important;color:#e9f4f7!important;border-radius:7px;text-align:left;display:grid;grid-template-columns:25px 1fr;column-gap:7px;padding:12px 8px;min-height:76px;align-content:start}
 .ed-fleet-rider:hover{border-color:#16bb7e}.ed-fleet-icon{grid-row:1/3;color:#2bd798;font-size:22px}.ed-fleet-rider strong{font-size:12px;color:#fff!important}.ed-fleet-rider small{color:#abc2cd;font-size:10px;margin-top:5px}
 .ed-screen>.card,body.ed-admin .ed-screen>.card{margin:12px 0!important;border:1px solid #dce8eb!important;background:#fff!important;box-shadow:none!important;border-radius:9px!important;padding:20px!important}

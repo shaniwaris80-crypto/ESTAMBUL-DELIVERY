@@ -80,7 +80,7 @@ export default function Connected(){
  },[refresh,signed,busy]);
  async function doLogin(){
   if(busy)return;
-  if(slot===null){setError("Select your RIDER 01–06.");return;}
+  if(slot===null){setError("Select your RIDER 01–05.");return;}
   if(!email.trim()){setError("Indica tu correo autorizado para el primer acceso.");return;}
   setBusy(true);setError("");
   try{

@@ -40,7 +40,7 @@
   let operationsEpoch=null,operationsResetReady=true;
   let archivedOrderIds=new Set(), locationShares=new Map(),shiftClosures=[],shiftClosureItems=[];
   let customerFeedback=[],riderPositions=[],brandDetails=null;
-  const riders=Array.from({length:6},(_,i)=>({id:"demo-rider-"+(i+1),display_name:"Rider 0"+(i+1),user_id:i===0?"demo-auth":null,active:true,online:i===0,customer_call_enabled:false,phone:null}));
+  const riders=Array.from({length:5},(_,i)=>({id:"demo-rider-"+(i+1),display_name:"Rider 0"+(i+1),user_id:i===0?"demo-auth":null,active:true,online:i===0,customer_call_enabled:false,phone:null}));
   let orders=[
    {id:"d101",reference:"LA-DEMO-101",channel:"lastapp",customer_name:"Cliente ficticio A",destination:"Dirección de ejemplo · Burgos",status:"pendiente",amount:18.50,rider_id:null,payment_method:null,notes:"Pedido de demostración",notifications_consent:false,notification_channel:"none"},
    {id:"d102",reference:"LA-DEMO-102",channel:"lastapp",customer_name:"Cliente ficticio B",destination:"Calle de prueba · Burgos",status:"en_ruta",amount:26.50,rider_id:"demo-rider-1",payment_method:"efectivo",notes:"Dos pizzas y una bebida (ficticias)",notifications_consent:true,notification_channel:"sms"},
@@ -91,12 +91,12 @@ function render(){
     '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
     '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
   }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
-  const rosterSlots=Array.from({length:6},(_,i)=>{
+  const rosterSlots=Array.from({length:5},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
    return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
   });
-  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 6 listos";
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
   el("riderCapacity").innerHTML=rosterSlots.map(s=>
    '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
    '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+
@@ -428,9 +428,9 @@ function renderOrder(order,isPriority=false) {
   if(map)top.append(map);
   if(queue)top.append(queue);
   const fleet=el("div","ed-fleet",'');
-  const fleetHeading=el("div","ed-fleet-heading","<strong>Repartidores (6)</strong><span>Ver la flota y su actividad</span>");
+  const fleetHeading=el("div","ed-fleet-heading","<strong>Repartidores (5)</strong><span>Ver la flota y su actividad</span>");
   const cards=el("div","ed-fleet-cards");
-  for(let i=1;i<=6;i++){
+  for(let i=1;i<=5;i++){
    const btn=el("button","ed-fleet-rider");
    btn.type="button";
    btn.dataset.rider=String(i);
@@ -477,11 +477,20 @@ function renderOrder(order,isPriority=false) {
    const count=document.getElementById("riderCount")?.textContent?.trim()||"";
    document.getElementById("edWaiting").textContent=waiting;
    document.getElementById("edRoute").textContent=route;
-   // This is a configured profile capacity, not a claim of six logged-in people.
-   document.getElementById("edRiders").textContent="6";
-   document.getElementById("edRiders").title=count||"6 perfiles disponibles (no son conexiones confirmadas)";
+   // This is a configured profile capacity, not a claim of five logged-in people.
+   document.getElementById("edRiders").textContent=(count.match(/^(\d+)\s+de\s+5\s+listos/)?.[1]||"0")+"/5";
+   document.getElementById("edRiders").title=count||"5 perfiles disponibles; cuentas aún sin activar";
    const connection=document.getElementById("connection");
    const status=connection?.textContent?.trim()||"Sin configurar";
+   // Show verified identity state; never invent rider online status.
+   for(const btn of cards.querySelectorAll("[data-rider]")){
+     const n=Number(btn.dataset.rider);
+     const slot=[...document.querySelectorAll("#riderCapacity .rider-slot")].find(row=>Number(row.querySelector(".rider-slot-number")?.textContent)===n);
+     const subtitle=btn.querySelector("small");
+     if(subtitle)subtitle.textContent=slot?.classList.contains("ready")
+       ? (slot.textContent?.includes("Online")?"● Online":"● Cuenta activa")
+       : "○ Cuenta pendiente";
+   }
    const service=document.getElementById("edService");
    service.textContent=status;
    service.parentElement.classList.toggle("ed-online",/conectad|online|activo/i.test(status)&&!/desconectad/i.test(status));
