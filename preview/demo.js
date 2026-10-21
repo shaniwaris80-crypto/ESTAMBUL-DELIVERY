@@ -408,6 +408,7 @@ function renderOrder(order,isPriority=false) {
   const area=el("div","ed-workspace");
   const toolbar=el("div","ed-toolbar",
     '<div class="ed-toolbar-title"><span>ESTAMBUL DELIVERY</span><strong id="edTitle">Operaciones</strong></div>'+
+    '<span id="edLastHealth" class="ed-last-health" role="status" aria-live="polite">Last.app · comprobando integración</span>'+
     '<div class="ed-kpis" aria-label="Estado actual">'+
     '<div><b id="edWaiting">—</b><small>Sin rider</small></div>'+
     '<div><b id="edRoute">—</b><small>En reparto</small></div>'+
@@ -471,6 +472,10 @@ function renderOrder(order,isPriority=false) {
     window.scrollTo({top:0,behavior:"instant"});
   }
   activate("operations");
+  if(window.ESTAMBUL_PARITY_PREVIEW){
+    const chip=document.getElementById("edLastHealth");
+    if(chip)chip.textContent="Last.app · DEMO sin conexión";
+  }
   function update(){
    const waiting=document.getElementById("opsUnassignedCount")?.textContent?.trim()||"—";
    const route=document.getElementById("opsRouteCount")?.textContent?.trim()||"—";

@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#091523"><link rel="icon" href="docs/icon.svg?v=5" type="image/svg+xml"><title>Estambul Delivery PRO · Centro de operaciones</title><link rel="stylesheet" href="docs/live.css?v=22"><link rel="stylesheet" href="docs/v2-live.css?v=2"><link rel="stylesheet" href="docs/live-pro-v3.css?v=1"><link rel="stylesheet" href="docs/live-pro-v4.css?v=1"><link rel="stylesheet" href="docs/v9-light-staging.css?v=1">
-<link rel="stylesheet" href="docs/ed-blue-green.css?v=1"></head>
+<meta name="referrer" content="no-referrer"><meta name="theme-color" content="#091523"><link rel="icon" href="docs/icon.svg?v=5" type="image/svg+xml"><title>Estambul Delivery PRO · Centro de operaciones</title><link rel="stylesheet" href="docs/live.css?v=22"><link rel="stylesheet" href="docs/v2-live.css?v=2"><link rel="stylesheet" href="docs/live-pro-v3.css?v=1"><link rel="stylesheet" href="docs/live-pro-v4.css?v=1"><link rel="stylesheet" href="docs/v9-light-staging.css?v=1">
+<link rel="stylesheet" href="docs/ed-blue-green.css?v=2"></head>
 <body class="ed-admin">
 <header class="bar"><div class="brand"><span class="brand-icon"><img src="docs/icon.svg?v=5" alt="" width="45" height="45"></span><span>ESTAMBUL <b>DELIVERY</b><small>OPERACIONES · ESTAMBUL PRO</small></span></div>
 <div class="header-right"><a class="outline" href="rider.html" style="text-decoration:none">App Rider</a><span id="connection" class="tag">Sin configurar</span><button id="logout" class="outline" hidden>Salir</button></div></header>
@@ -9,9 +9,24 @@
 <div id="noConfig" class="card center" hidden><h1>Conexión pendiente</h1><p>El modo con cuentas reales de prueba está preparado, pero todavía no se ha configurado un proyecto Supabase.</p><p>Lee <a href="https://github.com/shaniwaris80-crypto/ESTAMBUL-DELIVERY/blob/main/supabase/README.md" target="_blank" rel="noopener noreferrer">las instrucciones de activación</a>. Nunca pongas una clave secreta en GitHub.</p><a href="./" class="btn">Volver a la demostración pública</a></div>
 <section id="loginSection" class="auth-layout" hidden>
 <div class="auth-art"><div class="eyebrow">ESTAMBUL DELIVERY · VERSIÓN CONECTADA</div><h1>Una operación.<br>Todo bajo control.</h1><p>Accede con tu cuenta individual para controlar repartos, clientes y arqueos desde un único lugar.</p><div class="graphic">🛵 <span>→</span> 📍 <span>→</span> 📦</div><p class="disclaimer">Los pedidos reales se sincronizan desde Last.app. La asignación de repartidores se hace exclusivamente desde LastPOS.</p></div>
-<form id="loginForm" class="card login" autocomplete="on"><span class="eyebrow">ACCESO SEGURO</span><h2>Entrar en Estambul</h2><p>Usa uno de los usuarios de prueba configurados en Supabase.</p><label for="email">Correo electrónico</label><input id="email" type="email" required autocomplete="username" placeholder="rider@ejemplo.com">
-<label for="password">Contraseña</label><input id="password" type="password" required autocomplete="current-password" minlength="6" placeholder="••••••••">
-<button type="submit" class="btn" id="signInButton">Entrar</button><button type="button" class="outline" id="signUpButton" style="display:block;width:100%;margin-top:11px">Crear mi cuenta de administrador</button><p id="signUpInfo" role="status" style="margin-top:12px;color:#256f5d" hidden></p><div id="loginError" role="alert" class="error" hidden></div></form></section>
+<form id="loginForm" class="card login" autocomplete="on"><span class="eyebrow">ACCESO SEGURO</span><h2>Entrar en Estambul</h2><p>Accede con tu cuenta administrativa verificada de Estambul Delivery.</p><label for="email">Correo electrónico</label><input id="email" type="email" required autocomplete="username" placeholder="Correo de administrador">
+<label for="password">Contraseña</label><input id="password" type="password" required autocomplete="current-password" minlength="8" placeholder="••••••••">
+<button type="submit" class="btn" id="signInButton">Entrar al Back Office</button>
+<button type="button" id="forgotPasswordButton" class="outline" style="width:100%;margin-top:12px">Recuperar contraseña por correo</button>
+<p id="recoveryEmailStatus" role="status" class="small-note" hidden></p>
+<button type="button" id="signUpButton" hidden>Solicitar otra cuenta de administrador</button>
+<p id="signUpInfo" role="status" hidden></p>
+<div id="loginError" role="alert" class="error" hidden></div></form>
+<form id="passwordRecoveryForm" class="card login" hidden>
+<span class="eyebrow">RECUPERACIÓN VERIFICADA</span><h2>Nueva contraseña</h2>
+<p>Introduce tu nueva contraseña después de abrir el enlace que recibiste en tu correo.</p>
+<label for="recoveryNewPassword">Contraseña nueva (mínimo 10 caracteres)</label>
+<input id="recoveryNewPassword" type="password" minlength="10" autocomplete="new-password" required>
+<label for="recoveryConfirmPassword">Repite la contraseña</label>
+<input id="recoveryConfirmPassword" type="password" minlength="10" autocomplete="new-password" required>
+<button id="recoverySaveButton" class="btn" type="submit">Guardar contraseña</button>
+<p id="recoverySubmitStatus" class="small-note" role="status" hidden></p>
+</form></section>
 <section id="appSection" hidden><div class="app-title"><div><span class="eyebrow" id="accountLabel">CUENTA</span><h1 id="viewTitle">Centro de Operaciones</h1><p id="viewSub">Despacho, riders y cobros desde una sola pantalla.</p></div><button class="outline" id="refresh">↻ Actualizar</button></div>
 <div id="errorBox" class="error" role="alert" hidden></div>
 <div class="stats" id="stats"></div>
@@ -165,5 +180,5 @@
 </div>
 <div id="riderView" hidden><div class="card"><h2>Mis pedidos</h2><p>Solo puedes consultar las entregas que te han asignado.</p><div id="myOrders" class="my-orders"></div></div></div>
 <footer id="lastSync" class="footer">Esperando datos...</footer></section>
-</main><script src="docs/live-config.js"></script><script src="docs/visual-ops-map-v5.js?v=1"></script><script defer src="docs/live.js?v=24"></script><script defer src="docs/ed-admin.js?v=1"></script><footer class="v9-signature">✦ Diseñado y desarrollado por Arslan W</footer>
+</main><script src="docs/live-config.js"></script><script src="docs/visual-ops-map-v5.js?v=1"></script><script defer src="docs/admin-email-recovery.js?v=1"></script><script defer src="docs/live.js?v=25"></script><script defer src="docs/ed-admin.js?v=2"></script><footer class="v9-signature">✦ Diseñado y desarrollado por Arslan W</footer>
 </body></html>

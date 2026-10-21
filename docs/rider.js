@@ -845,6 +845,35 @@ $("registerButton").addEventListener("click", async () => {
     busy = false; $("registerButton").disabled = false; $("loginButton").disabled = false;
   }
 });
+$("riderForgotPassword").addEventListener("click",async()=>{
+ if(busy)return;
+ if(selectedRiderSlot===null){setError("Selecciona primero tu perfil Rider 01–05.",true);return;}
+ const field=$("email"),email=field.value.trim().toLowerCase();
+ if(!email||!field.checkValidity()){
+   $("riderEmailGroup").hidden=false;
+   field.required=true;
+   field.reportValidity();
+   field.focus();
+   return;
+ }
+ busy=true;
+ $("riderForgotPassword").disabled=true;
+ $("riderPasswordRecoveryStatus").hidden=false;
+ $("riderPasswordRecoveryStatus").textContent="Solicitando recuperación por correo…";
+ try{
+   const redirect=encodeURIComponent("https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/rider.html");
+   await jsonResponse(await fetch(base+"/auth/v1/recover?redirect_to="+redirect,{
+     method:"POST",headers:heads(),body:JSON.stringify({email})
+   }));
+   $("riderPasswordRecoveryStatus").textContent="Si este correo tiene una cuenta Rider autorizada, recibirás un enlace de recuperación. Revisa también spam.";
+ }catch(error){
+   $("riderPasswordRecoveryStatus").textContent=(error?.message||"No fue posible enviar el correo.")+
+    " Pide al administrador que compruebe tu autorización y la configuración de correo.";
+ }finally{
+   busy=false;
+   $("riderForgotPassword").disabled=false;
+ }
+});
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy) return;
   if(selectedRiderSlot===null){setError("Primero elige tu RIDER 01–05.",true);return;}

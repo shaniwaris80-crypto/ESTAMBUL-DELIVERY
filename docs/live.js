@@ -77,6 +77,34 @@ async function query(path,options={}){
  if(r.status===401){await newToken();hdr.Authorization="Bearer "+session.access_token;r=await fetch(base+path,{...options,headers:hdr});}
  return parsed(r);
 }
+
+let lastHealthCheckedAt=0;
+async function updateLastHealth(){
+ const chip=el("edLastHealth");
+ if(!chip||!member||member.role==="rider"||Date.now()-lastHealthCheckedAt<30000)return;
+ lastHealthCheckedAt=Date.now();
+ chip.classList.remove("is-good","is-error");
+ try{
+  const h=await query("/rest/v1/rpc/ed_staff_last_health",{method:"POST",body:"{}"});
+  const locations=Number(h?.approved_locations)||0;
+  const received=Number(h?.new_events)||0;
+  const processed=Number(h?.processed_events)||0;
+  const failures=Number(h?.failed_events)||0;
+  if(locations===0){chip.textContent="Last.app · ubicación sin autorizar";chip.classList.add("is-error");}
+  else if(failures>0){chip.textContent="Last.app · "+failures+" eventos con error";chip.classList.add("is-error");}
+  else if(received===0){chip.textContent="Last.app · autorizado · sin pedido nuevo verificado";}
+  else if(processed===0){chip.textContent="Last.app · "+received+" eventos pendientes de completar";}
+  else{chip.textContent="Last.app · "+processed+" eventos procesados";chip.classList.add("is-good");}
+  chip.title="Eventos recibidos después de autorizar la ubicación: "+received+
+   ". Procesados: "+processed+". Fallidos: "+failures+
+   ". Los webhooks pueden estar disponibles aunque todavía no haya un pedido importado.";
+ }catch(e){
+  chip.textContent="Last.app · estado no disponible";
+  chip.title="Comprueba el estado en Supabase; no se han alterado pedidos.";
+  chip.classList.add("is-error");
+ }
+}
+
 async function identity(){
  const user=await query("/auth/v1/user");
  const m=await query("/rest/v1/ed_members?select=account_id,role,active&user_id=eq."+encodeURIComponent(user.id)+"&active=eq.true");
@@ -159,6 +187,7 @@ async function reload(){
  lastReloadAt=Date.now();
  el("connection").textContent="Sincronizado";
  render();
+ if(member.role!=="rider")void updateLastHealth();
 }
 function mapsLink(o){
  const target=(o.lat!=null&&o.lng!=null)?String(o.lat)+","+String(o.lng):String(o.destination||"").trim();
@@ -405,6 +434,7 @@ async function operation(fn){
 }
 async function start(){
  if(!ready){el("noConfig").hidden=false;el("connection").textContent="Sin configurar";return}
+ if(await window.ESTAMBUL_ADMIN_RECOVERY?.initialise?.())return;
  if(!session){el("loginSection").hidden=false;el("connection").textContent="Acceso requerido";return}
  try{await identity();logged();await reload()}catch(e){session=null;persist();member=null;el("loginSection").hidden=false;message(e,true)}
 }

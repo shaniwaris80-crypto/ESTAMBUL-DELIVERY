@@ -44,9 +44,9 @@ test("visible Rider SMS readiness and forced new PWA shell",()=>{
  assert.match(html,/id="smsHealthPanel"/);
  assert.match(html,/id="smsHealthStatus"/);
  assert.match(html,/id="checkSmsHealth"/);
- assert.match(html,/docs\/rider\.js\?v=27/);
+ assert.match(html,/docs\/rider\.js\?v=28/);
  assert.match(html,/rider-pro-v4\.css\?v=1/);
- assert.match(read("rider-sw.js"),/const CACHE="estambul-rider-shell-v29"/);
+ assert.match(read("rider-sw.js"),/const CACHE="estambul-rider-shell-v30"/);
  assert.match(rider,/withAuth\("\/functions\/v1\/ed-rider-accept-sms",\{method:"GET"\}\)/);
 });
 test("manual LastPOS, no resend, no status-change texts and optional packing preserved",()=>{
