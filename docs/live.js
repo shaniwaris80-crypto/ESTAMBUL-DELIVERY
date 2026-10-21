@@ -344,12 +344,12 @@ function render(){
     '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
     '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
   }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
-  const rosterSlots=Array.from({length:5},(_,i)=>{
+  const rosterSlots=Array.from({length:6},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
    return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
   });
-  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 6 listos";
   el("riderCapacity").innerHTML=rosterSlots.map(s=>
    '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
    '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+

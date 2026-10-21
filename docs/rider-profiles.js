@@ -6,10 +6,10 @@
  const emailPattern=/^[^\s@]{1,128}@[^\s@]{1,255}$/;
  const slotNumber=value=>{
   const n=Number(value);
-  return Number.isInteger(n)&&n>=1&&n<=5?n:null;
+  return Number.isInteger(n)&&n>=1&&n<=6?n:null;
  };
  const slotForName=name=>{
-  const match=String(name||"").trim().match(/^rider[\s_-]*0?([1-5])$/i);
+  const match=String(name||"").trim().match(/^rider[\s_-]*0?([1-6])$/i);
   return match?Number(match[1]):null;
  };
  function readEmail(slot){
@@ -25,6 +25,6 @@
   const n=slotNumber(slot);if(!n)return;
   try{root.localStorage?.removeItem(prefix+n);}catch{}
  }
- const profiles=Object.freeze(Array.from({length:5},(_,i)=>Object.freeze({slot:i+1,label:"RIDER "+String(i+1).padStart(2,"0")})));
+ const profiles=Object.freeze(Array.from({length:6},(_,i)=>Object.freeze({slot:i+1,label:"RIDER "+String(i+1).padStart(2,"0")})));
  root.ESTAMBUL_RIDER_PROFILES=Object.freeze({profiles,slotForName,readEmail,rememberEmail,forgetEmail});
 })(typeof window!=="undefined"?window:globalThis);

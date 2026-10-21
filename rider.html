@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="es">
+<html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#081522">
@@ -13,15 +13,15 @@
 <link rel="stylesheet" href="docs/rider.css?v=22"><link rel="stylesheet" href="docs/v2-rider.css?v=3"><link rel="stylesheet" href="docs/rider-pro-v3.css?v=1"><link rel="stylesheet" href="docs/rider-packing.css?v=1"><link rel="stylesheet" href="docs/rider-pro-v4.css?v=1">
 <title>Estambul Rider PRO · App de reparto</title>
 <link rel="stylesheet" href="docs/v9-light-staging.css?v=1">
-</head>
-<body>
+<link rel="stylesheet" href="docs/ed-blue-green.css?v=1"><link rel="stylesheet" href="docs/ed-rider-blue-green.css?v=1"></head>
+<body class="ed-rider">
 <header class="topbar"><div class="topbar-inner"><div class="brand"><div class="mark"><img src="docs/icon.svg?v=5" width="47" height="47" alt=""></div><div><strong>ESTAMBUL</strong><small>DELIVERY · RIDER</small></div></div><span class="mode-tag">ESTAMBUL PRO</span></div></header>
 <main class="app">
 <section id="loading" class="loading"><span class="loader"></span><p>Conectando con Estambul Delivery...</p></section>
 <section id="login" class="login-screen" hidden>
-<div class="intro"><span class="eyebrow">APP DEL REPARTIDOR</span><h1>Tu reparto, con toda la potencia. 🛵</h1><p>Accede únicamente a tus entregas asignadas, actualiza el estado y abre la navegación en Google Maps.</p></div>
-<form id="loginForm" class="panel login-card pro-access"><div class="card-symbol">🛵</div><h2>Acceso rápido Rider</h2><p>Elige tu identificación. Tu contraseña es personal y nunca se guarda en este dispositivo.</p>
-<div class="rider-access-eyebrow">01 · SELECCIONA TU PERFIL</div>
+<div class="intro"><span class="eyebrow">APP DEL REPARTIDOR</span><h1>Deliver better. Every day.</h1><p>Sign in to see your assigned deliveries, update their status and open Google Maps.</p></div>
+<form id="loginForm" class="panel login-card pro-access"><div class="card-symbol">🛵</div><h2>Rider sign in</h2><p>Choose your Rider profile. Your password is never stored on this device.</p>
+<div class="rider-access-eyebrow">01 · SELECT YOUR PROFILE</div>
 <div class="rider-profile-grid" id="riderProfiles" role="group" aria-label="Identificación del repartidor">
 <button class="rider-profile" type="button" data-rider-slot="1" aria-pressed="false"><span class="rider-avatar">01</span><strong>RIDER 01</strong><small>Elegir perfil</small></button>
 <button class="rider-profile" type="button" data-rider-slot="2" aria-pressed="false"><span class="rider-avatar">02</span><strong>RIDER 02</strong><small>Elegir perfil</small></button>
@@ -30,12 +30,12 @@
 <button class="rider-profile" type="button" data-rider-slot="5" aria-pressed="false"><span class="rider-avatar">05</span><strong>RIDER 05</strong><small>Elegir perfil</small></button>
 <button class="rider-profile" type="button" data-rider-slot="6" aria-pressed="false"><span class="rider-avatar">06</span><strong>RIDER 06</strong><small>Elegir perfil</small></button>
 </div>
-<div class="rider-access-eyebrow">02 · IDENTIFÍCATE</div>
-<p id="riderProfileHint" class="rider-profile-hint" role="status">Elige tu perfil para continuar.</p>
-<div id="riderEmailGroup" hidden><label for="email">CORREO AUTORIZADO · PRIMER ACCESO</label><input id="email" type="email" autocomplete="username" inputmode="email" placeholder="tu-correo@ejemplo.com"><p class="rider-email-note">El correo solo se solicita la primera vez en este dispositivo. El administrador debe haber autorizado tu cuenta.</p></div>
-<label for="password">CONTRASEÑA INDIVIDUAL</label><input id="password" type="password" required autocomplete="current-password" placeholder="Tu contraseña" disabled>
+<div class="rider-access-eyebrow">02 · SIGN IN</div>
+<p id="riderProfileHint" class="rider-profile-hint" role="status">Select your profile to continue.</p>
+<div id="riderEmailGroup" hidden><label for="email">AUTHORIZED EMAIL · FIRST SIGN IN</label><input id="email" type="email" autocomplete="username" inputmode="email" placeholder="tu-correo@ejemplo.com"><p class="rider-email-note">El correo solo se solicita la primera vez en este dispositivo. El administrador debe haber autorizado tu cuenta.</p></div>
+<label for="password">YOUR PASSWORD</label><input id="password" type="password" required autocomplete="current-password" placeholder="Your password" disabled>
 <button id="forgetRiderDevice" type="button" class="rider-forget" hidden>Usar otro correo para este perfil</button>
-<button id="loginButton" class="btn btn-main" type="submit">Iniciar sesión <span>→</span></button>
+<button id="loginButton" class="btn btn-main" type="submit">Sign in <span>→</span></button>
 <button id="registerButton" type="button" class="btn btn-outline" style="width:100%;margin-top:9px;background:white;color:#254866;border:1px solid #aec3d6">Crear cuenta Rider</button><p id="registerInfo" class="register-info" role="status" hidden></p>
 <div id="loginError" class="error" role="alert" hidden></div>
 </form>
@@ -91,7 +91,7 @@
 </section>
 <section id="activeDeliveries" class="work-section" aria-labelledby="currentOrdersTitle">
   <div class="work-header">
-    <div><span class="eyebrow">🥙 MI JORNADA · TRABAJO ACTIVO</span><h2 id="currentOrdersTitle">Entregas activas <span id="listCount" class="list-count">0</span></h2></div>
+    <div><span class="eyebrow">🥙 MY SHIFT · ACTIVE DELIVERIES</span><h2 id="currentOrdersTitle">Active deliveries <span id="listCount" class="list-count">0</span></h2></div>
     <span class="live-indicator" id="riderSyncHealth" role="status" aria-live="polite">● Esperando sincronización</span>
   </div>
   <p class="rider-help">Múltiples pedidos asignados manualmente desde Last.app. Los más antiguos se destacan; «Optimizar» sugiere el orden de entrega. Aquí solo aparecen los pedidos por recoger y en reparto. Los entregados se conservan hasta cerrar arqueo; después desaparecen de la jornada, sin borrar el informe.</p>
@@ -147,7 +147,7 @@
 <section class="install panel"><div class="install-emoji">📲</div><div class="install-copy"><strong>Guárdala como aplicación</strong><p>iPhone: Compartir → Añadir a pantalla de inicio. Android: menú del navegador → Instalar aplicación.</p></div><button id="installButton" class="install-button" hidden>Instalar</button></section>
 <p class="disclaimer">ESTAMBUL DELIVERY PRO · GPS WEB · Integración Last.app conservada: asignación manual únicamente desde LastPOS. El GPS web requiere la aplicación visible; no está garantizado con el móvil bloqueado. Compartir la ubicación con el cliente requiere activación por pedido.</p>
 </main>
-<script src="docs/live-config.js"></script><script src="docs/rider-profiles.js?v=1"></script><script src="docs/rider-items.js?v=1"></script><script>window.ESTAMBUL_RIDER_ITEMS_ENABLED=true;</script><script defer src="docs/rider.js?v=27"></script>
+<script src="docs/live-config.js"></script><script src="docs/rider-profiles.js?v=1"></script><script src="docs/rider-items.js?v=1"></script><script>window.ESTAMBUL_RIDER_ITEMS_ENABLED=true;</script><script defer src="docs/rider.js?v=27"></script><script defer src="docs/ed-rider-ui.js?v=1"></script>
 <footer class="v9-signature">✦ Diseñado y desarrollado por Arslan W</footer>
 </body>
 </html>

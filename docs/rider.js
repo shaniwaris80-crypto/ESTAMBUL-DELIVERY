@@ -44,7 +44,7 @@ let mustChangePassword=false;
 let selectedRiderSlot=null;
 const riderProfiles=window.ESTAMBUL_RIDER_PROFILES;
 function setRiderSlot(slot){
- if(!riderProfiles||!Number.isInteger(slot)||slot<1||slot>5)return;
+ if(!riderProfiles||!Number.isInteger(slot)||slot<1||slot>6)return;
  selectedRiderSlot=slot;
  const remembered=riderProfiles.readEmail(slot);
  $("email").value=remembered;
@@ -825,7 +825,7 @@ $("registerButton").addEventListener("click", async () => {
   if (busy) return;
   const email = $("email").value.trim(), password = $("password").value;
   clearError();
-  if(selectedRiderSlot===null){setError("Selecciona tu perfil Rider 01–05.",true);return;}
+  if(selectedRiderSlot===null){setError("Selecciona tu perfil Rider 01–06.",true);return;}
   if (!email || password.length < 8) {
     setError("Escribe tu correo autorizado y una contraseña nueva de al menos 8 caracteres.", true);
     return;
@@ -847,7 +847,7 @@ $("registerButton").addEventListener("click", async () => {
 });
 $("loginForm").addEventListener("submit", async e => {
   e.preventDefault(); if (busy) return;
-  if(selectedRiderSlot===null){setError("Primero elige tu RIDER 01–05.",true);return;}
+  if(selectedRiderSlot===null){setError("Primero elige tu RIDER 01–06.",true);return;}
   busy = true; clearError(); $("loginButton").disabled = true;
   try { await signIn($("email").value.trim(), $("password").value); }
   catch (error) {

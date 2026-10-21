@@ -1,0 +1,66 @@
+/* Approved client tracking: private order, uncluttered white + emerald UI. */
+body.ed-client{background:#f2f7fa!important;color:#132b40!important}
+body.ed-client .brand-header{background:#fff!important;color:#132b40!important;border-bottom:1px solid #e2eaef!important;box-shadow:none!important}
+body.ed-client .brand-header .brand-row{max-width:670px;margin:auto;display:flex;align-items:center;gap:12px}
+body.ed-client .brand-header strong{font-size:17px!important;font-weight:900;color:#10293e!important;letter-spacing:-.045em}
+body.ed-client .brand-header small{font-size:10px!important;letter-spacing:.13em;color:#00875a!important}
+body.ed-client .container{width:min(calc(100% - 28px),670px)!important;max-width:670px!important;margin:15px auto 55px!important}
+body.ed-client #orderContent{display:flex;flex-direction:column;gap:10px}
+body.ed-client #orderContent[hidden]{display:none!important}
+body.ed-client #orderContent>.panel,body.ed-client #orderContent>.waiting-hero,body.ed-client #orderContent>.track-howto{background:#fff!important;border:1px solid #e0e9ed!important;border-radius:12px!important;box-shadow:0 4px 19px rgba(17,45,65,.045)!important;margin:0!important}
+body.ed-client #orderContent>.waiting-hero{padding:21px!important;min-height:0!important;overflow:visible}
+body.ed-client .waiting-hero:after{display:none!important}
+body.ed-client .waiting-hero .waiting-hero-brand{display:flex;justify-content:space-between;align-items:center;color:#4b798b!important;font-size:10px}
+body.ed-client .waiting-hero .waiting-private{background:#e7f7ee!important;color:#087d53!important;border:0!important}
+body.ed-client .waiting-hero .waiting-hero-body{min-height:0!important;margin:18px 0!important;gap:15px!important}
+body.ed-client .waiting-hero .waiting-hero-icon{height:58px!important;width:58px!important;flex-basis:58px!important;border-radius:12px!important;background:#e7f7ef!important;color:#008b60!important;font-size:27px!important}
+body.ed-client .waiting-hero h1{font-size:clamp(26px,6vw,34px)!important;color:#008756!important;line-height:1.13!important;margin:3px 0 8px!important}
+body.ed-client .waiting-hero .waiting-overline{color:#7a95a3!important;font-size:10px!important}
+body.ed-client .waiting-hero p{font-size:13px!important;line-height:1.5!important;color:#5b7185!important}
+body.ed-client .waiting-hero .waiting-hero-footer{border-top:1px solid #e5edef!important;margin:12px 0 0!important;padding-top:10px!important;color:#6e8491!important;font-size:11px!important}
+body.ed-client .track-howto{padding:12px 16px!important;display:flex;align-items:center;gap:12px;background:#edf9f2!important}
+body.ed-client .track-howto p{font-size:12px!important;line-height:1.5!important;color:#447660!important}
+body.ed-client .track-howto strong{color:#087d53!important}
+body.ed-client .order-panel{padding:21px!important}
+body.ed-client .section-top{display:flex;justify-content:space-between;align-items:center}
+body.ed-client .order-panel h1{color:#132e44!important;font-size:23px!important;margin:8px 0!important}
+body.ed-client .order-panel .subtitle{color:#6d8190!important;font-size:12px!important}
+body.ed-client .progress{background:#e4ebef!important;height:7px!important;overflow:hidden;border-radius:100px}
+body.ed-client #progressBar{background:#008d60!important}
+body.ed-client .live-pill{background:#e5f7ec!important;color:#078456!important;border:0!important}
+body.ed-client .steps{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;padding:15px 0!important}
+body.ed-client .steps .step{display:flex;flex-direction:column;gap:7px;align-items:center;text-align:center;border:0!important;padding:0!important;min-width:0;background:transparent!important}
+body.ed-client .steps .step-number{background:#edf1f4!important;color:#7792a0!important;border-color:#dce7e9!important;width:27px!important;height:27px!important;display:grid;place-items:center;border-radius:50%!important}
+body.ed-client .steps .step.past .step-number,body.ed-client .steps .step.current .step-number{background:#008b60!important;color:#fff!important;border-color:#008b60!important}
+body.ed-client .steps .step strong{display:block;font-size:9px!important;line-height:1.2!important;color:#526b78!important;word-break:normal}
+body.ed-client .steps .step p{display:none!important}
+body.ed-client .sync{border-top:1px solid #e9eff1!important;padding-top:10px!important}
+body.ed-client .sync span{color:#6f8596!important;font-size:11px!important}
+body.ed-client #refreshButton{border:1px solid #c8e9d8!important;background:#eff9f3!important;color:#008b60!important}
+body.ed-client #arrivalPanel{padding:20px!important;order:-1}
+body.ed-client .arrival-heading{align-items:center}
+body.ed-client .arrival-heading .arrival-mark{color:#008b60!important;background:#e7f7ed!important}
+body.ed-client .arrival-heading h2{font-size:clamp(22px,5vw,30px)!important;color:#0d8b5d!important;letter-spacing:-.04em}
+body.ed-client .arrival-panel p{color:#6a8090!important;font-size:12px!important}
+body.ed-client #arrivalConfidence,body.ed-client #arrivalDetails{color:#6a8090!important;font-size:11px!important}
+body.ed-client #liveMapPanel{padding:0!important;overflow:hidden}
+body.ed-client .location-head{padding:17px 17px 7px!important}
+body.ed-client .location-head h2{font-size:17px!important;color:#183549!important}
+body.ed-client .location-panel>p{padding:0 17px!important;color:#6c8191!important;font-size:11px!important}
+body.ed-client #riderMap{width:100%!important;height:320px!important;border:0!important;border-radius:0!important}
+body.ed-client .location-footer{padding:11px 16px!important}
+body.ed-client .restaurant-call,body.ed-client .call-rider{padding:17px!important}
+body.ed-client .restaurant-call .call-rider-top h2,body.ed-client .call-rider .call-rider-top h2{font-size:17px!important;color:#183448!important}
+body.ed-client .call-rider-action{display:flex;justify-content:center;align-items:center;background:#e7f8ef!important;border:1px solid #caeddb!important;color:#00794f!important;min-height:49px;border-radius:9px!important;font-weight:800}
+body.ed-client .guest-chat,body.ed-client .feedback-panel,body.ed-client .center{padding:20px!important}
+body.ed-client .primary-button{background:#008b60!important;color:#fff!important}
+body.ed-client #customerChatForm button{background:#008b60!important;color:#fff!important}
+body.ed-client .v9-signature{color:#50806b}
+@media(max-width:490px){
+ body.ed-client .container{width:calc(100% - 16px)!important;margin:8px auto 25px!important}
+ body.ed-client .waiting-hero .waiting-hero-body{gap:10px!important}
+ body.ed-client .waiting-hero .waiting-hero-icon{height:49px!important;width:49px!important;flex-basis:49px!important}
+ body.ed-client .order-panel,body.ed-client .waiting-hero{padding:16px!important}
+ body.ed-client .steps .step strong{font-size:8px!important}
+ body.ed-client .waiting-hero h1{font-size:25px!important}
+}
