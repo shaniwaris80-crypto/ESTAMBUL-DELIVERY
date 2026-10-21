@@ -49,6 +49,8 @@ test("six independent Rider profiles supported across web and native with passwo
  assert.match(read("apps/rider/app/index.tsx"),/Redirect href="\/connected"/);
  for(let n=1;n<=6;n++)assert.match(rider,new RegExp('data-rider-slot="'+n+'"'));
  assert.match(read("apps/rider/app/connected.tsx"),/riderSlotFromName\(state\.rider\.display_name\)!==slot/);
+ assert.match(read("apps/rider/app/connected.tsx"),/screen==="wallet"/);
+ assert.match(read("apps/rider/app/connected.tsx"),/accessibilityRole="tab"/);
 });
 test("new navigation is not a simulated data source",()=>{
  const js=read("docs/ed-rider-ui.js");

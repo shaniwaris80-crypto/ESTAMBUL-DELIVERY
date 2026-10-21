@@ -1,13 +1,12 @@
 import { useCallback,useEffect,useRef,useState } from "react";
 import { Alert, ActivityIndicator, Linking, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { router } from "expo-router";
 import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, connectedItemFeature, connectedPaymentConfirmation, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type DeliveryCollection, type ConnectedState, type RiderOrder } from "../lib/connected";
 import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
 const palette={dark:"#10243a",orange:"#008b60",green:"#008b60",muted:"#6d8195",bg:"#f2f5fa"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
-const nextLabel:{[key:string]:string}={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
+const nextLabel:{[key:string]:string}={recogido:"Confirm pickup",en_ruta:"Start delivery",entregado:"Confirm delivery"};
 function waiting(order:RiderOrder):number{
  const ms=Date.parse(order.created_at);
  return Number.isFinite(ms)?Math.max(0,Math.min(1440,Math.floor((Date.now()-ms)/60000))):0;
@@ -71,6 +70,7 @@ export default function Connected(){
  }
  async function forgetSlot(){if(slot===null)return;await clearRiderEmail(slot);setEmail("");setRemembered(false);setPassword("");}
  const [signed,setSigned]=useState(false),[data,setData]=useState<ConnectedState|null>(null);
+ const [screen,setScreen]=useState<"deliveries"|"wallet"|"account">("deliveries");
  const [busy,setBusy]=useState(false),[error,setError]=useState("");
  const refresh=useCallback(async()=>{const d=await loadConnected();setData(d);setSigned(true);setError("");},[]);
  useEffect(()=>{if(!isConnectedConfigured)return;let active=true;
@@ -100,8 +100,11 @@ export default function Connected(){
  async function logout(){await logoutRider();setSigned(false);setData(null);setPassword("");}
  const orders=suggestRoute(data?.orders.filter(o=>!["entregado","cancelado"].includes(o.status))||[]);
  const links=orders.length>=2?routeLinks(orders):[];
+ const completed=(data?.orders||[]).filter(o=>o.status==="entregado");
+ const cashRecorded=completed.filter(o=>o.payment_method==="efectivo").reduce((sum,o)=>sum+Math.max(0,Number(o.amount)||0),0);
+ const money=(value:number)=>new Intl.NumberFormat("en-IE",{style:"currency",currency:"EUR"}).format(value);
  return <SafeAreaView style={s.safe}>
- <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Inicio</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONNECTED</Text></View></View>
+ <View style={s.top}><View><Text style={s.brand}>ESTAMBUL <Text style={{color:palette.green}}>DELIVERY</Text></Text><Text style={s.topSub}>RIDER · CONNECTED</Text></View>{signed?<Text style={{color:data?.rider.online?palette.green:palette.muted,fontSize:12,fontWeight:"800"}}>{data?.rider.online?"● Online":"○ Offline"}</Text>:null}</View>
  <ScrollView contentContainerStyle={s.body}>
  {!isConnectedConfigured?<View style={s.card}><Text style={s.title}>Pendiente de configurar</Text><Text style={s.help}>Debes configurar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY para activar las cuentas y pedidos compartidos.</Text></View>
 
@@ -127,13 +130,24 @@ export default function Connected(){
    </>}
   </View>
  </View>
- :<><View style={s.card}><Text style={s.eyebrow}>MI CUENTA</Text><Text style={s.title}>{data?.rider.display_name||"Cargando..."}</Text><Text style={s.help}>{orders.length} entregas pendientes · sincronización cada 5 s</Text>
- <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Disponible · Desconectar":"○ Conectarme"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Salir</Text></Pressable></View></View>
- {links.length>0?<View style={s.card}>
-  <Text style={s.eyebrow}>RUTA RECOMENDADA · {orders.length} PEDIDOS</Text>
-  <Text style={s.help}>Primero los pedidos más antiguos, con ajuste por cercanía cuando hay coordenadas. No cambia las asignaciones de Last.app ni considera el tráfico.</Text>
+ :<>{screen==="account"?<><View style={s.card}><Text style={s.eyebrow}>MY ACCOUNT</Text><Text style={s.title}>{data?.rider.display_name||"Loading..."}</Text><Text style={s.help}>{orders.length} assigned deliveries · sync every 5s</Text>
+ <View style={s.inline}><Pressable style={[s.button,{flex:1,backgroundColor:data?.rider.online?palette.green:palette.dark}]} disabled={busy||!data} onPress={()=>data&&void operate(()=>setRiderOnline(data.rider.id,!data.rider.online))}><Text style={s.buttonText}>{data?.rider.online?"● Online · Go offline":"○ Go online"}</Text></Pressable><Pressable style={s.outline} onPress={()=>void logout()}><Text style={s.outlineText}>Log out</Text></Pressable></View></View>
+ <Text style={s.help}>This profile uses your individual Supabase account. Assignments are managed in LastPOS.</Text></>:null}
+ {screen==="wallet"?<><View style={s.card}><Text style={s.eyebrow}>WALLET · READ ONLY</Text>
+ <Text style={s.title}>Payment overview</Text>
+ <View style={s.inline}><View style={{flex:1}}><Text style={s.eyebrow}>DELIVERED ORDERS</Text><Text style={s.title}>{completed.length}</Text></View>
+ <View style={{flex:1}}><Text style={s.eyebrow}>RECORDED CASH</Text><Text style={s.title}>{money(cashRecorded)}</Text></View></View>
+ <Text style={s.help}>Amounts are based on delivered orders visible to your account. This is not a finalized cashout. Complete the official reconciliation in Back Office.</Text></View>
+ <View style={s.card}><Text style={s.eyebrow}>RECENT DELIVERIES</Text>
+ {completed.length===0?<Text style={s.help}>No completed deliveries in the visible period.</Text>:completed.slice(0,20).map(o=>
+ <View key={o.id} style={{paddingVertical:12,borderBottomWidth:1,borderBottomColor:"#e4ecef",flexDirection:"row",justifyContent:"space-between"}}>
+ <View><Text style={{fontWeight:"800",color:palette.dark}}>#{o.reference}</Text><Text style={{color:palette.muted,fontSize:11}}>{o.payment_method==="efectivo"?"Cash":o.payment_method==="tarjeta"?"Card":"Not classified"}</Text></View>
+ <Text style={{fontWeight:"800",color:palette.dark}}>{money(Number(o.amount)||0)}</Text></View>)}</View></>:null}
+ {screen==="deliveries"?<>{links.length>0?<View style={s.card}>
+  <Text style={s.eyebrow}>SUGGESTED ROUTE · {orders.length} ORDERS</Text>
+  <Text style={s.help}>Oldest orders first, with an approximate distance adjustment where coordinates are available. Does not change LastPOS assignments or account for traffic.</Text>
   {links.map((link,i)=><Pressable key={link} style={s.outline} onPress={()=>void Linking.openURL(link)}>
-    <Text style={s.outlineText}>🗺️ Google Maps · Tramo {i+1} de {links.length}</Text>
+    <Text style={s.outlineText}>🗺️ Google Maps · Segment {i+1} of {links.length}</Text>
   </Pressable>)}
  </View>:null}
  {orders.length===0?<View style={s.card}><Text style={s.help}>No deliveries assigned yet. Assign a Rider manually in LastPOS to see orders here.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={(status,collection)=>void operate(async()=>{
@@ -147,10 +161,18 @@ export default function Connected(){
     }
   }
 })}/>)}
- </>}
+ </>:null}</>}
  {!!error&&<Text style={s.error}>{error}</Text>}
- <Text style={s.footer}>Pedidos de Last.app visibles solo tras activar la integración y asignar cada Rider en LastPOS. La ruta es orientativa.</Text>
- </ScrollView></SafeAreaView>
+ <Text style={s.footer}>Last.app orders only appear when riders are assigned manually in LastPOS. Routes are estimates.</Text>
+ </ScrollView>
+ {signed?<View style={s.tabBar}>
+  {(["deliveries","wallet","account"] as const).map(tab=><Pressable key={tab} onPress={()=>setScreen(tab)}
+   accessibilityRole="tab" accessibilityState={{selected:screen===tab}}
+   style={[s.tab,screen===tab&&s.tabSelected]}>
+    <Text style={{fontSize:22,color:screen===tab?palette.green:palette.muted}}>{tab==="deliveries"?"▤":tab==="wallet"?"▣":"♙"}</Text>
+    <Text style={{fontSize:11,fontWeight:"800",color:screen===tab?palette.green:palette.muted}}>{tab==="deliveries"?"Deliveries":tab==="wallet"?"Wallet":"Account"}</Text>
+   </Pressable>)}
+ </View>:null}</SafeAreaView>
 }
 function optionalPackingCategory(line:{name:string;children?:{name:string}[]}):"pizza"|"bebida"|null{
  const names=[line.name,...(line.children||[]).map(x=>x.name)];
@@ -179,11 +201,11 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
  };
  const call=()=>{const phone=String(order.customer_phone||"").replace(/[^+0-9]/g,"");if(phone.length>=6)void Linking.openURL("tel:"+phone)};
  return <View style={[s.card,s.orderCard]}><Text style={s.eyebrow}>{order.channel.toUpperCase()} · {order.reference}</Text>
- <Text style={{fontSize:12,fontWeight:"900",color:waiting(order)>=30?"#ad2e21":waiting(order)>=15?"#986515":palette.green,marginBottom:8}}>◷ {waiting(order)} min esperando{waiting(order)>=30?" · PRIORITARIO":""}</Text>
+ <Text style={{fontSize:12,fontWeight:"900",color:waiting(order)>=30?"#ad2e21":waiting(order)>=15?"#986515":palette.green,marginBottom:8}}>◷ {waiting(order)} min waiting{waiting(order)>=30?" · PRIORITY":""}</Text>
  <Text style={s.title}>{order.customer_name}</Text>
- <Text style={s.eyebrow}>DIRECCIÓN DE ENTREGA</Text>
+ <Text style={s.eyebrow}>DELIVERY ADDRESS</Text>
  <Text style={s.help}>{order.destination}</Text>
- <Text style={s.help}>{order.customer_phone?"☎ "+order.customer_phone:"Sin teléfono de cliente registrado"}</Text>
+ <Text style={s.help}>{order.customer_phone?"☎ "+order.customer_phone:"No customer phone listed"}</Text>
  {order.notes?<View style={{backgroundColor:"#fff6e8",padding:12,borderRadius:9,marginBottom:12}}><Text style={s.help}>📝 {order.notes}</Text></View>:null}
  {connectedItemFeature&&["asignado","recogido","en_ruta"].includes(order.status)?
   <View style={{backgroundColor:"#f0f7fc",padding:14,borderColor:"#cbdce8",borderWidth:1,borderRadius:14,marginBottom:14}}>
@@ -218,19 +240,19 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
    </Text>}
   </View>:null}
  <View style={{backgroundColor:order.payment_method==="efectivo"?"#fff3d8":order.payment_method==="tarjeta"?"#e9f3ff":"#f2f3f6",padding:13,borderRadius:10,marginBottom:12}}>
- <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COBRAR EN EFECTIVO":order.payment_method==="tarjeta"?"💳 PAGO CON TARJETA":"PAGO SIN INDICAR"}</Text>
+ <Text style={{color:palette.dark,fontWeight:"900"}}>{order.payment_method==="efectivo"?"💶 COLLECT CASH":order.payment_method==="tarjeta"?"💳 CARD PAYMENT":"PAYMENT NOT CLASSIFIED"}</Text>
  <Text style={{color:palette.dark,fontSize:20,fontWeight:"900",marginTop:4}}>{new Intl.NumberFormat("es-ES",{style:"currency",currency:"EUR"}).format(order.amount||0)}</Text>
  </View>
  {String(order.reference||"").startsWith("LA-")&&Number(order.amount)===0?
-  <Text style={{color:"#9e5e12",fontWeight:"800",fontSize:12,marginBottom:12}}>⚠ Importe 0 €: verifica el total en Last.app antes de cobrar.</Text>:null}
+  <Text style={{color:"#9e5e12",fontWeight:"800",fontSize:12,marginBottom:12}}>⚠ €0 recorded: verify the price in Last.app before collecting payment.</Text>:null}
  {connectedPaymentConfirmation&&status==="entregado"?
   <View style={{borderRadius:14,borderWidth:1,borderColor:"#d4e4ef",backgroundColor:"#f4f9fc",padding:13,marginBottom:13}}>
-   <Text style={{fontSize:12,fontWeight:"900",color:"#193953",marginBottom:5}}>COBRO AL ENTREGAR</Text>
-   <Text style={{color:"#58738b",fontSize:11,marginBottom:11}}>Confirma el cobro real, no la preferencia de Last.app.</Text>
+   <Text style={{fontSize:12,fontWeight:"900",color:"#193953",marginBottom:5}}>PAYMENT AT DELIVERY</Text>
+   <Text style={{color:"#58738b",fontSize:11,marginBottom:11}}>Confirm the actual collection method, not the preference from Last.app.</Text>
    {([
-    ["efectivo","💶 Efectivo cobrado"],
-    ["tarjeta","💳 Tarjeta cobrada"],
-    ["online","✓ Ya pagado online · revisión gerente"]
+    ["efectivo","💶 Cash collected"],
+    ["tarjeta","💳 Card collected"],
+    ["online","✓ Already paid online · manager review"]
     ] as const).map(([method,label])=>
     <Pressable key={method} accessibilityRole="radio" accessibilityState={{checked:collection===method}}
      onPress={()=>setCollection(method)} style={{padding:13,borderRadius:10,marginBottom:7,
@@ -244,13 +266,13 @@ function OrderItem({order,busy,onAdvance}:{order:RiderOrder;busy:boolean;onAdvan
     <Text style={{color:"#955f14",fontSize:11,lineHeight:18}}>El pago online no se cuenta como dinero cobrado por el Rider. Gerencia tendrá que conciliarlo.</Text>:null}
   </View>:null}
  <Text style={s.status}>{order.status.toUpperCase()}</Text>
- <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Llamar</Text></Pressable>:null}{status?<Pressable disabled={busy||(connectedPaymentConfirmation&&status==="entregado"&&!collection)} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status,collection||undefined)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
+ <View style={s.inline}><Pressable style={s.outline} onPress={nav}><Text style={s.outlineText}>📍 Google Maps ↗</Text></Pressable>{order.customer_phone?<Pressable style={s.outline} onPress={call}><Text style={s.outlineText}>☎ Call</Text></Pressable>:null}{status?<Pressable disabled={busy||(connectedPaymentConfirmation&&status==="entregado"&&!collection)} style={[s.button,{flex:1}]} onPress={()=>onAdvance(status,collection||undefined)}><Text style={s.buttonText}>{nextLabel[status]}</Text></Pressable>:null}</View>
  </View>
 }
 const s=StyleSheet.create({
- safe:{flex:1,backgroundColor:palette.bg},top:{backgroundColor:palette.dark,padding:20,paddingTop:27,flexDirection:"row",alignItems:"center",gap:20},
- back:{color:"#bdcde0",fontSize:15},brand:{color:"#fff",fontSize:18,fontWeight:"900",letterSpacing:.6},topSub:{color:"#bdcde0",fontSize:10,letterSpacing:1,marginTop:4},
- body:{padding:16,paddingBottom:65},card:{backgroundColor:"#fff",borderColor:"#dce6ef",borderWidth:1,borderRadius:19,padding:20,marginBottom:14,shadowColor:"#183353",shadowOpacity:.07,shadowRadius:13,shadowOffset:{width:0,height:5},elevation:2},
+ safe:{flex:1,backgroundColor:"#f7fafc"},top:{backgroundColor:"#fff",padding:20,paddingTop:25,flexDirection:"row",alignItems:"center",justifyContent:"space-between",borderBottomWidth:1,borderBottomColor:"#e2e9ed"},
+ back:{color:"#314d63",fontSize:15},brand:{color:"#10243a",fontSize:18,fontWeight:"900",letterSpacing:.3},topSub:{color:"#6c8596",fontSize:10,letterSpacing:1,marginTop:4},
+ body:{padding:16,paddingBottom:45},tabBar:{backgroundColor:"#fff",flexDirection:"row",justifyContent:"space-around",borderTopWidth:1,borderTopColor:"#e2e9ee",paddingVertical:8},tab:{flex:1,alignItems:"center",justifyContent:"center",padding:8,gap:3},tabSelected:{backgroundColor:"#eef9f2",borderRadius:10},card:{backgroundColor:"#fff",borderColor:"#dce6ef",borderWidth:1,borderRadius:12,padding:20,marginBottom:14,shadowColor:"#183353",shadowOpacity:.07,shadowRadius:13,shadowOffset:{width:0,height:5},elevation:2},
  eyebrow:{fontSize:10,color:"#5c7d98",fontWeight:"900",letterSpacing:.6,marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
  help:{color:palette.muted,fontSize:13,lineHeight:21,marginBottom:15},
  input:{backgroundColor:"#f9fbfd",padding:15,borderRadius:12,borderColor:"#cfdeeb",borderWidth:1,marginVertical:8,fontSize:16,minHeight:50},
