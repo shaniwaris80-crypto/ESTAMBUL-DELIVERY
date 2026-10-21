@@ -53,7 +53,7 @@ test("six independent Rider profiles supported across web and native with passwo
 test("new navigation is not a simulated data source",()=>{
  const js=read("docs/ed-rider-ui.js");
  assert.doesNotMatch(js,/fetch\s*\(|setInterval\s*\(|\.status\s*=/);
- assert.match(js,/data\.edView/);
+ assert.match(js,/dataset\.edView/);
  assert.match(read("rider-sw.js"),/estambul-rider-shell-v28/);
  assert.match(read("rider-sw.js"),/ed-rider-blue-green.css/);
  const window={};

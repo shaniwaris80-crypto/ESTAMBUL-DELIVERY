@@ -20,6 +20,7 @@ test("HTML parity with production",()=>{
   s=s.replace(/href="rider\.html"/g,'href="rider.html"');
   s=s.replace(/<link rel="manifest"[^>]*>/g,"");
   s=s.replace("</head>",'<meta name="robots" content="noindex,nofollow,noarchive"><link rel="stylesheet" href="demo.css?v=1"></head>');
+  s=s.replace(/<body class="([^"]+)">/,'<body class="$1" data-demo-screen="'+type+'">');
   s=s.replace("<body>",'<body data-demo-screen="'+type+'">');
   s=s.replace('<body class="ed-visual-v5">','<body class="ed-visual-v5" data-demo-screen="'+type+'">');
   s=s.replace("<body\n",'<body data-demo-screen="'+type+'"\n');

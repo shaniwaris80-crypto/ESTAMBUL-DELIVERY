@@ -40,7 +40,7 @@
   let operationsEpoch=null,operationsResetReady=true;
   let archivedOrderIds=new Set(), locationShares=new Map(),shiftClosures=[],shiftClosureItems=[];
   let customerFeedback=[],riderPositions=[],brandDetails=null;
-  const riders=Array.from({length:5},(_,i)=>({id:"demo-rider-"+(i+1),display_name:"Rider 0"+(i+1),user_id:i===0?"demo-auth":null,active:true,online:i===0,customer_call_enabled:false,phone:null}));
+  const riders=Array.from({length:6},(_,i)=>({id:"demo-rider-"+(i+1),display_name:"Rider 0"+(i+1),user_id:i===0?"demo-auth":null,active:true,online:i===0,customer_call_enabled:false,phone:null}));
   let orders=[
    {id:"d101",reference:"LA-DEMO-101",channel:"lastapp",customer_name:"Cliente ficticio A",destination:"Dirección de ejemplo · Burgos",status:"pendiente",amount:18.50,rider_id:null,payment_method:null,notes:"Pedido de demostración",notifications_consent:false,notification_channel:"none"},
    {id:"d102",reference:"LA-DEMO-102",channel:"lastapp",customer_name:"Cliente ficticio B",destination:"Calle de prueba · Burgos",status:"en_ruta",amount:26.50,rider_id:"demo-rider-1",payment_method:"efectivo",notes:"Dos pizzas y una bebida (ficticias)",notifications_consent:true,notification_channel:"sms"},
@@ -91,12 +91,12 @@ function render(){
     '<div class="ed-spotlight-end"><span class="pill state-'+esc(o.status)+'">'+esc(labels[o.status]||o.status)+
     '</span><strong>'+esc(pay)+'</strong><button type="button" data-spotlight="'+esc(o.id)+'" aria-label="Buscar este pedido en la tabla">Ver detalle ↗</button></div></article>';
   }).join(""):'<p class="ed-spotlight-empty">No hay pedidos reales activos. Las entregas anteriores siguen en su historial.</p>';
-  const rosterSlots=Array.from({length:5},(_,i)=>{
+  const rosterSlots=Array.from({length:6},(_,i)=>{
    const n=i+1;
    const rider=riders.find(r=>new RegExp("^rider[\\s_-]*0?"+n+"$","i").test(String(r.display_name||"").trim()));
    return {n,rider,ready:Boolean(rider?.active&&rider?.user_id)};
   });
-  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 5 listos";
+  el("riderCount").textContent=rosterSlots.filter(s=>s.ready).length+" de 6 listos";
   el("riderCapacity").innerHTML=rosterSlots.map(s=>
    '<div class="rider-slot '+(s.ready?'ready':'waiting')+'"><span class="rider-slot-number">'+String(s.n).padStart(2,"0")+'</span>'+
    '<strong>RIDER '+String(s.n).padStart(2,"0")+'</strong>'+
@@ -379,4 +379,187 @@ function renderOrder(order,isPriority=false) {
  $("refreshButton").addEventListener("click",()=>{draw();notice("Seguimiento simulado; no se enviaron SMS ni datos.");});
  draw();
  }
+})();
+/* Preview-only layout shell; no API/network/storage usage. */
+/* Estambul Delivery: approved navy/emerald operational workspace.
+   Visual composition only. Moves EXISTING DOM nodes; business logic,
+   authentication, tracking and Last.app remain in live.js/Supabase. */
+(function(){
+ "use strict";
+ function setup(){
+  const staff=document.getElementById("staffView");
+  if(!staff||staff.dataset.edReady==="yes")return;
+  staff.dataset.edReady="yes";
+  staff.classList.add("ed-dashboard");
+  const el=(tag,cls,html)=>{
+   const node=document.createElement(tag);node.className=cls;
+   if(html)node.innerHTML=html;return node;
+  };
+  const frame=el("div","ed-desktop");
+  const sidebar=el("aside","ed-sidebar",
+   '<div class="ed-logo">ESTAMBUL <strong>DELIVERY</strong></div>'+
+   '<nav class="ed-menu" aria-label="Secciones del Back Office">'+
+   '<button type="button" data-ed-screen="operations" aria-current="page">▣ <span>Operaciones</span></button>'+
+   '<button type="button" data-ed-screen="riders">♧ <span>Repartidores</span></button>'+
+   '<button type="button" data-ed-screen="cash">▤ <span>Caja</span></button>'+
+   '<button type="button" data-ed-screen="settings">⚙ <span>Ajustes</span></button>'+
+   '</nav><div class="ed-sidebar-foot">● <span id="edService">Comprobando conexión</span>'+
+   '<small>Los riders se asignan en LastPOS</small></div>');
+  const area=el("div","ed-workspace");
+  const toolbar=el("div","ed-toolbar",
+    '<div class="ed-toolbar-title"><span>ESTAMBUL DELIVERY</span><strong id="edTitle">Operaciones</strong></div>'+
+    '<div class="ed-kpis" aria-label="Estado actual">'+
+    '<div><b id="edWaiting">—</b><small>Sin rider</small></div>'+
+    '<div><b id="edRoute">—</b><small>En reparto</small></div>'+
+    '<div><b id="edRiders">—</b><small>Riders</small></div></div>'+
+    '<button class="ed-refresh" id="edRefresh" type="button" title="Actualizar">↻ <span>Actualizar</span></button>');
+  area.append(toolbar);
+  const screens={};
+  for(const [key,title] of [["operations","Operaciones"],["riders","Repartidores"],["cash","Caja"],["settings","Ajustes"]]){
+   const page=el("section","ed-screen ed-"+key);
+   page.id="ed-screen-"+key;page.setAttribute("aria-label",title);
+   if(key!=="operations")page.hidden=true;
+   screens[key]=page;area.append(page);
+  }
+  const top=el("div","ed-main-grid");
+  screens.operations.append(top);
+  const map=document.getElementById("opsLiveMapPanel");
+  const queue=document.getElementById("opsSpotlight");
+  if(map)top.append(map);
+  if(queue)top.append(queue);
+  const fleet=el("div","ed-fleet",'');
+  const fleetHeading=el("div","ed-fleet-heading","<strong>Repartidores (6)</strong><span>Ver la flota y su actividad</span>");
+  const cards=el("div","ed-fleet-cards");
+  for(let i=1;i<=6;i++){
+   const btn=el("button","ed-fleet-rider");
+   btn.type="button";
+   btn.dataset.rider=String(i);
+   const label="Rider "+String(i).padStart(2,"0");
+   const symbol=el("span","ed-fleet-icon","◉");
+   const title=el("strong","",label);
+   const text=el("small","","Ver en Repartidores");
+   btn.append(symbol,title,text);
+   btn.addEventListener("click",()=>activate("riders"));
+   cards.append(btn);
+  }
+  fleet.append(fleetHeading,cards);
+  screens.operations.append(fleet);
+  const groups={
+    operations:["ordersArea"],
+    riders:["riderDirectory","gpsAdminCard","inviteCard"],
+    cash:["shiftHistoryCard","feedbackAdmin"],
+    settings:["notifyAdminCard","brandCard","operationsResetCard","createCard","editCard"]
+  };
+  for(const [key,ids] of Object.entries(groups))for(const id of ids){
+   const section=document.getElementById(id);
+   if(section)screens[key].append(section);
+  }
+  sidebar.querySelectorAll("[data-ed-screen]").forEach(btn=>btn.addEventListener("click",()=>activate(btn.dataset.edScreen)));
+  document.getElementById("edRefresh").addEventListener("click",()=>document.getElementById("refresh")?.click());
+  frame.append(sidebar,area);
+  staff.prepend(frame);
+  function activate(key){
+    if(!screens[key])return;
+    for(const [id,node] of Object.entries(screens))node.hidden=id!==key;
+    sidebar.querySelectorAll("[data-ed-screen]").forEach(btn=>{
+      const selected=btn.dataset.edScreen===key;
+      btn.classList.toggle("is-active",selected);
+      if(selected)btn.setAttribute("aria-current","page");else btn.removeAttribute("aria-current");
+    });
+    document.getElementById("edTitle").textContent=key==="cash"?"Caja y arqueos":key==="settings"?"Configuración":key==="riders"?"Repartidores":"Operaciones";
+    staff.dataset.edScreen=key;
+    window.scrollTo({top:0,behavior:"instant"});
+  }
+  activate("operations");
+  function update(){
+   const waiting=document.getElementById("opsUnassignedCount")?.textContent?.trim()||"—";
+   const route=document.getElementById("opsRouteCount")?.textContent?.trim()||"—";
+   const count=document.getElementById("riderCount")?.textContent?.trim()||"";
+   document.getElementById("edWaiting").textContent=waiting;
+   document.getElementById("edRoute").textContent=route;
+   // This is a configured profile capacity, not a claim of six logged-in people.
+   document.getElementById("edRiders").textContent="6";
+   document.getElementById("edRiders").title=count||"6 perfiles disponibles (no son conexiones confirmadas)";
+   const connection=document.getElementById("connection");
+   const status=connection?.textContent?.trim()||"Sin configurar";
+   const service=document.getElementById("edService");
+   service.textContent=status;
+   service.parentElement.classList.toggle("ed-online",/conectad|online|activo/i.test(status)&&!/desconectad/i.test(status));
+  }
+  // DOM changes here reflect the actual connected application; never invent orders or GPS.
+  let pending=false;
+  const observer=new MutationObserver(()=>{
+   if(pending)return;
+   pending=true;
+   requestAnimationFrame(()=>{pending=false;update()});
+  });
+  for(const id of ["opsUnassignedCount","opsRouteCount","riderCount","connection"])
+   if(document.getElementById(id))observer.observe(document.getElementById(id),{subtree:true,childList:true,characterData:true});
+  update();
+  const edit=document.getElementById("editCard");
+  if(edit)new MutationObserver(()=>{if(!edit.hidden)activate("settings")}).observe(edit,{attributes:true,attributeFilter:["hidden"]});
+  // Keep historic anchors into the real orders detail, regardless of current tab.
+  window.addEventListener("hashchange",()=>{
+   const hash=location.hash;
+   if(["#riderDirectory","#gpsAdminCard","#inviteCard"].includes(hash))activate("riders");
+   else if(["#shiftHistoryCard","#feedbackAdmin"].includes(hash))activate("cash");
+   else if(["#brandCard","#notifyAdminCard","#operationsResetCard","#createCard"].includes(hash))activate("settings");
+   else if(["#ordersArea","#opsLiveMapPanel","#opsSpotlight"].includes(hash))activate("operations");
+  });
+ }
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",setup,{once:true});else setup();
+})();
+/* Rider navigation shell: presentation only, existing rider.js owns every order action. */
+(function(){
+ "use strict";
+ function boot(){
+  const dashboard=document.getElementById("dashboard");
+  if(!dashboard||dashboard.dataset.edReady)return;
+  dashboard.dataset.edReady="yes";
+  dashboard.dataset.edView="deliveries";
+  const nav=document.createElement("nav");
+  nav.id="edRiderNav";nav.className="ed-rider-tabs";
+  nav.setAttribute("aria-label","Rider navigation");
+  const tabs=[
+   ["deliveries","▤","Deliveries"],["wallet","▣","Wallet"],["account","♙","Account"]
+  ];
+  const choose=(name)=>{
+   if(!tabs.some(t=>t[0]===name))return;
+   dashboard.dataset.edView=name;
+   nav.querySelectorAll("button").forEach(button=>{
+    const on=button.dataset.tab===name;
+    button.classList.toggle("active",on);
+    button.setAttribute("aria-current",on?"page":"false");
+   });
+   const title=document.getElementById("edRiderScreenTitle");
+   if(title)title.textContent=tabs.find(t=>t[0]===name)[2];
+   window.scrollTo({top:0,behavior:"instant"});
+  };
+  const title=document.createElement("div");
+  title.className="ed-rider-screen-heading";
+  title.innerHTML='<span>ESTAMBUL <b>DELIVERY</b></span><strong id="edRiderScreenTitle">Deliveries</strong>';
+  dashboard.prepend(title);
+  for(const [id,symbol,name] of tabs){
+   const btn=document.createElement("button");
+   btn.type="button";btn.dataset.tab=id;
+   const glyph=document.createElement("span");glyph.className="ed-rider-tab-icon";glyph.textContent=symbol;
+   const label=document.createElement("span");label.textContent=name;
+   btn.append(glyph,label);
+   btn.addEventListener("click",()=>choose(id));
+   nav.append(btn);
+  }
+  dashboard.append(nav);
+  choose("deliveries");
+  // Existing buttons sometimes scroll to hidden sections; selecting the
+  // relevant screen first makes each existing action visible again.
+  const old=document.querySelector(".v2-rider-nav");
+  if(old)old.addEventListener("click",event=>{
+   const link=event.target.closest("a[href]");
+   if(!link)return;
+   const href=link.getAttribute("href");
+   choose(href==="#dayCloseSection"||href==="#historyTitle"?"wallet":
+     href==="#gpsSection"?"account":"deliveries");
+  });
+ }
+ if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",boot,{once:true});else boot();
 })();
