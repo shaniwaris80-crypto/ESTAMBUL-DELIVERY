@@ -45,9 +45,9 @@
   if(map)top.append(map);
   if(queue)top.append(queue);
   const fleet=el("div","ed-fleet",'');
-  const fleetHeading=el("div","ed-fleet-heading","<strong>Repartidores (6)</strong><span>Ver la flota y su actividad</span>");
+  const fleetHeading=el("div","ed-fleet-heading","<strong>Repartidores (5)</strong><span>Ver la flota y su actividad</span>");
   const cards=el("div","ed-fleet-cards");
-  for(let i=1;i<=6;i++){
+  for(let i=1;i<=5;i++){
    const btn=el("button","ed-fleet-rider");
    btn.type="button";
    btn.dataset.rider=String(i);
@@ -94,11 +94,20 @@
    const count=document.getElementById("riderCount")?.textContent?.trim()||"";
    document.getElementById("edWaiting").textContent=waiting;
    document.getElementById("edRoute").textContent=route;
-   // This is a configured profile capacity, not a claim of six logged-in people.
-   document.getElementById("edRiders").textContent="6";
-   document.getElementById("edRiders").title=count||"6 perfiles disponibles (no son conexiones confirmadas)";
+   // This is a configured profile capacity, not a claim of five logged-in people.
+   document.getElementById("edRiders").textContent=(count.match(/^(\d+)\s+de\s+5\s+listos/)?.[1]||"0")+"/5";
+   document.getElementById("edRiders").title=count||"5 perfiles disponibles; cuentas aún sin activar";
    const connection=document.getElementById("connection");
    const status=connection?.textContent?.trim()||"Sin configurar";
+   // Show verified identity state; never invent rider online status.
+   for(const btn of cards.querySelectorAll("[data-rider]")){
+     const n=Number(btn.dataset.rider);
+     const slot=[...document.querySelectorAll("#riderCapacity .rider-slot")].find(row=>Number(row.querySelector(".rider-slot-number")?.textContent)===n);
+     const subtitle=btn.querySelector("small");
+     if(subtitle)subtitle.textContent=slot?.classList.contains("ready")
+       ? (slot.textContent?.includes("Online")?"● Online":"● Cuenta activa")
+       : "○ Cuenta pendiente";
+   }
    const service=document.getElementById("edService");
    service.textContent=status;
    service.parentElement.classList.toggle("ed-online",/conectad|online|activo/i.test(status)&&!/desconectad/i.test(status));
