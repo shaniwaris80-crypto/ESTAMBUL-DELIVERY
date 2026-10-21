@@ -5,7 +5,7 @@ import type { DeliveryStatus } from "@estambul/shared";
 import { advanceDelivery, isConnectedConfigured, connectedItemFeature, connectedPaymentConfirmation, loadConnected, loginRider, logoutRider, restoreSession, setRiderOnline, type DeliveryCollection, type ConnectedState, type RiderOrder } from "../lib/connected";
 import {RIDER_SLOTS,savedRiderEmail,saveRiderEmail,clearRiderEmail,riderSlotFromName} from "../lib/rider-profiles";
 
-const palette={dark:"#10243a",orange:"#ed9944",green:"#139b78",muted:"#6d8195",bg:"#f2f5fa"};
+const palette={dark:"#10243a",orange:"#008b60",green:"#008b60",muted:"#6d8195",bg:"#f2f5fa"};
 const next:{[key:string]:DeliveryStatus}={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
 const nextLabel:{[key:string]:string}={recogido:"Confirmar recogida",en_ruta:"Iniciar reparto",entregado:"Confirmar entrega"};
 function waiting(order:RiderOrder):number{
@@ -80,7 +80,7 @@ export default function Connected(){
  },[refresh,signed,busy]);
  async function doLogin(){
   if(busy)return;
-  if(slot===null){setError("Selecciona tu RIDER 01–05.");return;}
+  if(slot===null){setError("Select your RIDER 01–06.");return;}
   if(!email.trim()){setError("Indica tu correo autorizado para el primer acceso.");return;}
   setBusy(true);setError("");
   try{
@@ -101,28 +101,28 @@ export default function Connected(){
  const orders=suggestRoute(data?.orders.filter(o=>!["entregado","cancelado"].includes(o.status))||[]);
  const links=orders.length>=2?routeLinks(orders):[];
  return <SafeAreaView style={s.safe}>
- <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Inicio</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONECTADO</Text></View></View>
+ <View style={s.top}><Pressable onPress={()=>router.replace("/")}><Text style={s.back}>‹ Inicio</Text></Pressable><View><Text style={s.brand}>ESTAMBUL DELIVERY</Text><Text style={s.topSub}>RIDER · CONNECTED</Text></View></View>
  <ScrollView contentContainerStyle={s.body}>
  {!isConnectedConfigured?<View style={s.card}><Text style={s.title}>Pendiente de configurar</Text><Text style={s.help}>Debes configurar EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY para activar las cuentas y pedidos compartidos.</Text></View>
 
  :!signed?<View>
-  <View style={s.loginIntro}><Text style={s.loginIntroEyebrow}>ESTAMBUL RIDER PRO</Text><Text style={s.loginIntroTitle}>Tu reparto.{"\n"}Tu ritmo.</Text><Text style={s.loginIntroDetail}>Acceso personal, entregas al día y una experiencia más rápida.</Text></View>
+  <View style={s.loginIntro}><Text style={s.loginIntroEyebrow}>ESTAMBUL RIDER PRO</Text><Text style={s.loginIntroTitle}>Your deliveries.{"\n"}Your way.</Text><Text style={s.loginIntroDetail}>Acceso personal, entregas al día y una experiencia más rápida.</Text></View>
   <View style={[s.card,s.loginCard]}>
-   <Text style={s.eyebrow}>01 · IDENTIFÍCATE</Text><Text style={s.title}>¿Qué Rider eres?</Text>
+   <Text style={s.eyebrow}>01 · IDENTIFÍCATE</Text><Text style={s.title}>Choose your rider profile</Text>
    <View style={s.profileGrid}>{RIDER_SLOTS.map(n=><Pressable key={n} disabled={busy} accessibilityRole="button" accessibilityLabel={"Elegir Rider "+n} accessibilityState={{selected:slot===n}}
     onPress={()=>void chooseSlot(n)} style={[s.profileChip,slot===n&&s.profileChipSelected]}>
     <Text style={[s.profileNumber,slot===n&&s.profileNumberSelected]}>{String(n).padStart(2,"0")}</Text>
     <Text style={[s.profileTitle,slot===n&&s.profileTitleSelected]}>RIDER {String(n).padStart(2,"0")}</Text>
    </Pressable>)}</View>
    <Text style={s.eyebrow}>02 · ACCESO SEGURO</Text>
-   {slot===null?<Text style={s.help}>Selecciona tu perfil. Solo entran las cuentas autorizadas.</Text>:<>
+   {slot===null?<Text style={s.help}>Select your profile. Only authorized accounts can sign in.</Text>:<>
     <Text style={s.profileSelectedLine}>● RIDER {String(slot).padStart(2,"0")} seleccionado</Text>
-    {!remembered?<><Text style={s.inputLabel}>CORREO AUTORIZADO · PRIMER ACCESO</Text>
+    {!remembered?<><Text style={s.inputLabel}>AUTHORIZED EMAIL · FIRST SIGN IN</Text>
      <TextInput style={s.input} autoCapitalize="none" keyboardType="email-address" autoComplete="username" value={email} onChangeText={setEmail} placeholder="Correo de tu cuenta Rider"/></>:null}
-    <Text style={s.inputLabel}>CONTRASEÑA INDIVIDUAL</Text>
+    <Text style={s.inputLabel}>YOUR PASSWORD</Text>
     <TextInput style={s.input} secureTextEntry autoComplete="password" value={password} onChangeText={setPassword} placeholder="Tu contraseña"/>
     {remembered?<Pressable onPress={()=>void forgetSlot()}><Text style={s.forgetLink}>Usar otro correo en este perfil</Text></Pressable>:null}
-    <Pressable disabled={busy||!password} style={[s.button,s.loginButton]} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Comprobando…":"Entrar a mi turno →"}</Text></Pressable>
+    <Pressable disabled={busy||!password} style={[s.button,s.loginButton]} onPress={()=>void doLogin()}><Text style={s.buttonText}>{busy?"Comprobando…":"Start my shift →"}</Text></Pressable>
     <Text style={s.loginSecurity}>La cuenta debe corresponder a RIDER {String(slot).padStart(2,"0")}. El dispositivo recuerda solo tu correo, nunca la contraseña.</Text>
    </>}
   </View>
@@ -136,7 +136,7 @@ export default function Connected(){
     <Text style={s.outlineText}>🗺️ Google Maps · Tramo {i+1} de {links.length}</Text>
   </Pressable>)}
  </View>:null}
- {orders.length===0?<View style={s.card}><Text style={s.help}>Sin pedidos asignados desde Last.app. Asigna manualmente el Rider en LastPOS para que aparezcan aquí.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={(status,collection)=>void operate(async()=>{
+ {orders.length===0?<View style={s.card}><Text style={s.help}>No deliveries assigned yet. Assign a Rider manually in LastPOS to see orders here.</Text></View>:orders.map(o=><OrderItem key={o.id} order={o} busy={busy} onAdvance={(status,collection)=>void operate(async()=>{
   await advanceDelivery(o,status,collection);
   if(status==="en_ruta"){
     const target=String(o.destination||"").trim();
@@ -254,13 +254,13 @@ const s=StyleSheet.create({
  eyebrow:{fontSize:10,color:"#5c7d98",fontWeight:"900",letterSpacing:.6,marginBottom:8},title:{fontSize:22,fontWeight:"900",color:palette.dark,marginBottom:9},
  help:{color:palette.muted,fontSize:13,lineHeight:21,marginBottom:15},
  input:{backgroundColor:"#f9fbfd",padding:15,borderRadius:12,borderColor:"#cfdeeb",borderWidth:1,marginVertical:8,fontSize:16,minHeight:50},
- button:{backgroundColor:palette.orange,padding:15,borderRadius:12,alignItems:"center",justifyContent:"center"},
+ button:{backgroundColor:palette.green,padding:15,borderRadius:12,alignItems:"center",justifyContent:"center"},
  buttonText:{color:"#fff",fontWeight:"900",fontSize:12,textAlign:"center"},inline:{flexDirection:"row",gap:8,marginTop:9,alignItems:"stretch"},
  outline:{padding:13,borderRadius:12,borderWidth:1,borderColor:"#bed1e1",alignItems:"center",justifyContent:"center"},
  outlineText:{color:"#3474a9",fontSize:12,fontWeight:"800"},status:{color:palette.green,fontSize:10,fontWeight:"900",marginBottom:9},
- orderCard:{borderLeftWidth:4,borderLeftColor:"#ee9a46"},
+ orderCard:{borderLeftWidth:4,borderLeftColor:"#008b60"},
  loginIntro:{backgroundColor:"#112840",borderRadius:23,padding:27,marginBottom:16},
- loginIntroEyebrow:{color:"#f9ba77",fontWeight:"900",fontSize:10,letterSpacing:1.5,marginBottom:8},
+ loginIntroEyebrow:{color:"#31d3a0",fontWeight:"900",fontSize:10,letterSpacing:1.5,marginBottom:8},
  loginIntroTitle:{color:"#fff",fontSize:34,fontWeight:"900",letterSpacing:-1.4,lineHeight:39,marginBottom:8},
  loginIntroDetail:{color:"#cadceb",fontSize:13,lineHeight:21},
  loginCard:{borderRadius:22,padding:23},
