@@ -68,8 +68,16 @@
  <p class="reset-operations-caution">No se permite reiniciar mientras haya pedidos asignados en curso. Las asignaciones manuales siguen realizándose desde LastPOS.</p>
 </section>
 <section class="card" id="inviteCard" hidden>
-  <div class="section-head"><div><h2>Activar repartidores</h2><p>Aprovisiona únicamente las invitaciones Rider previamente autorizadas. Cada rider necesita una identidad propia, acceso individual y contraseña que deberá cambiar. Los perfiles 01–05 no crean automáticamente cuentas nuevas.</p></div></div>
-  <button type="button" id="sendInvitations" class="btn">🔑 Crear y activar cuentas Rider</button>
+  <div class="section-head"><div><h2>Autorizar 5 repartidores</h2><p>Solo el administrador puede vincular un correo individual a cada Rider. Introduce los correos reales de los trabajadores. No se genera ninguna contraseña ni se envían SMS.</p></div></div>
+  <div class="create-form" id="riderEmailSettings" role="group" aria-label="Correos autorizados para Rider 1 a Rider 5">
+    <label>Rider 01 · correo autorizado<input id="riderInviteEmail1" type="email" inputmode="email" autocomplete="off" spellcheck="false" maxlength="254" placeholder="Correo del Rider 1"></label>
+    <label>Rider 02 · correo autorizado<input id="riderInviteEmail2" type="email" inputmode="email" autocomplete="off" spellcheck="false" maxlength="254" placeholder="Correo del Rider 2"></label>
+    <label>Rider 03 · correo autorizado<input id="riderInviteEmail3" type="email" inputmode="email" autocomplete="off" spellcheck="false" maxlength="254" placeholder="Correo del Rider 3"></label>
+    <label>Rider 04 · correo autorizado<input id="riderInviteEmail4" type="email" inputmode="email" autocomplete="off" spellcheck="false" maxlength="254" placeholder="Correo del Rider 4"></label>
+    <label>Rider 05 · correo autorizado<input id="riderInviteEmail5" type="email" inputmode="email" autocomplete="off" spellcheck="false" maxlength="254" placeholder="Correo del Rider 5"></label>
+  </div>
+  <button type="button" id="sendInvitations" class="btn" style="margin-top:13px">Guardar correos autorizados</button>
+  <p class="small-note">Después, cada repartidor abre Rider, selecciona su número, pulsa «Crear cuenta Rider», elige su propia contraseña y confirma el correo recibido. Guardar aquí no activa accesos ni envía invitaciones.</p>
   <p id="inviteResult" role="status" style="white-space:pre-line;margin-top:12px;font-size:13px" hidden></p>
 </section>
 <section class="card" id="createCard">

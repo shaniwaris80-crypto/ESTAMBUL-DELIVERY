@@ -66,3 +66,19 @@ test("new navigation is not a simulated data source",()=>{
  assert.equal(present("en_ruta").title,"On the way");
  assert.equal(present("entregado").progress,100);
 });
+
+test("only admin can authorize five rider emails; passwords are chosen by Riders",()=>{
+ const ops=read("docs/live.js");
+ const html=read("live.html"),preview=read("preview/backoffice.html");
+ const sql=read("supabase/migrations/024_admin_authorize_five_rider_emails.sql");
+ for(let n=1;n<=5;n++){assert.match(html,new RegExp('id="riderInviteEmail'+n+'"'));assert.match(preview,new RegExp('id="riderInviteEmail'+n+'"'));}
+ assert.match(ops,/member\?\.role!=="admin"/);
+ assert.match(ops,/ed_admin_authorize_rider_email/);
+ assert.doesNotMatch(ops,/functions\/v1\/ed-invite-riders/);
+ assert.match(sql,/m\.role='admin'/);
+ assert.match(sql,/auth\.uid\(\)/);
+ assert.match(sql,/not between 1 and 5/);
+ assert.match(sql,/revoke all on function public\.ed_admin_authorize_rider_email/);
+ assert.match(sql,/grant execute on function public\.ed_admin_authorize_rider_email\(integer,text\) to authenticated/);
+ assert.match(html,/Crear cuenta Rider/);
+});
