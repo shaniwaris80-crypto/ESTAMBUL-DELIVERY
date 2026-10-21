@@ -4,13 +4,13 @@ const root=window.ESTAMBUL_SUPABASE||{},base=String(root.url||"").replace(/\/+$/
 const el=id=>document.getElementById(id);
 const customerPresentation=window.ESTAMBUL_TRACK_PRESENTATION;
 const token=new URLSearchParams(location.hash.replace(/^#/,"")).get("token");
-const labels={pendiente:"Recibido",asignado:"Asignado",recogido:"Recogido",en_ruta:"En camino",entregado:"Entregado",cancelado:"Cancelado"};
+const labels={pendiente:"Confirmed",asignado:"Preparing",recogido:"Picked up",en_ruta:"On the way",entregado:"Delivered",cancelado:"Cancelled"};
 const steps=[
- {status:"pendiente",title:"Pedido recibido",info:"El restaurante ha recibido la solicitud."},
- {status:"asignado",title:"Repartidor asignado",info:"Tu pedido está en preparación para el reparto."},
- {status:"recogido",title:"Pedido recogido",info:"El repartidor ya tiene el pedido."},
- {status:"en_ruta",title:"En camino",info:"Tu pedido está de camino."},
- {status:"entregado",title:"Entregado",info:"El repartidor ha finalizado la entrega."}
+ {status:"pendiente",title:"Confirmed",info:"The restaurant received your order."},
+ {status:"asignado",title:"Preparing",info:"Your rider has been assigned."},
+ {status:"recogido",title:"Picked up",info:"Your rider collected the food."},
+ {status:"en_ruta",title:"On the way",info:"Your rider is coming."},
+ {status:"entregado",title:"Delivered",info:"Delivery completed."}
 ];
 let current=null,polling=false;
 
@@ -18,10 +18,10 @@ let chatLoading=false;
 function displayCustomerChat(lines){
  const parent=el("customerChatMessages");
  parent.replaceChildren();
- if(!Array.isArray(lines)||lines.length===0){const p=document.createElement("p");p.textContent="Todavía no hay mensajes.";parent.append(p);return;}
+ if(!Array.isArray(lines)||lines.length===0){const p=document.createElement("p");p.textContent="No messages yet.";parent.append(p);return;}
  for(const m of lines){
   const bubble=document.createElement("div");bubble.className="chat-bubble "+(m.role==="customer"?"mine":"theirs");
-  const meta=document.createElement("small");meta.textContent=m.role==="customer"?"Tú":"Repartidor";
+  const meta=document.createElement("small");meta.textContent=m.role==="customer"?"You":"Rider";
   const body=document.createElement("p");body.textContent=m.body||"";
   bubble.append(meta,body);parent.append(bubble);
  }
@@ -56,18 +56,18 @@ function applyBrand(data){
  }
 }
 function draw(data){
- current=data;el("loading").hidden=true;el("notFound").hidden=false;el("orderContent").hidden=false;
- applyBrand(data);el("orderRef").textContent="Pedido #"+data.reference;
+ current=data;el("loading").hidden=true;el("notFound").hidden=true;el("orderContent").hidden=false;
+ applyBrand(data);el("orderRef").textContent="Order #"+data.reference;
  const view=customerPresentation?.presentation(data.status);
  if(view){
   el("waitingIcon").textContent=view.icon;
   el("waitingTitle").textContent=view.title;
   el("waitingMessage").textContent=view.description;
   el("waitingNext").textContent=view.next;
-  el("waitingFreshness").textContent="Consulta reciente · "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
+  el("waitingFreshness").textContent="Updated · "+new Date().toLocaleTimeString("es-ES",{hour:"2-digit",minute:"2-digit"});
   el("waitingFreshness").classList.remove("offline");
-  el("progressText").textContent=data.status==="cancelado"?"Pedido cancelado":
-    "Paso "+view.stepNumber+" de "+view.total+" · "+view.step;
+  el("progressText").textContent=data.status==="cancelado"?"Order cancelled":
+    "Step "+view.stepNumber+" of "+view.total+" · "+view.step;
   el("orderProgress").setAttribute("aria-valuenow",String(view.progress));
   el("orderProgress").setAttribute("aria-valuetext",view.step);
   el("waitingIcon").classList.toggle("waiting-finished",data.status==="entregado");
@@ -75,9 +75,9 @@ function draw(data){
  }
 
  const index=steps.findIndex(s=>s.status===data.status);
- el("liveStatus").textContent=labels[data.status]||"Actualización";
+ el("liveStatus").textContent=labels[data.status]||"Update";
  el("liveStatus").classList.toggle("cancel",data.status==="cancelado");
- el("orderDescription").textContent=data.status==="cancelado"?"El pedido ha sido cancelado. Contacta con el restaurante si tienes dudas.":"Aquí puedes consultar el estado de tu entrega, actualizado por el restaurante y el repartidor.";
+ el("orderDescription").textContent=data.status==="cancelado"?"This order was cancelled. Contact the restaurant if you need help.":"Your order status updates here.";
  el("progressBar").style.width=(data.status==="cancelado"?0:(Math.max(0,index)+1)/steps.length*100)+"%";
  el("steps").innerHTML="";
  steps.forEach((item,i)=>{
@@ -86,43 +86,43 @@ function draw(data){
   const copy=document.createElement("div"),heading=document.createElement("strong"),hint=document.createElement("p");
   heading.textContent=item.title;hint.textContent=item.info;copy.append(heading,hint);li.append(num,copy);el("steps").append(li);
  });
- el("updatedAt").textContent="Último cambio: "+prettyTime(data.updated_at);
+ el("updatedAt").textContent="Updated: "+prettyTime(data.updated_at);
  // El ETA es una aproximación de distancia/velocidad del servidor. Nunca se simula GPS.
  const eta=Number(data.eta_minutes);
  const canEstimate=data.status==="en_ruta"&&data.eta_minutes!=null&&Number.isFinite(eta)&&eta>=0;
  const state=String(data.gps_state||"");
  if(data.status==="entregado"){
-  el("arrivalTitle").textContent="¡Pedido entregado!";
-  el("arrivalDescription").textContent="La entrega ya está finalizada.";
+  el("arrivalTitle").textContent="Order delivered!";
+  el("arrivalDescription").textContent="Delivery completed.";
  }else if(data.status==="cancelado"){
-  el("arrivalTitle").textContent="Pedido cancelado";
-  el("arrivalDescription").textContent="Llama al restaurante para cualquier consulta.";
+  el("arrivalTitle").textContent="Order cancelled";
+  el("arrivalDescription").textContent="Call the restaurant if you need help.";
  }else if(canEstimate){
-  el("arrivalTitle").textContent="Unos "+Math.max(1,Math.round(eta))+" min";
-  el("arrivalDescription").textContent="Llegada orientativa; se recalcula con el GPS más reciente. No incluye tráfico ni una ruta real por carretera.";
+  el("arrivalTitle").textContent="About "+Math.max(1,Math.round(eta))+" min";
+  el("arrivalDescription").textContent="Approximate ETA based on recent GPS data. Traffic is not included.";
  }else if(data.status==="en_ruta"){
-  el("arrivalTitle").textContent="Repartidor en camino";
+  el("arrivalTitle").textContent="Rider en camino";
   el("arrivalDescription").textContent=state==="not_shared"
-    ?"El repartidor aún no ha activado la ubicación para este pedido."
+    ?"The rider has not enabled location sharing for this order."
     :state==="waiting_gps"
-    ?"Esperando una señal GPS reciente del repartidor. Puede dejar de actualizarse si bloquea el móvil o usa otra app."
-    :"Cuando haya GPS y coordenadas del destino podremos calcular el tiempo de llegada.";
+    ?"Waiting for recent GPS data. Updates may stop if the rider locks the phone."
+    :"ETA will appear when location and destination data are available.";
  }else{
-  el("arrivalTitle").textContent="Estamos preparando tu pedido";
-  el("arrivalDescription").textContent="La estimación aparecerá cuando el repartidor esté en camino y comparta su ubicación.";
+  el("arrivalTitle").textContent="Preparing your order";
+  el("arrivalDescription").textContent="ETA appears when the rider is on the way and sharing location.";
  }
  const details=canEstimate
-  ?"Distancia aproximada: "+Number(data.eta_distance_km).toLocaleString("es-ES",{maximumFractionDigits:1})+
-    " km · Velocidad "+(data.eta_speed_source==="gps"?"GPS":"urbana de referencia")+
+  ?"Approximate distance: "+Number(data.eta_distance_km).toLocaleString("es-ES",{maximumFractionDigits:1})+
+    " km · Speed "+(data.eta_speed_source==="gps"?"GPS":"estimated urban")+
     ": "+Math.round(Number(data.eta_speed_kmh))+" km/h"
   :"";
  el("arrivalDetails").textContent=details;
  el("arrivalDetails").hidden=!details;
  el("arrivalConfidence").textContent=canEstimate
-  ?"Tiempo orientativo: puede cambiar según el tráfico y la señal GPS."
-  :data.status==="entregado"?"Seguimiento finalizado."
-  :data.status==="cancelado"?"Si necesitas ayuda, llama al restaurante."
-  :"Sin estimación fiable disponible. No mostramos un tiempo inventado.";
+  ?"Estimated time may change with traffic or GPS availability."
+  :data.status==="entregado"?"Tracking finished."
+  :data.status==="cancelado"?"Call the restaurant if you need help."
+  :"No reliable ETA available. We do not invent one.";
  
  // Never draw historical or staff-only GPS: the server releases coordinates only with
  // a valid private tracking token, an active rider opt-in and a very recent position.
@@ -141,7 +141,7 @@ function draw(data){
   }
   el("openRiderMap").href="https://www.openstreetmap.org/?mlat="+encodeURIComponent(lat)+
    "&mlon="+encodeURIComponent(lng)+"#map=16/"+encodeURIComponent(lat)+"/"+encodeURIComponent(lng);
-  el("riderMapTime").textContent="GPS actualizado: "+prettyTime(pos.updated_at);
+  el("riderMapTime").textContent="GPS updated: "+prettyTime(pos.updated_at);
  }else if(el("riderMap").getAttribute("src")){
   el("riderMap").removeAttribute("src");
   el("riderMap").removeAttribute("data-position");
@@ -170,8 +170,8 @@ async function refresh(){
  }catch{
   if(!current){el("loading").hidden=true;el("orderContent").hidden=true;el("notFound").hidden=false;}
   else{
-   el("updatedAt").textContent="Sin conexión · prueba a actualizar";
-   el("waitingFreshness").textContent="Sin conexión reciente";
+   el("updatedAt").textContent="Offline · try refreshing";
+   el("waitingFreshness").textContent="Connection unavailable";
    el("waitingFreshness").classList.add("offline");
   }
  }finally{polling=false;}
@@ -190,12 +190,12 @@ setInterval(()=>{if(current)void refreshCustomerChat();},7000);
 
 el("feedbackForm").addEventListener("submit",async e=>{
  e.preventDefault();const chosen=document.querySelector('input[name="rating"]:checked');
- if(!chosen){el("feedbackError").hidden=false;el("feedbackError").textContent="Selecciona de 1 a 5 estrellas.";return;}
+ if(!chosen){el("feedbackError").hidden=false;el("feedbackError").textContent="Select a rating from 1 to 5 stars.";return;}
  el("submitFeedback").disabled=true;el("feedbackError").hidden=true;
  try{
   await rpc("ed_submit_feedback",{p_token:token,p_rating:Number(chosen.value),p_comment:el("feedbackComment").value.trim()});
   await refresh();
- }catch(error){el("feedbackError").hidden=false;el("feedbackError").textContent=error.message||"Inténtalo de nuevo.";}
+ }catch(error){el("feedbackError").hidden=false;el("feedbackError").textContent=error.message||"Try again.";}
  finally{el("submitFeedback").disabled=false;}
 });
 if(!token||!/^[a-f0-9]{64}$/.test(token)||!/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base)||!key){

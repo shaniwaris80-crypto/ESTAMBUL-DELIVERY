@@ -1,83 +1,83 @@
 <!doctype html>
-<html lang="es"><head>
+<html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="color-scheme" content="dark"><meta name="theme-color" content="#081522">
+<meta name="referrer" content="strict-origin-when-cross-origin"><meta name="color-scheme" content="light"><meta name="theme-color" content="#081522">
 <meta name="robots" content="noindex,nofollow,noarchive">
-<title>Seguimiento de pedido · ESTAMBUL DELIVERY</title>
+<title>Order tracking · ESTAMBUL DELIVERY</title>
 <link rel="stylesheet" href="docs/track.css?v=5"><link rel="stylesheet" href="docs/track-pro-v2.css?v=1"><link rel="icon" href="docs/icon.svg?v=5" type="image/svg+xml">
 <link rel="stylesheet" href="docs/v9-light-staging.css?v=1">
-</head><body>
-<header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon"><img src="docs/icon.svg?v=5" width="47" height="47" alt=""></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>SEGUIMIENTO DE TU PEDIDO</small></div></div></header>
+<link rel="stylesheet" href="docs/ed-blue-green.css?v=1"><link rel="stylesheet" href="docs/ed-client-blue-green.css?v=1"></head><body class="ed-client">
+<header class="brand-header"><div class="brand-row"><div id="brandIcon" class="brand-icon"><img src="docs/icon.svg?v=5" width="47" height="47" alt=""></div><img id="brandLogo" hidden alt="Logotipo del restaurante" referrerpolicy="no-referrer"><div><strong id="brandTitle">ESTAMBUL DELIVERY</strong><small>ORDER TRACKING</small></div></div></header>
 <main class="container">
-<section id="loading" class="panel center"><div class="spinner"></div><h1>Consultando tu pedido…</h1><p>Estamos conectando con el sistema de reparto.</p></section>
-<section id="notFound" class="panel center" hidden><div class="hero-symbol">🔒</div><h1>Enlace no disponible</h1><p>Este enlace puede haber caducado, estar revocado o ser incorrecto. Consulta directamente con el restaurante si necesitas información.</p></section>
+<section id="loading" class="panel center"><div class="spinner"></div><h1>Checking your order…</h1><p>Connecting to the delivery service.</p></section>
+<section id="notFound" class="panel center" hidden><div class="hero-symbol">🔒</div><h1>Link unavailable</h1><p>This private link may have expired or been revoked. Please contact the restaurant.</p></section>
 <div id="orderContent" hidden>
 <section class="waiting-hero" aria-labelledby="waitingTitle">
- <div class="waiting-hero-brand"><span class="waiting-live-dot" aria-hidden="true"></span><span>SEGUIMIENTO DE TU PEDIDO</span><span class="waiting-private">🔒 Enlace privado</span></div>
+ <div class="waiting-hero-brand"><span class="waiting-live-dot" aria-hidden="true"></span><span>SEGUIMIENTO DE YOUR ORDER</span><span class="waiting-private">🔒 Private link</span></div>
  <div class="waiting-hero-body"><div id="waitingIcon" class="waiting-hero-icon" aria-hidden="true">🛵</div>
  <div class="waiting-hero-copy"><span class="waiting-overline">🥙 ESTAMBUL DELIVERY PRO</span>
- <h1 id="waitingTitle">Estamos preparando tu pedido</h1>
- <p id="waitingMessage">Aquí verás el avance de tu entrega, sin recibir más SMS.</p></div></div>
- <div class="waiting-hero-footer"><span id="waitingNext">Te avisamos del progreso aquí.</span><span id="waitingFreshness">Actualizando…</span></div>
+ <h1 id="waitingTitle">Preparing your order</h1>
+ <p id="waitingMessage">Track your order here, without repeated messages.</p></div></div>
+ <div class="waiting-hero-footer"><span id="waitingNext">Your updates appear here.</span><span id="waitingFreshness">Actualizando…</span></div>
 </section>
 <section class="track-howto" aria-label="Cómo funciona el seguimiento">
  <span class="track-howto-icon" aria-hidden="true">✓</span>
- <p><strong>Un enlace, todo el seguimiento.</strong> Guarda esta página: el estado se actualiza automáticamente y no recibirás un SMS por cada cambio.</p>
+ <p><strong>One link for every update.</strong> Keep this link handy. Your order status updates here automatically.</p>
 </section>
 <section class="panel order-panel">
 <div class="section-top"><span class="eyebrow">TU PEDIDO</span><span id="liveStatus" class="live-pill">Actualizando…</span></div>
-<h1 id="orderRef">Pedido</h1>
-<p id="orderDescription" class="subtitle">Puedes consultar el progreso de tu entrega aquí.</p>
-<div class="progress" role="progressbar" aria-label="Progreso del pedido" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="orderProgress"><div id="progressBar"></div></div><p id="progressText" class="progress-text">Recibimos tu pedido · Seguimiento automático</p>
+<h1 id="orderRef">Order</h1>
+<p id="orderDescription" class="subtitle">Follow your delivery progress here.</p>
+<div class="progress" role="progressbar" aria-label="Order progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="orderProgress"><div id="progressBar"></div></div><p id="progressText" class="progress-text">Order confirmed · Automatic updates</p>
 <div id="steps" class="steps"></div>
-<div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Actualizar</button></div>
+<div class="sync"><span id="updatedAt">Actualizando…</span><button id="refreshButton" type="button">↻ Refresh</button></div>
 </section>
 <section id="arrivalPanel" class="panel arrival-panel" aria-live="polite">
-<div class="arrival-heading"><div class="arrival-mark">◷</div><div><span class="eyebrow">TIEMPO ESTIMADO</span><h2 id="arrivalTitle">Preparando entrega</h2></div></div>
-<p id="arrivalDescription">La estimación aparecerá cuando el pedido esté en camino.</p><div id="arrivalConfidence" class="arrival-confidence">No mostramos minutos inventados.</div>
+<div class="arrival-heading"><div class="arrival-mark">◷</div><div><span class="eyebrow">ESTIMATED ARRIVAL</span><h2 id="arrivalTitle">Preparing delivery</h2></div></div>
+<p id="arrivalDescription">ETA will appear when reliable location data is available.</p><div id="arrivalConfidence" class="arrival-confidence">We never invent arrival times.</div>
 <div id="arrivalDetails" class="arrival-details" hidden></div>
 </section>
 <section id="liveMapPanel" class="panel location-panel" hidden>
-<div class="location-head"><div><span class="eyebrow">REPARTO EN DIRECTO</span><h2>Tu repartidor en el mapa</h2></div><span class="location-pulse">● GPS activo</span></div>
-<p>El repartidor ha autorizado mostrar su posición durante este pedido. Se actualiza cuando la app envía coordenadas recientes.</p>
+<div class="location-head"><div><span class="eyebrow">LIVE DELIVERY</span><h2>Your rider on the map</h2></div><span class="location-pulse">● GPS active</span></div>
+<p>Your rider has enabled location sharing for this order. Updates depend on recent GPS data.</p>
 <iframe id="riderMap" title="Mapa con la ubicación del repartidor" loading="lazy" referrerpolicy="strict-origin-when-cross-origin"></iframe>
-<div class="location-footer"><span id="riderMapTime">Actualizando posición…</span><a id="openRiderMap" href="#" target="_blank" rel="noopener noreferrer">Abrir mapa ↗</a></div>
+<div class="location-footer"><span id="riderMapTime">Actualizando posición…</span><a id="openRiderMap" href="#" target="_blank" rel="noopener noreferrer">Open map ↗</a></div>
 <p class="location-privacy">Mapa de OpenStreetMap: al visualizarlo se envían las coordenadas visibles al proveedor de mapas. El seguimiento termina al entregar, cerrar la app o retirar el permiso.</p>
 </section>
 <section class="panel restaurant-call"><div class="call-rider-top">
-<div class="call-rider-icon">☎</div><div><h2>¿Necesitas ayuda?</h2><p>Contacta directamente con el restaurante.</p></div></div>
-<a class="call-rider-action" href="tel:+34947009319">Llamar al restaurante · 947 009 319</a></section>
+<div class="call-rider-icon">☎</div><div><h2>Need help?</h2><p>Contact the restaurant directly.</p></div></div>
+<a class="call-rider-action" href="tel:+34947009319">Call restaurant · 947 009 319</a></section>
 <section id="riderCallPanel" class="panel call-rider" hidden>
-<div class="call-rider-top"><div class="call-rider-icon">☎</div><div><h2>¿Necesitas hablar con tu repartidor?</h2><p>Llama a su número de trabajo mientras esté asignado a tu entrega.</p></div></div>
-<a id="callRiderLink" class="call-rider-action" rel="nofollow">☎ Llamar al repartidor</a>
+<div class="call-rider-top"><div class="call-rider-icon">☎</div><div><h2>Need to call your rider?</h2><p>Call the rider's work number while assigned to your order.</p></div></div>
+<a id="callRiderLink" class="call-rider-action" rel="nofollow">☎ Call rider</a>
 </section>
 <section id="customerChatPanel" class="panel guest-chat" hidden>
-<h2>💬 Hablar con tu repartidor</h2>
-<p>Escribe una indicación sobre esta entrega. El chat se cierra cuando figure como entregada.</p>
+<h2>💬 Chat with your rider</h2>
+<p>Send a message about this delivery. Chat closes after delivery.</p>
 <div id="customerChatMessages" class="chat-messages" aria-live="polite"></div>
-<form id="customerChatForm" class="chat-form"><input id="customerChatText" maxlength="450" required placeholder="Escribe al repartidor…" autocomplete="off"><button type="submit">Enviar</button></form>
+<form id="customerChatForm" class="chat-form"><input id="customerChatText" maxlength="450" required placeholder="Message your rider…" autocomplete="off"><button type="submit">Send</button></form>
 <p id="customerChatError" class="error" hidden role="alert"></p>
 </section>
 <section id="feedbackPanel" class="panel feedback-panel" hidden>
 <div class="stars-symbol">★</div>
-<h2>¿Qué tal fue tu pedido?</h2>
-<p>Tu opinión ayuda al restaurante a mejorar.</p>
+<h2>How was your delivery?</h2>
+<p>Your feedback helps us improve.</p>
 <form id="feedbackForm">
-<fieldset id="ratingField"><legend>Valora tu experiencia</legend><div class="rating" id="ratingButtons">
+<fieldset id="ratingField"><legend>Rate your experience</legend><div class="rating" id="ratingButtons">
 <label><input type="radio" name="rating" value="1" required><span>★</span><small>1</small></label>
 <label><input type="radio" name="rating" value="2"><span>★</span><small>2</small></label>
 <label><input type="radio" name="rating" value="3"><span>★</span><small>3</small></label>
 <label><input type="radio" name="rating" value="4"><span>★</span><small>4</small></label>
 <label><input type="radio" name="rating" value="5"><span>★</span><small>5</small></label>
 </div></fieldset>
-<label class="comment-label" for="feedbackComment">Tu comentario (opcional)</label>
-<textarea id="feedbackComment" maxlength="600" rows="3" placeholder="Cuéntanos cómo ha ido la entrega…"></textarea>
-<button class="primary-button" id="submitFeedback" type="submit">Enviar valoración</button>
+<label class="comment-label" for="feedbackComment">Comment (optional)</label>
+<textarea id="feedbackComment" maxlength="600" rows="3" placeholder="Tell us about your delivery…"></textarea>
+<button class="primary-button" id="submitFeedback" type="submit">Submit rating</button>
 <p id="feedbackError" class="error" role="alert" hidden></p>
 </form>
 </section>
-<section id="feedbackDone" class="panel center" hidden><div class="hero-symbol">💚</div><h2>¡Gracias por tu opinión!</h2><p>Tu valoración se ha enviado directamente al restaurante.</p></section>
-<section id="reviewPanel" class="panel center" hidden><h2>¿Quieres dejar una reseña pública?</h2><p>Puedes compartir tu experiencia en Google, sea cual sea tu valoración.</p><a id="reviewLink" class="secondary-button" target="_blank" rel="noopener noreferrer">Abrir Google Reviews ↗</a></section>
+<section id="feedbackDone" class="panel center" hidden><div class="hero-symbol">💚</div><h2>Thanks for your feedback!</h2><p>Your rating has been sent to the restaurant.</p></section>
+<section id="reviewPanel" class="panel center" hidden><h2>Would you like to leave a public review?</h2><p>You can share your experience on Google.</p><a id="reviewLink" class="secondary-button" target="_blank" rel="noopener noreferrer">Open Google Reviews ↗</a></section>
 <p class="privacy-note">Este enlace es privado: compártelo únicamente con personas de confianza. Muestra la ubicación GPS solo si el repartidor lo autoriza para este pedido. Los mensajes promocionales no están activados.</p>
 </div>
 </main>

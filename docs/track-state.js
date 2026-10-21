@@ -1,13 +1,13 @@
-/* Pure customer-friendly status presentation. No calls, no GPS simulation. */
+/* Private customer tracking copy. No synthetic location or ETA. */
 (function(root){
  "use strict";
  const copy=Object.freeze({
-  pendiente:{icon:"🧾",title:"¡Pedido recibido!",description:"El restaurante ha recibido tu pedido. Puedes consultar el progreso en esta misma página.",next:"Siguiente: asignación del repartidor.",step:"Pedido recibido"},
-  asignado:{icon:"🍕",title:"Estamos preparando tu pedido",description:"Tu entrega ya tiene un repartidor asignado. En cuanto recoja el pedido, lo verás aquí.",next:"Siguiente: recogida en el restaurante.",step:"Repartidor asignado"},
-  recogido:{icon:"📦",title:"¡Pedido recogido!",description:"Tu repartidor ya tiene el pedido. Esta página se actualizará cuando esté en camino.",next:"Siguiente: reparto en camino.",step:"Pedido recogido"},
-  en_ruta:{icon:"🛵",title:"¡Tu pedido va de camino!",description:"El repartidor se dirige a tu dirección. Si comparte su GPS, podrás consultar el mapa aquí.",next:"Siguiente: entrega en tu dirección.",step:"En camino"},
-  entregado:{icon:"✅",title:"¡Pedido entregado!",description:"Tu pedido figura como entregado. ¡Que lo disfrutes!",next:"Entrega finalizada. Gracias por confiar en nosotros.",step:"Entregado"},
-  cancelado:{icon:"!",title:"Pedido cancelado",description:"Este pedido figura como cancelado. Contacta con el restaurante si necesitas ayuda.",next:"El restaurante puede ayudarte.",step:"Cancelado"}
+  pendiente:{icon:"✓",title:"Order confirmed",description:"The restaurant has received your order. Follow its progress here.",next:"Next: preparation.",step:"Confirmed"},
+  asignado:{icon:"♨",title:"Preparing your order",description:"Your delivery rider has been assigned. We will show the next update here.",next:"Next: collection from the restaurant.",step:"Preparing"},
+  recogido:{icon:"▣",title:"Order picked up",description:"Your rider has collected the order.",next:"Next: on the way to you.",step:"Picked up"},
+  en_ruta:{icon:"↗",title:"On the way",description:"Your rider is on the way. The map appears only when location sharing is enabled.",next:"Next: delivery to your address.",step:"On the way"},
+  entregado:{icon:"✓",title:"Order delivered",description:"Your delivery is complete. Enjoy your meal!",next:"Delivery completed.",step:"Delivered"},
+  cancelado:{icon:"!",title:"Order cancelled",description:"This order has been cancelled. Please contact the restaurant if you need help.",next:"Contact the restaurant for assistance.",step:"Cancelled"}
  });
  const stages=["pendiente","asignado","recogido","en_ruta","entregado"];
  function presentation(status){
