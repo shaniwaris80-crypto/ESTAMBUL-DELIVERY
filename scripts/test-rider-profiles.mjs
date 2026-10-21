@@ -9,10 +9,10 @@ function setup(){
  vm.runInNewContext(read("docs/rider-profiles.js"),{window});
  return {p:window.ESTAMBUL_RIDER_PROFILES,values};
 }
-test("five fixed Rider identities are exposed, no more",()=>{
+test("six fixed Rider identities are exposed, no more",()=>{
  const {p}=setup();
- assert.deepEqual(Array.from(p.profiles,x=>x.slot),[1,2,3,4,5]);
- assert.ok(p.profiles.every(x=>/^RIDER 0[1-5]$/.test(x.label)));
+ assert.deepEqual(Array.from(p.profiles,x=>x.slot),[1,2,3,4,5,6]);
+ assert.ok(p.profiles.every(x=>/^RIDER 0[1-6]$/.test(x.label)));
  assert.ok(Object.isFrozen(p.profiles));
 });
 test("account name must match chosen Rider ID exactly",()=>{
@@ -22,7 +22,7 @@ test("account name must match chosen Rider ID exactly",()=>{
  assert.equal(p.slotForName("rider-03"),3);
  assert.equal(p.slotForName("rider_5"),5);
  assert.equal(p.slotForName("rider10"),null);
- assert.equal(p.slotForName("Rider 6"),null);
+ assert.equal(p.slotForName("Rider 6"),6);
  assert.equal(p.slotForName("administrador"),null);
 });
 test("only email identifiers are remembered after explicit successful login",()=>{
@@ -31,9 +31,10 @@ test("only email identifiers are remembered after explicit successful login",()=
  assert.equal(p.rememberEmail(1,"rider1@example.com"),true);
  assert.equal(p.readEmail(1),"rider1@example.com");
  assert.equal(p.readEmail(2),"");
- assert.equal(p.rememberEmail(6,"rider6@example.com"),false);
+ assert.equal(p.rememberEmail(6,"rider6@example.com"),true);
+ assert.equal(p.readEmail(6),"rider6@example.com");
  assert.equal(p.rememberEmail(2,"not-an-email"),false);
- assert.equal(values.size,1);
+ assert.equal(values.size,2);
  p.forgetEmail(1);assert.equal(p.readEmail(1),"");
 });
 test("never caches plaintext passwords, tokens or active orders in slot helper",()=>{
@@ -59,9 +60,9 @@ test("mobile/native login also rejects mismatching profiles",()=>{
  assert.match(source,/await saveRiderEmail\(slot,email\.trim\(\)\)/);
  assert.match(read("apps/rider/lib/rider-profiles.ts"),/expo-secure-store/);
 });
-test("five cards, password input and password reset still exist",()=>{
+test("six cards, password input and password reset still exist",()=>{
  const html=read("rider.html");
- for(let n=1;n<=5;n++)assert.match(html,new RegExp('data-rider-slot="'+n+'"'));
+ for(let n=1;n<=6;n++)assert.match(html,new RegExp('data-rider-slot="'+n+'"'));
  for(const id of ["riderProfiles","riderProfileHint","riderEmailGroup","forgetRiderDevice","loginForm","password","loginError","setPassword","passwordSetupForm","dashboard","dayCloseSection","toggleGps"]){
   assert.ok(html.includes('id="'+id+'"'),"Missing HTML ID "+id);
  }
@@ -73,10 +74,10 @@ test("no generated rider passwords, fake active assignments or production databa
  for(const path of files)assert.doesNotMatch(read(path),/TWILIO_AUTH_TOKEN|SUPABASE_SERVICE_ROLE_KEY|INSERT INTO|UPDATE public\.ed_riders/i);
 });
 
-test("back office shows true five-slot capacity and never invents active accounts",()=>{
+test("back office shows true six-slot capacity and never invents active accounts",()=>{
  const html=read("live.html"),staff=read("docs/live.js");
  assert.match(html,/id="riderCapacity"/);
- assert.match(staff,/Array\.from\(\{length:5\}/);
+ assert.match(staff,/Array\.from\(\{length:6\}/);
  assert.match(staff,/ready:Boolean\(rider\?\.active&&rider\?\.user_id\)/);
  assert.match(staff,/Sin cuenta creada/);
  assert.match(staff,/Pendiente de activación/);

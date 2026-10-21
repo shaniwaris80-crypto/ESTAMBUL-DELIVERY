@@ -53,8 +53,8 @@ test("Visual styles keep hidden login-gated screens hidden",()=>{
  assert.match(track,/id="orderContent" hidden/);
 });
 test("Customer page still shows only verified ETA and private live map",()=>{
- assert.match(track,/Un enlace, todo el seguimiento/);
- assert.match(read("docs/track.js"),/No mostramos un tiempo inventado/);
+ assert.match(track,/One link for every update/);
+ assert.match(read("docs/track.js"),/We do not invent one/);
  assert.match(track,/id="liveMapPanel"[^>]*hidden/);
  assert.match(track,/noindex,nofollow,noarchive/);
 });

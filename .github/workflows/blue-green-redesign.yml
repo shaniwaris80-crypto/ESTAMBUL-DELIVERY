@@ -1,0 +1,39 @@
+name: Blue and green UI and integration guard
+on:
+  pull_request:
+    paths:
+      - 'live.html'
+      - 'rider.html'
+      - 'track.html'
+      - 'docs/ed-*.css'
+      - 'docs/ed-*.js'
+      - 'docs/track*.js'
+      - 'docs/live.js'
+      - 'docs/rider.js'
+      - 'docs/rider-profiles.js'
+      - 'apps/rider/**'
+      - 'scripts/test-blue-green-redesign.mjs'
+permissions:
+  contents: read
+jobs:
+  visual-and-preservation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check scripts
+        run: |
+          node --check docs/ed-admin.js
+          node --check docs/ed-rider-ui.js
+          node --check docs/rider.js
+          node --check docs/track.js
+          node --check docs/track-state.js
+          node --check rider-sw.js
+      - name: Check UI structure, auth boundaries and manual LastPOS assignment
+        run: |
+          node --test scripts/test-blue-green-redesign.mjs
+          node --test scripts/test-rider-profiles.mjs
+          node --test scripts/test-one-sms-waiting-pro.mjs

@@ -62,7 +62,7 @@ test("database status trigger stops enqueueing messages and Rider RPC ignores re
  assert.doesNotMatch(sql,/IF p_resend\s*=\s*true THEN/);
 });
 test("customer page uses one link with automatic refresh, never outgoing SMS",()=>{
- assert.match(trackHtml,/Un enlace, todo el seguimiento/);
+ assert.match(trackHtml,/One link for every update/);
  assert.match(trackHtml,/id="waitingTitle"/);
  assert.match(trackHtml,/id="waitingFreshness"/);
  assert.match(trackHtml,/id="progressText"/);
@@ -87,7 +87,7 @@ test("waiting copy correctly describes all real order states",()=>{
 });
 test("ETA only shows server-supplied values; no invented waiting duration",()=>{
  assert.match(trackJs,/data\.eta_minutes!=null&&Number\.isFinite\(eta\)&&eta>=0/);
- assert.match(trackJs,/No mostramos un tiempo inventado/);
+ assert.match(trackJs,/We do not invent one/);
  assert.match(trackJs,/canEstimate\s*\?/);
  assert.doesNotMatch(read("docs/track-state.js"),/eta_minutes:|fetch\(|setInterval/);
 });
