@@ -82,3 +82,31 @@ test("only admin can authorize five rider emails; passwords are chosen by Riders
  assert.match(sql,/grant execute on function public\.ed_admin_authorize_rider_email\(integer,text\) to authenticated/);
  assert.match(html,/Crear cuenta Rider/);
 });
+
+test("Back Office recovery requires a verified recovery token and preserves admin membership",()=>{
+ const recovery=read("docs/admin-email-recovery.js");
+ const html=read("live.html");
+ const js=read("docs/live.js");
+ for(const id of ["forgotPasswordButton","recoveryEmailStatus","passwordRecoveryForm","recoveryNewPassword","recoveryConfirmPassword"])
+   assert.match(html,new RegExp('id="'+id+'"'));
+ assert.match(recovery,/auth\/v1\/recover/);
+ assert.match(recovery,/auth\/v1\/verify/);
+ assert.match(recovery,/auth\/v1\/user/);
+ assert.match(recovery,/ed_members\?select=role/);
+ assert.match(recovery,/window\.history\.replaceState/);
+ assert.doesNotMatch(recovery,/service_role_key|SUPABASE_SERVICE_ROLE_KEY|TWILIO_AUTH_TOKEN/i);
+ assert.match(js,/ESTAMBUL_ADMIN_RECOVERY/);
+});
+test("Last health read-only RPC is staff-scoped, reports real events, never sends messages",()=>{
+ const sql=read("supabase/migrations/025_staff_last_health.sql");
+ const op=read("docs/live.js");
+ const admin=read("docs/ed-admin.js");
+ assert.match(sql,/ed_staff_last_health/);
+ assert.match(sql,/auth\.uid\(\)/);
+ assert.match(sql,/m\.role in \('admin','dispatcher'\)/);
+ assert.match(sql,/e\.received_at>l\.updated_at/);
+ assert.match(sql,/revoke all on function public\.ed_staff_last_health/);
+ assert.doesNotMatch(sql,/insert into|update public\.ed_orders|delete from|twilio/i);
+ assert.match(op,/\/rest\/v1\/rpc\/ed_staff_last_health/);
+ assert.match(admin,/id="edLastHealth"/);
+});
