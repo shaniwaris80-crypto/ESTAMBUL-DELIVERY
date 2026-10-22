@@ -132,7 +132,7 @@ test("Auth 400 with unconfirmed email is actionable and confirmation resend is u
  assert.match(backoffice,/type:"signup",email/);
  assert.match(backoffice,/el\("resendSignupEmail"\)\.hidden=false/);
  assert.match(html,/id="resendSignupEmail"/);
- assert.match(html,/docs\/live\.js\?v=27/);
+ assert.match(html,/docs\/live\.js\?v=28/);
  assert.doesNotMatch(backoffice,/SUPABASE_SERVICE_ROLE_KEY|email_confirm:\s*true/);
 });
 
@@ -157,5 +157,26 @@ test("Back Office authenticates even when an optional admin section is absent",(
  assert.equal(widgets.get("loginSection").hidden,true);
  assert.equal(widgets.get("staffView").hidden,false);
  assert.equal(widgets.get("connection").textContent,"Conectado");
- assert.match(read("live.html"),/docs\/live\.js\?v=27/);
+ assert.match(read("live.html"),/docs\/live\.js\?v=28/);
+});
+
+test("optional admin DOM button controls never block authenticated Back Office",()=>{
+ const js=read("docs/live.js");
+ assert.match(js,/function setDisabled\(id,value\)/);
+ assert.match(js,/if\(node\)node\.disabled=Boolean\(value\)/);
+ assert.match(js,/function setTextIfPresent\(id,text\)/);
+ for(const id of ["resetOperationsButton","restoreOperationsButton","signUpButton","signInButton","sendInvitations"]){
+   assert.doesNotMatch(js,new RegExp('el\\("'+id+'"\\)\\.disabled\\s*='));
+   assert.match(js,new RegExp('setDisabled\\("'+id+'"'));
+ }
+ for(const id of ["resetOperationsButton","restoreOperationsButton","signUpButton","sendInvitations"]){
+   assert.match(js,new RegExp('el\\("'+id+'"\\)\\?\\.addEventListener'));
+ }
+ const helper=js.slice(js.indexOf('function setDisabled('),js.indexOf('function setTextIfPresent('));
+ const absent=()=>null;
+ assert.doesNotThrow(()=>vm.runInNewContext('const el=()=>null;'+helper+'setDisabled("resetOperationsButton",true);'));
+ const ui={disabled:false};
+ vm.runInNewContext('const el=()=>node;'+helper+'setDisabled("resetOperationsButton",true);',{node:ui});
+ assert.equal(ui.disabled,true);
+ assert.match(read("live.html"),/docs\/live\.js\?v=28/);
 });
