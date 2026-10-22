@@ -3,6 +3,8 @@
 const cfg=window.ESTAMBUL_SUPABASE||{},base=(cfg.url||"").replace(/\/+$/,""),key=cfg.anonKey||"";
 const ready=/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(base)&&key.length>20;
 const el=id=>document.getElementById(id);
+function setDisabled(id,value){const node=el(id);if(node)node.disabled=Boolean(value);return Boolean(node);}
+function setTextIfPresent(id,text){const node=el(id);if(node)node.textContent=text;return Boolean(node);}
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const labels={pendiente:"Pendiente",asignado:"Asignado",recogido:"Recogido",en_ruta:"En reparto",entregado:"Entregado",cancelado:"Cancelado"};
 const next={asignado:"recogido",recogido:"en_ruta",en_ruta:"entregado"};
@@ -165,11 +167,11 @@ async function reload(){
  const since=operationsEpoch?.started_at;
  const epochFilter=since?"&or=(created_at.gte."+encodeURIComponent(since)+",and(rider_id.not.is.null,status.in.(asignado,recogido,en_ruta)))":"";
  if(member.role==="admin"){
-  el("resetOperationsButton").disabled=!operationsResetReady;
-  el("restoreOperationsButton").disabled=!operationsResetReady||!operationsEpoch?.previous_started_at;
-  el("resetOperationsStatus").textContent=!operationsResetReady
+  setDisabled("resetOperationsButton",!operationsResetReady);
+  setDisabled("restoreOperationsButton",!operationsResetReady||!operationsEpoch?.previous_started_at);
+  setTextIfPresent("resetOperationsStatus",!operationsResetReady
    ?"Reinicio desactivado: falta instalar y verificar la función segura en Supabase."
-   :since?"Panel iniciado desde "+new Date(since).toLocaleString("es-ES")+". Historial completo conservado.":"Vista completa actual. No se ha reiniciado.";
+   :since?"Panel iniciado desde "+new Date(since).toLocaleString("es-ES")+". Historial completo conservado.":"Vista completa actual. No se ha reiniciado.");
  }
  const [rs,os]=await Promise.all([
   query("/rest/v1/ed_riders?select=id,user_id,display_name,online,active,phone,customer_call_enabled&account_id=eq."+q+"&order=display_name.asc"),
@@ -461,12 +463,12 @@ async function start(){
  if(!session){el("loginSection").hidden=false;el("connection").textContent="Acceso requerido";return}
  try{await identity();logged();await reload()}catch(e){session=null;persist();member=null;el("loginSection").hidden=false;message(e,true)}
 }
-el("signUpButton").addEventListener("click",async()=>{
+el("signUpButton")?.addEventListener("click",async()=>{
  if(busy)return;
  const email=el("email").value.trim(),password=el("password").value;
  if(!email||!password){message(Error("Introduce tu correo y una contraseña nueva para registrarte."),true);return;}
  if(password.length<8){message(Error("Utiliza una contraseña de al menos 8 caracteres."),true);return;}
- busy=true;clearError();el("signUpButton").disabled=true;el("signInButton").disabled=true;
+ busy=true;clearError();setDisabled("signUpButton",true);setDisabled("signInButton",true);
  try{
   // Email confirmation is required by default on hosted Supabase.
   const redirect=encodeURIComponent("https://shaniwaris80-crypto.github.io/ESTAMBUL-DELIVERY/live.html");
@@ -477,10 +479,10 @@ el("signUpButton").addEventListener("click",async()=>{
   el("signUpInfo").hidden=false;
   el("password").value="";
  }catch(e){message(e,true);}
- finally{busy=false;el("signUpButton").disabled=false;el("signInButton").disabled=false;}
+ finally{busy=false;setDisabled("signUpButton",false);setDisabled("signInButton",false);}
 });
 el("loginForm").addEventListener("submit",async e=>{
- e.preventDefault();if(busy)return;busy=true;clearError();el("signInButton").disabled=true;
+ e.preventDefault();if(busy)return;busy=true;clearError();setDisabled("signInButton",true);
  try{
   const auth=await parsed(await fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:headers(),body:JSON.stringify({email:el("email").value.trim(),password:el("password").value})}));
   session={access_token:auth.access_token,refresh_token:auth.refresh_token,expires:Date.now()+auth.expires_in*1000};persist();
@@ -491,7 +493,7 @@ el("loginForm").addEventListener("submit",async e=>{
       el("resendSignupEmail").hidden=false;
    message(err,true);
  }
- finally{busy=false;el("signInButton").disabled=false}
+ finally{busy=false;setDisabled("signInButton",false)}
 });
 
 el("resendSignupEmail").addEventListener("click",async()=>{
@@ -513,7 +515,7 @@ el("resendSignupEmail").addEventListener("click",async()=>{
  }finally{button.disabled=false}
 });
 el("logout").addEventListener("click",()=>{session=null;persist();member=null;account=null;orders=[];riders=[];el("appSection").hidden=true;el("logout").hidden=true;el("loginSection").hidden=false;el("connection").textContent="Desconectado"});
-el("sendInvitations").addEventListener("click",async()=>{
+el("sendInvitations")?.addEventListener("click",async()=>{
  if(busy||member?.role!=="admin")return;
  const rows=[1,2,3,4,5].map(n=>({number:n,email:el("riderInviteEmail"+n).value.trim().toLowerCase()}))
    .filter(row=>row.email);
@@ -526,7 +528,7 @@ el("sendInvitations").addEventListener("click",async()=>{
   el("inviteResult").hidden=false;return;
  }
  if(!window.confirm("¿Autorizar estos "+rows.length+" correos de trabajadores para los Riders indicados? Los Riders deberán confirmar su propia cuenta."))return;
- busy=true;clearError();el("sendInvitations").disabled=true;
+ busy=true;clearError();setDisabled("sendInvitations",true);
  const messages=[];let saved=0;
  try{
   for(const row of rows){
@@ -541,7 +543,7 @@ el("sendInvitations").addEventListener("click",async()=>{
   messages.push(saved+" de "+rows.length+" correos guardados. Cada Rider debe crear su cuenta y confirmar su correo desde la App Rider.");
   el("inviteResult").textContent=messages.join("\n");
   el("inviteResult").hidden=false;
- }finally{busy=false;el("sendInvitations").disabled=false;}
+ }finally{busy=false;setDisabled("sendInvitations",false);}
 });
 
 el("brandForm").addEventListener("submit",e=>{
@@ -674,7 +676,7 @@ el("editForm").addEventListener("submit",e=>{
   el("editCard").hidden=true;
  });
 });
-el("resetOperationsButton").addEventListener("click",()=>{
+el("resetOperationsButton")?.addEventListener("click",()=>{
  if(busy||member?.role!=="admin"||!operationsResetReady)return;
  const active=orders.filter(o=>o.rider_id&&["asignado","recogido","en_ruta"].includes(o.status));
  if(active.length){message(Error("Hay "+active.length+" entregas asignadas en curso. Finalízalas antes del reinicio."));return;}
@@ -684,17 +686,17 @@ el("resetOperationsButton").addEventListener("click",()=>{
   const result=await query("/rest/v1/rpc/ed_reset_operations_view",{
    method:"POST",body:JSON.stringify({p_account_id:member.account_id,p_confirmation:"REINICIAR"})
   });
-  el("resetOperationsStatus").textContent=result?.message||"Vista reiniciada. Los pedidos históricos siguen guardados.";
+  setTextIfPresent("resetOperationsStatus",result?.message||"Vista reiniciada. Los pedidos históricos siguen guardados.");
  });
 });
-el("restoreOperationsButton").addEventListener("click",()=>{
+el("restoreOperationsButton")?.addEventListener("click",()=>{
  if(busy||member?.role!=="admin"||!operationsResetReady||!operationsEpoch?.previous_started_at)return;
  if(window.prompt("Para recuperar los pedidos anteriores en las pantallas escribe RESTAURAR:")!=="RESTAURAR")return;
  void operation(async()=>{
   const result=await query("/rest/v1/rpc/ed_restore_operations_view",{
    method:"POST",body:JSON.stringify({p_account_id:member.account_id,p_confirmation:"RESTAURAR"})
   });
-  el("resetOperationsStatus").textContent=result?.message||"Vista anterior restaurada.";
+  setTextIfPresent("resetOperationsStatus",result?.message||"Vista anterior restaurada.");
  });
 });
 el("refresh").addEventListener("click",()=>void operation(async()=>{}));
