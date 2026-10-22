@@ -138,7 +138,15 @@ async function identity(){
 function logged(){
  el("loginSection").hidden=true;el("appSection").hidden=false;el("logout").hidden=false;el("noConfig").hidden=true;
  const staff=member.role!=="rider";
- el("staffView").hidden=!staff;el("riderView").hidden=staff;el("inviteCard").hidden=member.role!=="admin";el("operationsResetCard").hidden=member.role!=="admin";
+ const staffView=el("staffView"),riderView=el("riderView");
+ if(!staffView||!riderView)throw Error("No se pudieron cargar las vistas del panel. Actualiza la página para obtener la versión nueva.");
+ staffView.hidden=!staff;riderView.hidden=staff;
+ // Optional admin cards may be absent in a partially cached/migrated layout.
+ // Never abort an authenticated admin session over an optional UI section.
+ const inviteCard=el("inviteCard");
+ if(inviteCard)inviteCard.hidden=member.role!=="admin";
+ const operationsResetCard=el("operationsResetCard");
+ if(operationsResetCard)operationsResetCard.hidden=member.role!=="admin";
  el("accountLabel").textContent=account.name+" · "+member.role.toUpperCase();
  el("viewTitle").textContent=staff?"Centro de reparto":"Mis entregas";
  el("viewSub").textContent="Sincronizado con Last.app y Supabase · actualización cada 5 segundos";
