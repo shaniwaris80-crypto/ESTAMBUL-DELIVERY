@@ -61,8 +61,23 @@ document.addEventListener("click",event=>{
 try{session=JSON.parse(sessionStorage.getItem(storage)||"null")}catch{}
 function persist(){if(session)sessionStorage.setItem(storage,JSON.stringify(session));else sessionStorage.removeItem(storage)}
 function message(e,login=false){const box=el(login?"loginError":"errorBox");box.textContent=e.message||String(e);box.hidden=false;}
-function clearError(){el("loginError").hidden=true;el("errorBox").hidden=true}
-async function parsed(r){const raw=await r.text();let o=null;try{o=JSON.parse(raw)}catch{o=raw}if(!r.ok)throw Error(o?.message||o?.error_description||o?.error||"HTTP "+r.status);return o}
+function clearError(){el("loginError").hidden=true;el("errorBox").hidden=true;el("resendSignupEmail").hidden=true;el("resendSignupStatus").hidden=true}
+async function parsed(r){
+ const raw=await r.text();let o=null;try{o=JSON.parse(raw)}catch{o=raw}
+ if(!r.ok){
+   // GoTrue frequently returns {code,msg,error_code}, not {message}.
+   // Do not collapse useful auth diagnostics into an opaque "HTTP 400".
+   const code=String(o?.error_code||o?.code||"");
+   const detail=String(o?.message||o?.error_description||o?.msg||o?.error||"").trim();
+   const err=new Error(/email_not_confirmed|email not confirmed/i.test(code+" "+detail)
+     ?"Correo sin confirmar. Revisa el correo de confirmación o solicita reenviarlo. Para entrar como administrador utiliza exclusivamente tu cuenta autorizada."
+     :/invalid_credentials|invalid login credentials/i.test(code+" "+detail)
+       ?"Correo o contraseña incorrectos. Comprueba el correo de administrador autorizado o utiliza Recuperar contraseña."
+       :detail||"No se pudo completar la solicitud (HTTP "+r.status+").");
+   err.code=code;throw err;
+ }
+ return o;
+}
 function headers(){return {"apikey":key,"Content-Type":"application/json"}}
 async function newToken(){
  if(!session?.refresh_token)throw Error("Sesión caducada");
@@ -462,8 +477,32 @@ el("loginForm").addEventListener("submit",async e=>{
   const auth=await parsed(await fetch(base+"/auth/v1/token?grant_type=password",{method:"POST",headers:headers(),body:JSON.stringify({email:el("email").value.trim(),password:el("password").value})}));
   session={access_token:auth.access_token,refresh_token:auth.refresh_token,expires:Date.now()+auth.expires_in*1000};persist();
   await identity();logged();await reload();el("password").value="";
- }catch(err){session=null;persist();member=null;el("loginSection").hidden=false;message(err,true)}
+ }catch(err){
+   session=null;persist();member=null;el("loginSection").hidden=false;
+   if(err?.code==="email_not_confirmed"||/email not confirmed|correo sin confirmar/i.test(err?.message||""))
+      el("resendSignupEmail").hidden=false;
+   message(err,true);
+ }
  finally{busy=false;el("signInButton").disabled=false}
+});
+
+el("resendSignupEmail").addEventListener("click",async()=>{
+ const input=el("email"),email=input.value.trim().toLowerCase();
+ if(!email||!input.checkValidity()){input.reportValidity();return;}
+ const button=el("resendSignupEmail");
+ button.disabled=true;el("resendSignupStatus").hidden=false;
+ el("resendSignupStatus").textContent="Solicitando confirmación…";
+ try{
+   const redirect=encodeURIComponent(window.location.origin+window.location.pathname);
+   await parsed(await fetch(base+"/auth/v1/resend?redirect_to="+redirect,{
+     method:"POST",headers:headers(),cache:"no-store",
+     body:JSON.stringify({type:"signup",email})
+   }));
+   el("resendSignupStatus").textContent="Si el registro está pendiente de confirmar, recibirás un nuevo correo. Abre el enlace y vuelve a iniciar sesión.";
+ }catch(error){
+   el("resendSignupStatus").textContent=(error?.message||"No se pudo reenviar la confirmación.")+
+     " Comprueba la bandeja de correo y los límites del proveedor.";
+ }finally{button.disabled=false}
 });
 el("logout").addEventListener("click",()=>{session=null;persist();member=null;account=null;orders=[];riders=[];el("appSection").hidden=true;el("logout").hidden=true;el("loginSection").hidden=false;el("connection").textContent="Desconectado"});
 el("sendInvitations").addEventListener("click",async()=>{

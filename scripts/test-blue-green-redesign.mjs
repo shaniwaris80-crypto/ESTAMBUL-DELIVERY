@@ -122,3 +122,16 @@ test("Rider can request email recovery without saving passwords",()=>{
  assert.match(rider,/window\.history\.replaceState/);
  assert.doesNotMatch(read("rider-sw.js"),/ed_orders|access_token|refresh_token|service_role/i);
 });
+
+test("Auth 400 with unconfirmed email is actionable and confirmation resend is user initiated",()=>{
+ const backoffice=read("docs/live.js");
+ const html=read("live.html");
+ assert.match(backoffice,/o\?\.msg/);
+ assert.match(backoffice,/email_not_confirmed/);
+ assert.match(backoffice,/auth\/v1\/resend\?redirect_to=/);
+ assert.match(backoffice,/type:"signup",email/);
+ assert.match(backoffice,/el\("resendSignupEmail"\)\.hidden=false/);
+ assert.match(html,/id="resendSignupEmail"/);
+ assert.match(html,/docs\/live\.js\?v=26/);
+ assert.doesNotMatch(backoffice,/SUPABASE_SERVICE_ROLE_KEY|email_confirm:\s*true/);
+});
