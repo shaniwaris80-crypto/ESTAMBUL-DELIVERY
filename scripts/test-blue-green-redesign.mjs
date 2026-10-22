@@ -132,7 +132,7 @@ test("Auth 400 with unconfirmed email is actionable and confirmation resend is u
  assert.match(backoffice,/type:"signup",email/);
  assert.match(backoffice,/el\("resendSignupEmail"\)\.hidden=false/);
  assert.match(html,/id="resendSignupEmail"/);
- assert.match(html,/docs\/live\.js\?v=26/);
+ assert.match(html,/docs\/live\.js\?v=27/);
  assert.doesNotMatch(backoffice,/SUPABASE_SERVICE_ROLE_KEY|email_confirm:\s*true/);
 });
 
