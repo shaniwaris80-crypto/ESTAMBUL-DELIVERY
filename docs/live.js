@@ -493,7 +493,7 @@ el("loginForm").addEventListener("submit",async e=>{
       el("resendSignupEmail").hidden=false;
    message(err,true);
  }
- finally{busy=false;setDisabled("signInButton",false})
+ finally{busy=false;setDisabled("signInButton",false)}
 });
 
 el("resendSignupEmail").addEventListener("click",async()=>{
