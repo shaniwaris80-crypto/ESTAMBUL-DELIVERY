@@ -135,3 +135,27 @@ test("Auth 400 with unconfirmed email is actionable and confirmation resend is u
  assert.match(html,/docs\/live\.js\?v=26/);
  assert.doesNotMatch(backoffice,/SUPABASE_SERVICE_ROLE_KEY|email_confirm:\s*true/);
 });
+
+test("Back Office authenticates even when an optional admin section is absent",()=>{
+ const source=read("docs/live.js");
+ const start=source.indexOf("function logged(){");
+ const end=source.indexOf("async function reload(){",start);
+ assert.ok(start>=0&&end>start);
+ const fn=source.slice(start,end);
+ const widgets=new Map([
+  ["loginSection",{hidden:false}],["appSection",{hidden:true}],["logout",{hidden:true}],
+  ["noConfig",{hidden:false}],["staffView",{hidden:true}],["riderView",{hidden:true}],
+  ["accountLabel",{textContent:""}],["viewTitle",{textContent:""}],
+  ["viewSub",{textContent:""}],["connection",{textContent:""}]
+ ]);
+ const el=id=>widgets.get(id)||null;
+ // Historical mobile cached HTML may omit inviteCard and operationsResetCard.
+ assert.doesNotThrow(()=>vm.runInNewContext(fn+"\nlogged();",{
+   el,member:{role:"admin"},account:{name:"ESTAMBUL DELIVERY"}
+ }));
+ assert.equal(widgets.get("appSection").hidden,false);
+ assert.equal(widgets.get("loginSection").hidden,true);
+ assert.equal(widgets.get("staffView").hidden,false);
+ assert.equal(widgets.get("connection").textContent,"Conectado");
+ assert.match(read("live.html"),/docs\/live\.js\?v=27/);
+});
