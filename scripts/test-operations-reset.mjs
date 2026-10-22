@@ -44,7 +44,8 @@ test("admin UI presents two separately guarded actions, not automatic reset",()=
 });
 test("admin reset control is disabled while backend migration is absent",()=>{
  assert.match(back,/operationsResetReady=false/);
- assert.match(back,/el\("resetOperationsButton"\)\.disabled=!operationsResetReady/);
+ assert.match(back,/setDisabled\("resetOperationsButton",!operationsResetReady\)/);
+ assert.match(back,/function setDisabled\(id,value\)\{const node=el\(id\);if\(node\)node.disabled=Boolean\(value\)/);
  assert.match(back,/falta instalar y verificar la función segura en Supabase/);
 });
 test("manager order query restricts current period, while historical shift closures remain",()=>{
