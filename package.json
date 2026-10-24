@@ -1,0 +1,1 @@
+{"name":"estambul-delivery","version":"0.1.0","private":true,"type":"module","scripts":{"test":"node --test tests/*.test.mjs","check":"node --check web/app.mjs && node --check backend/core.mjs && node --check backend/api.mjs && node --check backend/last.mjs"},"engines":{"node":">=22"},"dependencies":{"leaflet":"1.9.4"}}

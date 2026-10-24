@@ -1,0 +1,1 @@
+export const config={url:'https://rknxqlijcgpbecoophva.supabase.co',key:'sb_publishable_WGb4eO7lzvq8UjcQDuypQQ_yZQVU-jK',api:'https://rknxqlijcgpbecoophva.supabase.co/functions/v1/dm-api',environment:'pruebas'};
